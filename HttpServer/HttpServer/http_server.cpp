@@ -27,6 +27,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+
 #include "jpg_compress.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
@@ -95,7 +96,8 @@ path_cat(
     result.append(path.data(), path.size());
 #endif
     //return result;
-    return std::move("D:/work/g32def.bmp");
+    //return "D:/work/g32def.bmp";
+    return "D:/work/Skin.jpg";
 }
 
 // This function produces an HTTP response for the given
@@ -166,37 +168,19 @@ template<
     if (req.target().back() == '/')
         path.append("index.html");
 
-    // Attempt to open the file
-    beast::error_code ec;
-    //http::file_body::value_type body;
-    //body.open(path.c_str(), beast::file_mode::scan, ec);
+    const size_t nSize = 196608;  // 196608 = 256 * 256 * 3
+	unsigned char buff[nSize];
+	memset(buff, 128, nSize);
 
-    boost::beast::file_win32 file;
-    char buff[32512];
-    memset(buff, 128, 32512);
-    size_t n = 32512;
-    //file.open(path.c_str(), beast::file_mode::scan, ec);
-    //auto const nread = file.read(buff, n, ec);
-    //if (nread == 0)
-    //{
-    //    ec = boost::beast::http::error::short_read;
-    //}
+    void* pDstBuffer;
+    unsigned long nDstLength = 0;
+    JpgCompress jpgCompress;
+    jpgCompress.Compress(buff, 256, 256, &pDstBuffer, &nDstLength);
 
     http::buffer_body::value_type body;
-    body.data = buff;
-    body.size = 32512/*nread*/;
+    body.data = pDstBuffer;
+    body.size = nDstLength;
     body.more = false;
-
-    // Handle the case where the file doesn't exist
-    if (ec == beast::errc::no_such_file_or_directory)
-        return send(not_found(req.target()));
-
-    // Handle an unknown error
-    if (ec)
-        return send(server_error(ec.message()));
-
-    // Cache the size since we need it after the move
-    auto const size = 32512/*body.size()*/;
 
     // Respond to HEAD request
     if (req.method() == http::verb::head)
@@ -204,7 +188,7 @@ template<
         http::response<http::empty_body> res{ http::status::ok, req.version() };
         res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
         res.set(http::field::content_type, mime_type(path));
-        res.content_length(size);
+        res.content_length(nDstLength);
         res.keep_alive(req.keep_alive());
         return send(std::move(res));
     }
@@ -215,10 +199,12 @@ template<
         std::make_tuple(std::move(body)),
         std::make_tuple(http::status::ok, req.version()) };
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-    res.set(http::field::content_type, mime_type(path));
-    res.content_length(size);
+    res.set(http::field::content_type, "image/jpeg"/*mime_type(path)*/);
+    res.content_length(nDstLength);
     res.keep_alive(req.keep_alive());
-    return send(std::move(res));
+    send(std::move(res));
+
+    free(pDstBuffer);
 }
 
 //------------------------------------------------------------------------------
@@ -470,8 +456,6 @@ private:
 
 int main(int argc, char* argv[])
 {
-
-
     // Check command line arguments.
     if (argc != 5)
     {
