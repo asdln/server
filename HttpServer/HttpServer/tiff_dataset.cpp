@@ -52,7 +52,7 @@ bool TiffDataset::Read(const Envelop& env, void* pData, int width, int height, P
 
 	if (dImgLeft >= nRasterWidth || dImgRight < 0.0 || dImgTop >= nRasterHeight || dImgBottom < 0.0)
 	{
-		memset(poDataset_, 255, width * height * GetPixelDataTypeSize(pixelType));
+		memset(pData, 255, width * height * GetPixelDataTypeSize(pixelType));
 		return true;
 	}
 
