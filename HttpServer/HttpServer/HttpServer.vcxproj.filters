@@ -24,12 +24,36 @@
     <ClCompile Include="jpg_compress.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="utility.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="dataset_interface.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="common.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="tiff_dataset.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="compress_interface.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="jpg_compress.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="utility.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="dataset_interface.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="common.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="tiff_dataset.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

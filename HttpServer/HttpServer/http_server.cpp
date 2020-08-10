@@ -29,6 +29,8 @@
 #include <vector>
 
 #include "jpg_compress.h"
+#include "utility.h"
+#include "tiff_dataset.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
@@ -95,9 +97,7 @@ path_cat(
         result.resize(result.size() - 1);
     result.append(path.data(), path.size());
 #endif
-    //return result;
-    //return "D:/work/g32def.bmp";
-    return "D:/work/Skin.jpg";
+    return result;
 }
 
 // This function produces an HTTP response for the given
@@ -165,12 +165,27 @@ template<
 
     // Build the path to the requested file
     std::string path = path_cat(doc_root, req.target());
-    if (req.target().back() == '/')
-        path.append("index.html");
+    //if (req.target().back() == '/')
+    //    path.append("index.html");
+
+    int nx = 0;
+    int ny = 0;
+    int nz = 0;
+
+    Envelop env;
+
+    GetTileIndex(std::string(req.target()), nx, ny, nz);
+    GetEnvFromTileIndex(nx, ny, nz, env);
 
     const size_t nSize = 196608;  // 196608 = 256 * 256 * 3
 	unsigned char buff[nSize];
-	memset(buff, 128, nSize);
+	memset(buff, 255, nSize);
+
+    int nTileSize = 256;
+
+	TiffDataset tiffDataset;
+	tiffDataset.Open("D:/work/world.tif");
+    tiffDataset.Read(env, buff, nTileSize, nTileSize, PIXEL_TYPE_RGB);
 
     void* pDstBuffer;
     unsigned long nDstLength = 0;
@@ -187,7 +202,7 @@ template<
     {
         http::response<http::empty_body> res{ http::status::ok, req.version() };
         res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-        res.set(http::field::content_type, mime_type(path));
+        res.set(http::field::content_type, "image/jpeg"/*mime_type(path)*/);
         res.content_length(nDstLength);
         res.keep_alive(req.keep_alive());
         return send(std::move(res));
