@@ -17,3 +17,5 @@ struct Envelop
 void GetEnvFromTileIndex(int nx, int ny, int nz, Envelop& env);
 
 bool GetTileIndex(const std::string& path, int& nx, int& ny, int& nz);
+
+void GetInfo(const std::string& path, Envelop& env, std::string& filePath);

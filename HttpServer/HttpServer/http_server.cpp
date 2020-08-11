@@ -168,14 +168,9 @@ template<
     //if (req.target().back() == '/')
     //    path.append("index.html");
 
-    int nx = 0;
-    int ny = 0;
-    int nz = 0;
-
     Envelop env;
-
-    GetTileIndex(std::string(req.target()), nx, ny, nz);
-    GetEnvFromTileIndex(nx, ny, nz, env);
+    std::string filePath = "";
+    GetInfo(std::string(req.target()), env, filePath);
 
     const size_t nSize = 196608;  // 196608 = 256 * 256 * 3
     //const size_t nSize = 262144;  // 262144 = 256 * 256 * 4
@@ -183,9 +178,8 @@ template<
 	memset(buff, 255, nSize);
 
     int nTileSize = 256;
-
 	TiffDataset tiffDataset;
-	tiffDataset.Open("D:/work/world.tif");
+	tiffDataset.Open(filePath);
     tiffDataset.Read(env, buff, nTileSize, nTileSize, PIXEL_TYPE_RGB);
 
     void* pDstBuffer;

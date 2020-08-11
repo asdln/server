@@ -32,6 +32,17 @@ void split(const std::string& s, std::vector<std::string>& tokens, const std::st
 	}
 }
 
+void GetInfo(const std::string& path, Envelop& env, std::string& filePath)
+{
+	int nx = 0;
+	int ny = 0;
+	int nz = 0;
+
+	GetTileIndex(path, nx, ny, nz);
+	GetEnvFromTileIndex(nx, ny, nz, env);
+	filePath = "d:/work/world.tif";
+}
+
 bool GetTileIndex(const std::string& path, int& nx, int& ny, int& nz)
 {
 	std::vector<std::string> tokens;
