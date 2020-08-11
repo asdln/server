@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="源文件\dataset">
+      <UniqueIdentifier>{d666ef39-27f5-48bc-8cf9-3d782800925b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="compress_interface.cpp">
@@ -27,17 +30,14 @@
     <ClCompile Include="utility.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="dataset_interface.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="common.cpp">
+    <ClCompile Include="data_processor.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="tiff_dataset.cpp">
-      <Filter>源文件</Filter>
+      <Filter>源文件\dataset</Filter>
     </ClCompile>
-    <ClCompile Include="data_processor.cpp">
-      <Filter>源文件</Filter>
+    <ClCompile Include="dataset_interface.cpp">
+      <Filter>源文件\dataset</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -51,9 +51,6 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="dataset_interface.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="common.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="tiff_dataset.h">

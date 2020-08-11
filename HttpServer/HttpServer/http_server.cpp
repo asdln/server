@@ -198,7 +198,7 @@ template<
 
     res.content_length(nDataSize);
     res.keep_alive(req.keep_alive());
-    send(std::move(res));
+    return send(std::move(res));
 }
 
 //------------------------------------------------------------------------------

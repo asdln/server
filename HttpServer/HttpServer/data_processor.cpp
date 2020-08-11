@@ -3,6 +3,8 @@
 #include "tiff_dataset.h"
 #include "jpg_compress.h"
 
+#include "gdal_priv.h"
+
 DataProcessor::DataProcessor()
 {
 	pDstBuffer_ = nullptr;
@@ -12,6 +14,10 @@ bool DataProcessor::GetData(const std::string& target, void** pData, unsigned lo
 {
 	Envelop env;
 	std::string filePath = "";
+
+	OGRSpatialReference* pDefaultSpatialReference = (OGRSpatialReference*)OSRNewSpatialReference(
+		"GEOGCS[\"GCS_WGS_1984\",DATUM[\"D_WGS_1984\",SPHEROID[\"WGS_1984\",6378137,298.257223563]],PRIMEM[\"Greenwich\",0],UNIT[\"Degree\",0.017453292519943295]]");
+
 	GetInfo(target, env, filePath);
 
 	const size_t nSize = 196608;  // 196608 = 256 * 256 * 3
@@ -34,6 +40,8 @@ bool DataProcessor::GetData(const std::string& target, void** pData, unsigned lo
 	jpgCompress.Compress(buff, 256, 256, &pDstBuffer_, nDataBytes);
 
 	*pData = pDstBuffer_;
+
+	OSRDestroySpatialReference(pDefaultSpatialReference);
 
 	return true;
 }
