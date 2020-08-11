@@ -6,7 +6,7 @@ class CompressInterface
 {
 public:
 
-	virtual bool Compress(void* lpBmpBuffer, int nWidth, int nHeight, void** ppJpegBuffer, unsigned long* pOutSize) = 0;
+	virtual bool Compress(void* lpBmpBuffer, int nWidth, int nHeight, void** ppJpegBuffer, unsigned long& pOutSize) = 0;
 	
 };
 

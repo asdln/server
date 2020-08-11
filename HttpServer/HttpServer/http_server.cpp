@@ -28,9 +28,7 @@
 #include <thread>
 #include <vector>
 
-#include "jpg_compress.h"
-#include "utility.h"
-#include "tiff_dataset.h"
+#include "data_processor.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
@@ -163,47 +161,25 @@ template<
         req.target().find("..") != beast::string_view::npos)
         return send(bad_request("Illegal request-target"));
 
-    // Build the path to the requested file
-    std::string path = path_cat(doc_root, req.target());
-    //if (req.target().back() == '/')
-    //    path.append("index.html");
+    void* pData = nullptr;
+    unsigned long nDataSize = 0;
+    std::string mimeType = "image/jpeg";
 
-    Envelop env;
-    std::string filePath = "";
-    GetInfo(std::string(req.target()), env, filePath);
-
-    const size_t nSize = 196608;  // 196608 = 256 * 256 * 3
-    //const size_t nSize = 262144;  // 262144 = 256 * 256 * 4
-	unsigned char buff[nSize];
-	memset(buff, 255, nSize);
-
-    int nTileSize = 256;
-	TiffDataset tiffDataset;
-	tiffDataset.Open(filePath);
-    tiffDataset.Read(env, buff, nTileSize, nTileSize, PIXEL_TYPE_RGB);
-
-    void* pDstBuffer;
-    unsigned long nDstLength = 0;
-    JpgCompress jpgCompress;
-    jpgCompress.Compress(buff, 256, 256, &pDstBuffer, &nDstLength);
+    DataProcessor processor;
+    processor.GetData(std::string(req.target()), &pData, nDataSize, mimeType);
 
 	http::buffer_body::value_type body;
-	body.data = pDstBuffer;
-	body.size = nDstLength;
+	body.data = pData;
+	body.size = nDataSize;
 	body.more = false;
-
-    //beast::error_code ec;
-	//http::file_body::value_type body;
-	//body.open("d:/work/boy.png", beast::file_mode::scan, ec);
-    //nDstLength = body.size();
 
     // Respond to HEAD request
     if (req.method() == http::verb::head)
     {
         http::response<http::empty_body> res{ http::status::ok, req.version() };
         res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-        res.set(http::field::content_type, "image/jpeg"/*mime_type(path)*/);
-        res.content_length(nDstLength);
+        res.set(http::field::content_type, mimeType/*mime_type(path)*/);
+        res.content_length(nDataSize);
         res.keep_alive(req.keep_alive());
         return send(std::move(res));
     }
@@ -214,17 +190,15 @@ template<
         std::make_tuple(std::move(body)),
         std::make_tuple(http::status::ok, req.version()) };
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-    res.set(http::field::content_type, "image/jpeg"/*mime_type(path)*/);
+    res.set(http::field::content_type, mimeType/*mime_type(path)*/);
 
     res.set(http::field::access_control_allow_origin, "*");
     res.set(http::field::access_control_allow_methods, "POST, GET, OPTIONS, DELETE");
     res.set(http::field::access_control_allow_credentials, "true");
 
-    res.content_length(nDstLength);
+    res.content_length(nDataSize);
     res.keep_alive(req.keep_alive());
     send(std::move(res));
-
-    free(pDstBuffer);
 }
 
 //------------------------------------------------------------------------------

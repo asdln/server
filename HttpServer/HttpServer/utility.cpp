@@ -32,6 +32,11 @@ void split(const std::string& s, std::vector<std::string>& tokens, const std::st
 	}
 }
 
+bool LoadData(const std::string& path)
+{
+	return true;
+}
+
 void GetInfo(const std::string& path, Envelop& env, std::string& filePath)
 {
 	int nx = 0;

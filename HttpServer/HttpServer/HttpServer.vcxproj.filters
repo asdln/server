@@ -36,6 +36,9 @@
     <ClCompile Include="tiff_dataset.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="data_processor.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="compress_interface.h">
@@ -54,6 +57,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="tiff_dataset.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="data_processor.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

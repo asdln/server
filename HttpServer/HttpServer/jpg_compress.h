@@ -8,7 +8,7 @@ class JpgCompress :
 {
 public:
 
-    virtual bool Compress(void* lpBmpBuffer, int nWidth, int nHeight, void** ppJpegBuffer, unsigned long* pOutSize) override;
+    virtual bool Compress(void* lpBmpBuffer, int nWidth, int nHeight, void** ppJpegBuffer, unsigned long& pOutSize) override;
 };
 
 #endif //HTTPSERVER_JPGCOMPRESS_H_

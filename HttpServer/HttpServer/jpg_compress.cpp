@@ -8,7 +8,7 @@ void error_exit(j_common_ptr cinfo) {
 	fprintf(stderr, "JpgCompress error\n", "http_server");
 }
 
-bool JpgCompress::Compress(void* srcbuffer, int nSrcWidth, int nSrcHeight, void** dstBuffer, unsigned long* pOutSize)
+bool JpgCompress::Compress(void* srcbuffer, int nSrcWidth, int nSrcHeight, void** dstBuffer, unsigned long& pOutSize)
 {
 	jpeg_compress_struct toWriteInfo;
 	jpeg_error_mgr errorMgr;
@@ -19,7 +19,7 @@ bool JpgCompress::Compress(void* srcbuffer, int nSrcWidth, int nSrcHeight, void*
 	jpeg_create_compress(&toWriteInfo);
 
 	//确定要用于输出压缩的jpeg的数据空间
-	jpeg_mem_dest(&toWriteInfo, (unsigned char**)dstBuffer, pOutSize);
+	jpeg_mem_dest(&toWriteInfo, (unsigned char**)dstBuffer, &pOutSize);
 
 	toWriteInfo.image_width = nSrcWidth;
 	toWriteInfo.image_height = nSrcHeight;

@@ -18,4 +18,6 @@ void GetEnvFromTileIndex(int nx, int ny, int nz, Envelop& env);
 
 bool GetTileIndex(const std::string& path, int& nx, int& ny, int& nz);
 
+bool LoadData(const std::string& path);
+
 void GetInfo(const std::string& path, Envelop& env, std::string& filePath);
