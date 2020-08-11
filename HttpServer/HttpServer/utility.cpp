@@ -54,15 +54,15 @@ bool GetTileIndex(const std::string& path, int& nx, int& ny, int& nz)
 			split(param, keyValue, "=");
 			if (keyValue.size() == 2)
 			{
-				if (keyValue[0].compare("x") == 0 || keyValue[0].compare("X") == 0)
+				if (keyValue[0].compare("x") == 0 || keyValue[0].compare("X") == 0 || keyValue[0].compare("TILECOL") == 0)
 				{
 					nx = atoi(keyValue[1].c_str());
 				}
-				else if (keyValue[0].compare("y") == 0 || keyValue[0].compare("Y") == 0)
+				else if (keyValue[0].compare("y") == 0 || keyValue[0].compare("Y") == 0 || keyValue[0].compare("TILEROW") == 0)
 				{
 					ny = atoi(keyValue[1].c_str());
 				}
-				else if (keyValue[0].compare("z") == 0 || keyValue[0].compare("Z") == 0)
+				else if (keyValue[0].compare("z") == 0 || keyValue[0].compare("Z") == 0 || keyValue[0].compare("TILEMATRIX") == 0)
 				{
 					nz = atoi(keyValue[1].c_str());
 				}

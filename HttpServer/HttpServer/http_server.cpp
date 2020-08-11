@@ -178,6 +178,7 @@ template<
     GetEnvFromTileIndex(nx, ny, nz, env);
 
     const size_t nSize = 196608;  // 196608 = 256 * 256 * 3
+    //const size_t nSize = 262144;  // 262144 = 256 * 256 * 4
 	unsigned char buff[nSize];
 	memset(buff, 255, nSize);
 
@@ -192,10 +193,15 @@ template<
     JpgCompress jpgCompress;
     jpgCompress.Compress(buff, 256, 256, &pDstBuffer, &nDstLength);
 
-    http::buffer_body::value_type body;
-    body.data = pDstBuffer;
-    body.size = nDstLength;
-    body.more = false;
+	http::buffer_body::value_type body;
+	body.data = pDstBuffer;
+	body.size = nDstLength;
+	body.more = false;
+
+    //beast::error_code ec;
+	//http::file_body::value_type body;
+	//body.open("d:/work/boy.png", beast::file_mode::scan, ec);
+    //nDstLength = body.size();
 
     // Respond to HEAD request
     if (req.method() == http::verb::head)
@@ -215,6 +221,11 @@ template<
         std::make_tuple(http::status::ok, req.version()) };
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
     res.set(http::field::content_type, "image/jpeg"/*mime_type(path)*/);
+
+    res.set(http::field::access_control_allow_origin, "*");
+    res.set(http::field::access_control_allow_methods, "POST, GET, OPTIONS, DELETE");
+    res.set(http::field::access_control_allow_credentials, "true");
+
     res.content_length(nDstLength);
     res.keep_alive(req.keep_alive());
     send(std::move(res));

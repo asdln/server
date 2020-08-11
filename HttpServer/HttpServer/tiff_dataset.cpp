@@ -21,9 +21,9 @@ bool TiffDataset::Projection2ImageRowCol(double* adfGeoTransform, double dProjX,
 		double dTemp = adfGeoTransform[1] * adfGeoTransform[5] - adfGeoTransform[2] * adfGeoTransform[4];
 		
 		dCol = (adfGeoTransform[5] * (dProjX - adfGeoTransform[0]) -
-			adfGeoTransform[2] * (dProjY - adfGeoTransform[3])) / dTemp + 0.5;
+			adfGeoTransform[2] * (dProjY - adfGeoTransform[3])) / dTemp;
 		dRow = (adfGeoTransform[1] * (dProjY - adfGeoTransform[3]) -
-			adfGeoTransform[4] * (dProjX - adfGeoTransform[0])) / dTemp + 0.5;
+			adfGeoTransform[4] * (dProjX - adfGeoTransform[0])) / dTemp;
 
 		return true;
 	}
@@ -56,10 +56,10 @@ bool TiffDataset::Read(const Envelop& env, void* pData, int width, int height, P
 		return true;
 	}
 
-	int nImgLeft = dImgLeft;
-	int nImgTop = dImgTop;
-	int nImgRight = dImgRight;
-	int nImgBottom = dImgBottom;
+	double dAdjustLeft = dImgLeft;
+	double dAdjustTop = dImgTop;
+	double dAdjustRight = dImgRight;
+	double dAdjustBottom = dImgBottom;
 
 	int nBufferWidth = width;
 	int nBufferHeight = height;
@@ -67,17 +67,17 @@ bool TiffDataset::Read(const Envelop& env, void* pData, int width, int height, P
 	bool bNeedAdjust = false;
 	if (dImgLeft < 0.0 || dImgTop < 0.0 || dImgRight >= nRasterWidth || dImgBottom > nRasterHeight)
 	{
-		nImgLeft = dImgLeft < 0.0 ? 0.0 : dImgLeft;
-		nImgTop = dImgTop < 0.0 ? 0.0 : dImgTop;
+		dAdjustLeft = dImgLeft < 0.0 ? 0.0 : dImgLeft;
+		dAdjustTop = dImgTop < 0.0 ? 0.0 : dImgTop;
 		
-		nImgRight = dImgRight >= nRasterWidth ? nRasterWidth - 1 : dImgRight;
-		nImgBottom = dImgBottom >= nRasterHeight ? nRasterHeight - 1 : dImgBottom;
+		dAdjustRight = dImgRight > nRasterWidth ? nRasterWidth : dImgRight;
+		dAdjustBottom = dImgBottom > nRasterHeight ? nRasterHeight : dImgBottom;
 
 		bNeedAdjust = true;
 	}
 
-	int srcWidth = nImgRight - nImgLeft + 1;
-	int srcHeight = nImgBottom - nImgTop + 1;
+	int srcWidth = dAdjustRight - dAdjustLeft;
+	int srcHeight = dAdjustBottom - dAdjustTop;
 
 	if (bNeedAdjust)
 	{
@@ -89,29 +89,36 @@ bool TiffDataset::Read(const Envelop& env, void* pData, int width, int height, P
 
 	int nBandCount = 3;
 	int bandMap[3] = { 1, 2, 3 };
-	CPLErr err = poDataset_->RasterIO(GF_Read, nImgLeft, nImgTop, srcWidth, srcHeight, pData, nBufferWidth, nBufferHeight, eType, nBandCount, bandMap, 3, 3 * nBufferWidth, 1);
-
+	
 	if (bNeedAdjust)
 	{
+		char* pTempBuffer = new char[nBufferWidth * nBufferHeight * GetPixelDataTypeSize(pixelType)];
+		memset(pTempBuffer, 255, nBufferWidth * nBufferHeight * GetPixelDataTypeSize(pixelType));
+
+		poDataset_->RasterIO(GF_Read, dAdjustLeft, dAdjustTop, srcWidth, srcHeight, pTempBuffer, nBufferWidth, nBufferHeight, eType, nBandCount, bandMap, 3, 3 * nBufferWidth, 1);
+
 		int nx = (dImgLeft < 0.0 ? -dImgLeft : 0.0) / (dImgRight - dImgLeft) * width;
 		int ny = (dImgTop < 0.0 ? -dImgTop : 0.0) / (dImgBottom - dImgTop) * height;
 
 		char* pBuffer = (char*)pData;
-		//char* pTempBuffer = new char[width * height * GetPixelDataTypeSize(pixelType)];
 
 		int nPixelBytes = GDALGetDataTypeSize(eType) / 8 * nBandCount;
 		int nSrcLineBytes = nBufferWidth * nPixelBytes;
 		for (int j = nBufferHeight - 1; j >= 0; j--)
 		{
-			char* pSrcLine = pBuffer + j * nSrcLineBytes;
+			char* pSrcLine = pTempBuffer + j * nSrcLineBytes;
 			char* pDstLine = pBuffer + ((j + ny) * width + nx) * nPixelBytes;
 
 			memcpy(pDstLine, pSrcLine, nSrcLineBytes);
-			memset(pSrcLine, 255, nSrcLineBytes);
+			//memset(pSrcLine, 0, nSrcLineBytes);
 		}
 
 		//memcpy(pData, pTempBuffer, width * height * GetPixelDataTypeSize(pixelType));
-		//delete[] pTempBuffer;
+		delete[] pTempBuffer;
+	}
+	else
+	{
+		poDataset_->RasterIO(GF_Read, dAdjustLeft, dAdjustTop, srcWidth, srcHeight, pData, nBufferWidth, nBufferHeight, eType, nBandCount, bandMap, 3, 3 * nBufferWidth, 1);
 	}
 	
 	return true;
