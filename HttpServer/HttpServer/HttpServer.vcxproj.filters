@@ -16,17 +16,17 @@
     <Filter Include="源文件\dataset">
       <UniqueIdentifier>{d666ef39-27f5-48bc-8cf9-3d782800925b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="源文件\compress">
+      <UniqueIdentifier>{67fc11fa-ede2-4000-9177-28c49f554a70}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\dataset">
+      <UniqueIdentifier>{f6a7b9a1-cfc3-49ea-b4c9-fd6faeeb4255}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\compress">
+      <UniqueIdentifier>{28414bcb-4a8e-42b7-8f86-8de0a109169e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="compress_interface.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="http_server.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="jpg_compress.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="utility.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -39,25 +39,34 @@
     <ClCompile Include="dataset_interface.cpp">
       <Filter>源文件\dataset</Filter>
     </ClCompile>
+    <ClCompile Include="compress_interface.cpp">
+      <Filter>源文件\compress</Filter>
+    </ClCompile>
+    <ClCompile Include="jpg_compress.cpp">
+      <Filter>源文件\compress</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="compress_interface.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="jpg_compress.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="utility.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="dataset_interface.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="tiff_dataset.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="data_processor.h">
       <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="tiff_dataset.h">
+      <Filter>头文件\dataset</Filter>
+    </ClInclude>
+    <ClInclude Include="dataset_interface.h">
+      <Filter>头文件\dataset</Filter>
+    </ClInclude>
+    <ClInclude Include="jpg_compress.h">
+      <Filter>头文件\compress</Filter>
+    </ClInclude>
+    <ClInclude Include="compress_interface.h">
+      <Filter>头文件\compress</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

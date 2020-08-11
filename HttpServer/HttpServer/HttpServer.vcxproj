@@ -148,7 +148,7 @@
     <ClCompile Include="compress_interface.cpp" />
     <ClCompile Include="dataset_interface.cpp" />
     <ClCompile Include="data_processor.cpp" />
-    <ClCompile Include="http_server.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="jpg_compress.cpp" />
     <ClCompile Include="tiff_dataset.cpp" />
     <ClCompile Include="utility.cpp" />
