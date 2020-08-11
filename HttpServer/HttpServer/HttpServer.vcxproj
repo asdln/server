@@ -150,6 +150,8 @@
     <ClCompile Include="data_processor.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="jpg_compress.cpp" />
+    <ClCompile Include="max_min_stretch.cpp" />
+    <ClCompile Include="stretch_interface.cpp" />
     <ClCompile Include="tiff_dataset.cpp" />
     <ClCompile Include="utility.cpp" />
   </ItemGroup>
@@ -158,6 +160,8 @@
     <ClInclude Include="dataset_interface.h" />
     <ClInclude Include="data_processor.h" />
     <ClInclude Include="jpg_compress.h" />
+    <ClInclude Include="max_min_stretch.h" />
+    <ClInclude Include="stretch_interface.h" />
     <ClInclude Include="tiff_dataset.h" />
     <ClInclude Include="utility.h" />
   </ItemGroup>

@@ -2,28 +2,72 @@
 
 #include "gdal_priv.h"
 
+TiffDataset::~TiffDataset()
+{
+	Close();
+}
+
 void TiffDataset::Open(const std::string& path)
 {
 	GDALAllRegister();
 	poDataset_ = (GDALDataset*)GDALOpen(path.c_str(), GA_ReadOnly);
+
+	poSpatialReference_ = (OGRSpatialReference*)OSRNewSpatialReference(poDataset_->GetProjectionRef());
+
+	poDataset_->GetGeoTransform(dGeoTransform_);
+	enumPIEDataType_ = (PIEDataType)poDataset_->GetRasterBand(1)->GetRasterDataType();
 }
 
 void TiffDataset::Close()
 {
-	GDALClose(poDataset_);
+	if(poDataset_)
+		GDALClose(poDataset_);
+
 	poDataset_ = nullptr;
+
+	if (poSpatialReference_)
+	{
+		OSRDestroySpatialReference(poSpatialReference_);
+		poSpatialReference_ = nullptr;
+	}
 }
 
-bool TiffDataset::Projection2ImageRowCol(double* adfGeoTransform, double dProjX, double dProjY, double& dCol, double& dRow)
+PIEDataType TiffDataset::GetDataType()
+{
+	return enumPIEDataType_;
+}
+
+OGRSpatialReference* TiffDataset::GetSpatialReference()
+{
+	return poSpatialReference_;
+}
+
+int TiffDataset::GetRasterXSize()
+{
+	if (poDataset_)
+		return poDataset_->GetRasterXSize();
+
+	return -1;
+}
+
+int TiffDataset::GetRasterYSize()
+{
+	if (poDataset_)
+		return poDataset_->GetRasterYSize();
+
+	return -1;
+}
+
+bool TiffDataset::World2Pixel(double dProjX, double dProjY, double& dCol, double& dRow)
 {
 	try
 	{
-		double dTemp = adfGeoTransform[1] * adfGeoTransform[5] - adfGeoTransform[2] * adfGeoTransform[4];
-		
-		dCol = (adfGeoTransform[5] * (dProjX - adfGeoTransform[0]) -
-			adfGeoTransform[2] * (dProjY - adfGeoTransform[3])) / dTemp;
-		dRow = (adfGeoTransform[1] * (dProjY - adfGeoTransform[3]) -
-			adfGeoTransform[4] * (dProjX - adfGeoTransform[0])) / dTemp;
+		double dTemp = dGeoTransform_[1] * dGeoTransform_[5] - dGeoTransform_[2] * dGeoTransform_[4];
+
+		dCol = (dGeoTransform_[5] * (dProjX - dGeoTransform_[0]) -
+			dGeoTransform_[2] * (dProjY - dGeoTransform_[3])) / dTemp;
+		dRow = (dGeoTransform_[1] * (dProjY - dGeoTransform_[3]) -
+			dGeoTransform_[4] * (dProjX - dGeoTransform_[0])) / dTemp;
 
 		return true;
 	}
@@ -33,93 +77,13 @@ bool TiffDataset::Projection2ImageRowCol(double* adfGeoTransform, double dProjX,
 	}
 }
 
-bool TiffDataset::Read(const Envelop& env, void* pData, int width, int height, PixelDataType pixelType)
+bool TiffDataset::Read(int nx, int ny, int width, int height,
+	void* pData, int bufferWidth, int bufferHeight, PIEDataType pieDataType,
+	int nBandCount, int* pBandMap, long long pixSpace, long long lineSapce, long long bandSpace,
+	void* psExtraArg)
 {
-	double dImgLeft = 0.0;
-	double dImgTop = 0.0;
+	CPLErr error = poDataset_->RasterIO(GF_Read, nx, ny, width, height, pData, bufferWidth, bufferHeight, (GDALDataType)pieDataType, nBandCount, pBandMap, pixSpace, lineSapce, bandSpace, (GDALRasterIOExtraArg*)psExtraArg);
+	return error == CE_None;
 
-	double dImgRight = 0.0;
-	double dImgBottom = 0.0;
-
-	double dGeoTransform[6];
-	poDataset_->GetGeoTransform(dGeoTransform);
-
-	Projection2ImageRowCol(dGeoTransform, env.dLeft, env.dTop, dImgLeft, dImgTop);
-	Projection2ImageRowCol(dGeoTransform, env.dRight, env.dBottom, dImgRight, dImgBottom);
-
-	int nRasterWidth = poDataset_->GetRasterXSize();
-	int nRasterHeight = poDataset_->GetRasterYSize();
-
-	if (dImgLeft >= nRasterWidth || dImgRight < 0.0 || dImgTop >= nRasterHeight || dImgBottom < 0.0)
-	{
-		memset(pData, 255, width * height * GetPixelDataTypeSize(pixelType));
-		return true;
-	}
-
-	double dAdjustLeft = dImgLeft;
-	double dAdjustTop = dImgTop;
-	double dAdjustRight = dImgRight;
-	double dAdjustBottom = dImgBottom;
-
-	int nBufferWidth = width;
-	int nBufferHeight = height;
-
-	bool bNeedAdjust = false;
-	if (dImgLeft < 0.0 || dImgTop < 0.0 || dImgRight >= nRasterWidth || dImgBottom > nRasterHeight)
-	{
-		dAdjustLeft = dImgLeft < 0.0 ? 0.0 : dImgLeft;
-		dAdjustTop = dImgTop < 0.0 ? 0.0 : dImgTop;
-		
-		dAdjustRight = dImgRight > nRasterWidth ? nRasterWidth : dImgRight;
-		dAdjustBottom = dImgBottom > nRasterHeight ? nRasterHeight : dImgBottom;
-
-		bNeedAdjust = true;
-	}
-
-	int srcWidth = dAdjustRight - dAdjustLeft;
-	int srcHeight = dAdjustBottom - dAdjustTop;
-
-	if (bNeedAdjust)
-	{
-		nBufferWidth = srcWidth / (dImgRight - dImgLeft) * width;
-		nBufferHeight = srcHeight / (dImgBottom - dImgTop) * height;
-	}
-
-	GDALDataType eType = GDT_Byte;
-
-	int nBandCount = 3;
-	int bandMap[3] = { 1, 2, 3 };
-	
-	if (bNeedAdjust)
-	{
-		char* pTempBuffer = new char[nBufferWidth * nBufferHeight * GetPixelDataTypeSize(pixelType)];
-		memset(pTempBuffer, 255, nBufferWidth * nBufferHeight * GetPixelDataTypeSize(pixelType));
-
-		poDataset_->RasterIO(GF_Read, dAdjustLeft, dAdjustTop, srcWidth, srcHeight, pTempBuffer, nBufferWidth, nBufferHeight, eType, nBandCount, bandMap, 3, 3 * nBufferWidth, 1);
-
-		int nx = (dImgLeft < 0.0 ? -dImgLeft : 0.0) / (dImgRight - dImgLeft) * width;
-		int ny = (dImgTop < 0.0 ? -dImgTop : 0.0) / (dImgBottom - dImgTop) * height;
-
-		char* pBuffer = (char*)pData;
-
-		int nPixelBytes = GDALGetDataTypeSize(eType) / 8 * nBandCount;
-		int nSrcLineBytes = nBufferWidth * nPixelBytes;
-		for (int j = nBufferHeight - 1; j >= 0; j--)
-		{
-			char* pSrcLine = pTempBuffer + j * nSrcLineBytes;
-			char* pDstLine = pBuffer + ((j + ny) * width + nx) * nPixelBytes;
-
-			memcpy(pDstLine, pSrcLine, nSrcLineBytes);
-			//memset(pSrcLine, 0, nSrcLineBytes);
-		}
-
-		//memcpy(pData, pTempBuffer, width * height * GetPixelDataTypeSize(pixelType));
-		delete[] pTempBuffer;
-	}
-	else
-	{
-		poDataset_->RasterIO(GF_Read, dAdjustLeft, dAdjustTop, srcWidth, srcHeight, pData, nBufferWidth, nBufferHeight, eType, nBandCount, bandMap, 3, 3 * nBufferWidth, 1);
-	}
-	
 	return true;
 }

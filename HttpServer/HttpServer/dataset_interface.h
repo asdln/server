@@ -1,6 +1,7 @@
 #pragma once
 
 #include "utility.h"
+class OGRSpatialReference;
 
 class DatasetInterface
 {
@@ -10,6 +11,21 @@ public:
 
 	virtual void Close() = 0;
 
-	virtual bool Read(const Envelop& env, void* pData, int width, int height, PixelDataType pixelType) = 0;
+	virtual bool Read(int, int, int, int,
+		void*, int, int, PIEDataType,
+		int, int*, long long, long long, long long,
+		void* psExtraArg = nullptr) = 0;
+
+	virtual int GetRasterXSize() = 0;
+
+	virtual int GetRasterYSize() = 0;
+
+	virtual bool World2Pixel(double dProjX, double dProjY, double& dCol, double& dRow) = 0;
+
+	virtual PIEDataType GetDataType() = 0;
+
+	virtual OGRSpatialReference* GetSpatialReference() = 0;
+
+	virtual ~DatasetInterface() {};
 };
 

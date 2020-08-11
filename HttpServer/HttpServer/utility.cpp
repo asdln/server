@@ -37,7 +37,7 @@ bool LoadData(const std::string& path)
 	return true;
 }
 
-void GetInfo(const std::string& path, Envelop& env, std::string& filePath)
+void ParseURL(const std::string& path, Envelop& env, std::string& filePath)
 {
 	int nx = 0;
 	int ny = 0;
@@ -89,20 +89,72 @@ bool GetTileIndex(const std::string& path, int& nx, int& ny, int& nz)
 	return true;
 }
 
-int GetPixelDataTypeSize(PixelDataType type)
+int GetDataTypeBytes(PIEDataType pieDataType)
 {
-	int nSize = 1;
-	switch (type)
+	int nBytes = 0;
+	switch (pieDataType)
 	{
-	case PIXEL_TYPE_RGB:
-		nSize = 3;
-		break;
-	case PIXEL_TYPE_RGBA:
-		nSize = 4;
-		break;
-	default:
+	case PIE_Byte:
+	{
+		nBytes = 1;
 		break;
 	}
+	case PIE_UInt16:
+	{
+		nBytes = 2;
+		break;
+	}
+	case PIE_Int16:
+	{
+		nBytes = 2;
+		break;
+	}
+	case PIE_UInt32:
+	{
+		nBytes = 4;
+		break;
+	}
+	case PIE_Int32:
+	{
+		nBytes = 4;
+		break;
+	}
+	case PIE_Float32:
+	{
+		nBytes = 4;
+		break;
+	}
+	case PIE_Float64:
+	{
+		nBytes = 8;
+		break;
+	}
+	case PIE_CInt16:
+	{
+		nBytes = 2;
+		break;
+	}
+	case PIE_CInt32:
+	{
+		nBytes = 4;
+		break;
+	}
+	case PIE_CFloat32:
+	{
+		nBytes = 4;
+		break;
+	}
+	case PIE_CFloat64:
+	{
+		nBytes = 8;
+		break;
+	}
+	default:
+	{
+		nBytes = 1;
+		break;
+	}
+	}
 
-	return nSize;
+	return nBytes;
 }

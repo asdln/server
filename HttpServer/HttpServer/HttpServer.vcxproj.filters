@@ -25,6 +25,12 @@
     <Filter Include="头文件\compress">
       <UniqueIdentifier>{28414bcb-4a8e-42b7-8f86-8de0a109169e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="头文件\stretch">
+      <UniqueIdentifier>{1a1c20d1-8648-4114-8868-2acdd4a70d59}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\stretch">
+      <UniqueIdentifier>{4f3eacb8-cc00-4728-84b7-2ed43f7aab7f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="utility.cpp">
@@ -48,6 +54,12 @@
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="stretch_interface.cpp">
+      <Filter>源文件\stretch</Filter>
+    </ClCompile>
+    <ClCompile Include="max_min_stretch.cpp">
+      <Filter>源文件\stretch</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="utility.h">
@@ -67,6 +79,12 @@
     </ClInclude>
     <ClInclude Include="compress_interface.h">
       <Filter>头文件\compress</Filter>
+    </ClInclude>
+    <ClInclude Include="stretch_interface.h">
+      <Filter>头文件\stretch</Filter>
+    </ClInclude>
+    <ClInclude Include="max_min_stretch.h">
+      <Filter>头文件\stretch</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
