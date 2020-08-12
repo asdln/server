@@ -15,10 +15,14 @@ void GetEnvFromTileIndex(int nx, int ny, int nz, Envelop& env)
 
 	double dResoltion = 360.0 / (nTileCountX * 256.0);
 
-	env.dLeft = dTotalLeft + nx * (nTileSize * dResoltion);
-	env.dTop = -180.0 + (nTileCountY - ny) * nTileSize * dResoltion;
-	env.dRight = env.dLeft + nTileSize * dResoltion;
-	env.dBottom = env.dTop - nTileSize * dResoltion;
+	double dx1, dy1, dx2, dy2;
+
+	dx1 = dTotalLeft + nx * (nTileSize * dResoltion);
+	dy2 = -180.0 + (nTileCountY - ny) * nTileSize * dResoltion;
+	dx2 = dx1 + nTileSize * dResoltion;
+	dy1 = dy2 - nTileSize * dResoltion;
+
+	env.PutCoords(dx1, dy1, dx2, dy2);
 }
 
 void split(const std::string& s, std::vector<std::string>& tokens, const std::string& delimiters = " ")
