@@ -35,7 +35,7 @@ bool DataProcessor::ProcessPerPixel(DatasetInterface* ptrDataset
 	, const Envelop& ptrEnvelope
 	, OGRSpatialReference* ptrVisSRef
 	, int nWidth, int nHeight
-	, std::vector<int>& vecBands
+	, int nBandCount, int bandMap[]
 	, void** memDataOut
 	, unsigned char** dataMask
 	, RasterResamplingType m_resampType
@@ -53,7 +53,6 @@ bool DataProcessor::ProcessPerPixel(DatasetInterface* ptrDataset
 	PIEDataType ePixelType = ptrDataset->GetDataType();
 	CoordinateTransformation coordTrans(ptrVisSRef, ptrDSSRef);
 
-	int nBandCount = vecBands.size();
 	PIEDataType eTpye = ptrDataset->GetDataType();
 	int nTypeSize = GetDataTypeBytes(eTpye);
 	int nDataPixelBytes = nBandCount * nTypeSize;
@@ -117,7 +116,7 @@ bool DataProcessor::ProcessPerPixel(DatasetInterface* ptrDataset
 						double v = dy1 - ny1;
 
 						unsigned char* pLinearBuffer = new unsigned char[4 * nDataPixelBytes];
-						ptrDataset->Read(nx1, ny1, 2, 2, pLinearBuffer, 2, 2, eTpye, nBandCount, vecBands.data());
+						ptrDataset->Read(nx1, ny1, 2, 2, pLinearBuffer, 2, 2, eTpye, nBandCount, bandMap);
 
 						unsigned char* value1 = pLinearBuffer;
 						unsigned char* value2 = pLinearBuffer + 2 * nDataPixelBytes;
@@ -189,7 +188,7 @@ bool DataProcessor::ProcessPerPixel(DatasetInterface* ptrDataset
 					}
 					else
 					{
-						ptrDataset->Read(nx1, ny1, 1, 1, buffer, 1, 1, eTpye, nBandCount, vecBands.data());
+						ptrDataset->Read(nx1, ny1, 1, 1, buffer, 1, 1, eTpye, nBandCount, bandMap);
 					}
 				}
 			}
@@ -207,7 +206,7 @@ bool DataProcessor::Process(DatasetInterface* ptrDataset
 	, const Envelop& envelope
 	, OGRSpatialReference* ptrVisSRef
 	, int nWidth, int nHeight
-	, std::vector<int>& vecBands
+	, int nBandCount, int bandMap[]
 	, void** memDataOut
 	, unsigned char** dataMask)
 {
@@ -254,7 +253,7 @@ bool DataProcessor::Process(DatasetInterface* ptrDataset
 		//针对极地坐标做特殊处理
 		if (!bTransRes || std::isnan(dx1) || std::isnan(dy1) || std::isnan(dx2) || std::isnan(dy2))
 		{
-			return ProcessPerPixel(ptrDataset, envelope, ptrDSSRef, nWidth, nHeight, vecBands, memDataOut, dataMask, resampType, bDynProjectToGeoCoord);
+			return ProcessPerPixel(ptrDataset, envelope, ptrDSSRef, nWidth, nHeight, nBandCount, bandMap, memDataOut, dataMask, resampType, bDynProjectToGeoCoord);
 		}
 	}
 
@@ -273,7 +272,7 @@ bool DataProcessor::Process(DatasetInterface* ptrDataset
 		Envelop ptrEvnTemp = envelope;
 		if (IsIntersect(ptrEnvDataset, ptrEvnTemp))
 		{
-			return ProcessPerPixel(ptrDataset, envelope, ptrDSSRef, nWidth, nHeight, vecBands, memDataOut, dataMask, resampType, bDynProjectToGeoCoord);
+			return ProcessPerPixel(ptrDataset, envelope, ptrDSSRef, nWidth, nHeight, nBandCount, bandMap, memDataOut, dataMask, resampType, bDynProjectToGeoCoord);
 		}
 
 		return false;
@@ -460,7 +459,7 @@ bool DataProcessor::Process(DatasetInterface* ptrDataset
 	//}
 	//else
 	{
-		ptrDataset->Read(nLeft, nTop, nSrcWid, nSrcHei, pSrcData, nDesWid, nDesHei, ePixelType, vecBands.size(), vecBands.data());
+		ptrDataset->Read(nLeft, nTop, nSrcWid, nSrcHei, pSrcData, nDesWid, nDesHei, ePixelType, nBandCount, bandMap);
 	}
 
 
@@ -468,8 +467,6 @@ bool DataProcessor::Process(DatasetInterface* ptrDataset
 
 	double dImagePosX = 0.0;
 	double dImagePosY = 0.0;
-
-	int nBandCount = vecBands.size();
 
 	int nTypeSize = GetDataTypeBytes(ePixelType);
 	int nDataPixelBytes = nBandCount * nTypeSize;
@@ -587,7 +584,7 @@ bool DataProcessor::Process(DatasetInterface* ptrDataset
 					int nImagePosY = dImagePosY;
 
 					unsigned char* buffer = new unsigned char[nDataPixelBytes];
-					ptrDataset->Read(nImagePosX, nImagePosY, 1, 1, buffer, 1, 1, ePixelType, nBandCount, vecBands.data());
+					ptrDataset->Read(nImagePosX, nImagePosY, 1, 1, buffer, 1, 1, ePixelType, nBandCount, bandMap);
 
 					unsigned char* pDes = pOutData + (nWidth * RowIndex + ColIndex) * nDataPixelBytes;
 					memcpy(pDes, buffer, nDataPixelBytes);
@@ -784,8 +781,14 @@ bool DataProcessor::SimpleProject(DatasetInterface* pDataset, int nBandCount, in
 	return true;
 }
 
-bool DataProcessor::DynamicProject(DatasetInterface* pDataset, int nBandCount, int bandMap[], const Envelop& env, void* pData, int width, int height)
+bool DataProcessor::DynamicProject(OGRSpatialReference* pDstSpatialReference, DatasetInterface* pDataset, int nBandCount, int bandMap[], const Envelop& env, void** pData, int width, int height)
 {
+	unsigned char* pMaskBuffer = nullptr;
+	Process(pDataset, env, pDstSpatialReference, width, height, nBandCount, bandMap, pData, &pMaskBuffer);
+
+	if(pMaskBuffer != nullptr)
+		delete[] pMaskBuffer;
+
 	return true;
 
 }
@@ -798,12 +801,15 @@ bool DataProcessor::GetData(const std::string& target, void** pData, unsigned lo
 	//OGRSpatialReference* pDefaultSpatialReference = (OGRSpatialReference*)OSRNewSpatialReference(
 	//	"GEOGCS[\"GCS_WGS_1984\",DATUM[\"D_WGS_1984\",SPHEROID[\"WGS_1984\",6378137,298.257223563]],PRIMEM[\"Greenwich\",0],UNIT[\"Degree\",0.017453292519943295]]");
 
+	OGRSpatialReference* pDefaultSpatialReference = (OGRSpatialReference*)OSRNewSpatialReference(
+		"PROJCS[\"WGS_1984_Web_Mercator\",GEOGCS[\"GCS_WGS_1984_Major_Auxiliary_Sphere\",DATUM[\"WGS_1984_Major_Auxiliary_Sphere\",SPHEROID[\"WGS_1984_Major_Auxiliary_Sphere\",6378137.0,0.0]],PRIMEM[\"Greenwich\",0.0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Mercator_1SP\"],PARAMETER[\"False_Easting\",0.0],PARAMETER[\"False_Northing\",0.0],PARAMETER[\"Central_Meridian\",0.0],PARAMETER[\"latitude_of_origin\",0.0],UNIT[\"Meter\",1.0]]"
+	);
+
 	ParseURL(target, env, filePath);
 
 	const size_t nSize = 196608;  // 196608 = 256 * 256 * 3
 	//const size_t nSize = 262144;  // 262144 = 256 * 256 * 4
-	unsigned char* buff = new unsigned char[nSize];
-	memset(buff, 255, nSize);
+	void* buff = nullptr;
 
 	//后期添加文件句柄缓存
 	int nTileSize = 256;
@@ -814,13 +820,18 @@ bool DataProcessor::GetData(const std::string& target, void** pData, unsigned lo
 	int bandMap[3] = { 1, 2, 3 };
 
 	OGRSpatialReference* poSpatialReference = tiffDataset.GetSpatialReference();
-	if (1/*poSpatialReference == nullptr || poSpatialReference->IsSameGeogCS(pDefaultSpatialReference)*/)
+
+	//DynamicProject 尚未调通
+	if (1/*poSpatialReference == nullptr || poSpatialReference->IsSame(pDefaultSpatialReference)*/)  
 	{
+		buff = new unsigned char[nSize];
+		memset(buff, 255, nSize);
 		SimpleProject(&tiffDataset, nBandCount, bandMap, env, buff, nTileSize, nTileSize);
 	}
 	else
 	{
-		DynamicProject(&tiffDataset, nBandCount, bandMap, env, buff, nTileSize, nTileSize);
+		//env 必须是 pDefaultSpatialReference 的空间参考
+		DynamicProject(pDefaultSpatialReference, &tiffDataset, nBandCount, bandMap, env, &buff, nTileSize, nTileSize);
 	}
 
 	MaxMinStretch stretch;
@@ -837,8 +848,10 @@ bool DataProcessor::GetData(const std::string& target, void** pData, unsigned lo
 
 	*pData = pDstBuffer_;
 
-	delete[] buff;
-	//OSRDestroySpatialReference(pDefaultSpatialReference);
+	if(buff != nullptr)
+		delete[] buff;
+
+	OSRDestroySpatialReference(pDefaultSpatialReference);
 
 	return true;
 }
