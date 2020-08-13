@@ -713,8 +713,8 @@ bool DataProcessor::SimpleProject(DatasetInterface* pDataset, int nBandCount, in
 
 	if (dImgLeft >= nRasterWidth || dImgRight < 0.0 || dImgTop >= nRasterHeight || dImgBottom < 0.0)
 	{
-		memset(pData, 255, width * height * nBandCount * GetDataTypeBytes(DataType));
-		return true;
+		//memset(pData, 255, width * height * nBandCount * GetDataTypeBytes(DataType));
+		return false;
 	}
 
 	double dAdjustLeft = dImgLeft;
@@ -748,8 +748,8 @@ bool DataProcessor::SimpleProject(DatasetInterface* pDataset, int nBandCount, in
 
 	if (dBufferWid <= 0 || dBufferHei <= 0)
 	{
-		memset(pData, 255, width * height * nBandCount * GetDataTypeBytes(DataType));
-		return true;
+		//memset(pData, 255, width * height * nBandCount * GetDataTypeBytes(DataType));
+		return false;
 	}
 
 	int nBufferWidth = dBufferWid;
