@@ -28,7 +28,7 @@ typedef enum {
 	/* TODO?(#6879): GDT_CInt64 */
 	/*! Complex Float32 */                      PIE_CFloat32 = 10,
 	/*! Complex Float64 */                      PIE_CFloat64 = 11,
-	GDT_TypeCount = 12          /* maximum type # + 1 */
+	PIE_TypeCount = 12          /* maximum type # + 1 */
 } PIEDataType;
 
 enum RasterResamplingType
@@ -103,8 +103,8 @@ public:
 		minX = origin.GetXMin() < dMinX_ ? dMinX_ : origin.GetXMin();
 
 		minY = origin.GetYMin() < dMinY_ ? dMinY_ : origin.GetYMin();
-		maxX = origin.GetXMax() < dMaxX_ ? dMaxX_ : origin.GetXMax();
-		maxY = origin.GetYMax() < dMaxY_ ? dMaxY_ : origin.GetYMax();
+		maxX = origin.GetXMax() > dMaxX_ ? dMaxX_ : origin.GetXMax();
+		maxY = origin.GetYMax() > dMaxY_ ? dMaxY_ : origin.GetYMax();
 
 		result.PutCoords(minX, minY, maxX, maxY);
 

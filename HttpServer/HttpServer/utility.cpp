@@ -11,14 +11,23 @@ void GetEnvFromTileIndex(int nx, int ny, int nz, Envelop& env)
 	int nTileSize = 256;
 
 	double dTotalLeft = -180.0;
-	double dTotalTop = 180.0;
+	double dTotalBottom = -180.0;
 
 	double dResoltion = 360.0 / (nTileCountX * 256.0);
+
+	bool bWebMercator = true;
+	if (bWebMercator)
+	{
+		dTotalLeft = -20037508.3427892;
+		dTotalBottom = -20037508.3427892;
+
+		dResoltion = 20037508.3427892 * 2.0 / (nTileCountX * 256.0);
+	}
 
 	double dx1, dy1, dx2, dy2;
 
 	dx1 = dTotalLeft + nx * (nTileSize * dResoltion);
-	dy2 = -180.0 + (nTileCountY - ny) * nTileSize * dResoltion;
+	dy2 = dTotalBottom + (nTileCountY - ny) * nTileSize * dResoltion;
 	dx2 = dx1 + nTileSize * dResoltion;
 	dy1 = dy2 - nTileSize * dResoltion;
 
@@ -49,7 +58,9 @@ void ParseURL(const std::string& path, Envelop& env, std::string& filePath)
 
 	GetTileIndex(path, nx, ny, nz);
 	GetEnvFromTileIndex(nx, ny, nz, env);
-	filePath = "d:/work/world.tif";
+	//filePath = "d:/work/world.tif";
+	//filePath = "D:\\work\\langfang_base - 2m\\langfang_mosaic.img";
+	filePath = "D:\\work\\data\\GF1_PMS2_E113.9_N34.4_20181125_L5A_0003622463.tiff";
 }
 
 bool GetTileIndex(const std::string& path, int& nx, int& ny, int& nz)

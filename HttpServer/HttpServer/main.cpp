@@ -29,6 +29,7 @@
 #include <vector>
 
 #include "data_processor.h"
+#include "gdal_priv.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
@@ -450,6 +451,8 @@ private:
 
 int main(int argc, char* argv[])
 {
+    GDALAllRegister();
+
     // Check command line arguments.
     if (argc != 5)
     {

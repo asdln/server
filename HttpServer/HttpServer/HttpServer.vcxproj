@@ -116,12 +116,12 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>D:\work\boost_1_73_0;D:\work\libjpeg-turbo-master;D:\work\gdal-release-2.4\gdal\gcore;D:\work\gdal-release-2.4\gdal\port;D:\work\gdal-release-2.4\gdal\ogr</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\work\boost_1_73_0;D:\work\libjpeg-turbo-master;D:\work\gdal-release-2.4\gdal\bld\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>D:\work\boost_1_73_0\stage\lib;D:\work\libjpeg-turbo-master\Debug;D:\work\gdal-release-2.4\gdal</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>D:\work\boost_1_73_0\stage\lib;D:\work\libjpeg-turbo-master\Debug;D:\work\gdal-release-2.4\gdal\bld\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>turbojpeg-static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;gdal_i.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>

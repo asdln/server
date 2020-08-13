@@ -432,7 +432,7 @@ bool DataProcessor::Process(DatasetInterface* ptrDataset
 
 	//SysDataSource::PixelBufferPtr ptrPixelBuffer;
 
-	void* pSrcData = new char[GetDataTypeBytes(ePixelType) * nWidth * nHeight];
+	void* pSrcData = new char[GetDataTypeBytes(ePixelType) * nDesWid * nDesHei * nBandCount];
 
 	//QString pszItem = ptrDataset->GetMetadataItem("INTERLEAVE", "IMAGE_STRUCTURE");
 	//if (pszItem == "BAND" || pszItem == "LINE") // 如果是bsq或者bil格式，则按波段分别读取
@@ -801,9 +801,9 @@ bool DataProcessor::GetData(const std::string& target, void** pData, unsigned lo
 	//OGRSpatialReference* pDefaultSpatialReference = (OGRSpatialReference*)OSRNewSpatialReference(
 	//	"GEOGCS[\"GCS_WGS_1984\",DATUM[\"D_WGS_1984\",SPHEROID[\"WGS_1984\",6378137,298.257223563]],PRIMEM[\"Greenwich\",0],UNIT[\"Degree\",0.017453292519943295]]");
 
-	OGRSpatialReference* pDefaultSpatialReference = (OGRSpatialReference*)OSRNewSpatialReference(
-		"PROJCS[\"WGS_1984_Web_Mercator\",GEOGCS[\"GCS_WGS_1984_Major_Auxiliary_Sphere\",DATUM[\"WGS_1984_Major_Auxiliary_Sphere\",SPHEROID[\"WGS_1984_Major_Auxiliary_Sphere\",6378137.0,0.0]],PRIMEM[\"Greenwich\",0.0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Mercator_1SP\"],PARAMETER[\"False_Easting\",0.0],PARAMETER[\"False_Northing\",0.0],PARAMETER[\"Central_Meridian\",0.0],PARAMETER[\"latitude_of_origin\",0.0],UNIT[\"Meter\",1.0]]"
-	);
+	OGRSpatialReference* pDefaultSpatialReference = (OGRSpatialReference*)OSRNewSpatialReference(nullptr);
+	const char* pWKT = "PROJCS[\"WGS_1984_Web_Mercator\",GEOGCS[\"GCS_WGS_1984_Major_Auxiliary_Sphere\",DATUM[\"WGS_1984_Major_Auxiliary_Sphere\",SPHEROID[\"WGS_1984_Major_Auxiliary_Sphere\",6378137.0,0.0]],PRIMEM[\"Greenwich\",0.0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Mercator_1SP\"],PARAMETER[\"False_Easting\",0.0],PARAMETER[\"False_Northing\",0.0],PARAMETER[\"Central_Meridian\",0.0],PARAMETER[\"latitude_of_origin\",0.0],UNIT[\"Meter\",1.0]]";
+	pDefaultSpatialReference->importFromWkt(pWKT);
 
 	ParseURL(target, env, filePath);
 
@@ -821,8 +821,11 @@ bool DataProcessor::GetData(const std::string& target, void** pData, unsigned lo
 
 	OGRSpatialReference* poSpatialReference = tiffDataset.GetSpatialReference();
 
-	//DynamicProject 尚未调通
-	if (1/*poSpatialReference == nullptr || poSpatialReference->IsSame(pDefaultSpatialReference)*/)  
+	bool bSimple = poSpatialReference == nullptr ||
+		std::string(pDefaultSpatialReference->GetAttrValue("DATUM")).compare(poSpatialReference->GetAttrValue("DATUM")) == 0 ||
+		poSpatialReference->IsSame(pDefaultSpatialReference);
+
+	if (bSimple)
 	{
 		buff = new unsigned char[nSize];
 		memset(buff, 255, nSize);
@@ -841,6 +844,12 @@ bool DataProcessor::GetData(const std::string& target, void** pData, unsigned lo
 	{
 		free(pDstBuffer_);
 		pDstBuffer_ = nullptr;
+	}
+
+	if (buff == nullptr)
+	{
+		buff = new unsigned char[nSize];
+		memset(buff, 255, nSize);
 	}
 	
 	JpgCompress jpgCompress;

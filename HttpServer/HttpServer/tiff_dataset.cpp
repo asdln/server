@@ -9,10 +9,10 @@ TiffDataset::~TiffDataset()
 
 void TiffDataset::Open(const std::string& path)
 {
-	GDALAllRegister();
 	poDataset_ = (GDALDataset*)GDALOpen(path.c_str(), GA_ReadOnly);
 
-	poSpatialReference_ = (OGRSpatialReference*)OSRNewSpatialReference(poDataset_->GetProjectionRef());
+	poSpatialReference_ = (OGRSpatialReference*)OSRNewSpatialReference(nullptr);
+	poSpatialReference_->importFromWkt(poDataset_->GetProjectionRef());
 
 	poDataset_->GetGeoTransform(dGeoTransform_);
 	enumPIEDataType_ = (PIEDataType)poDataset_->GetRasterBand(1)->GetRasterDataType();
@@ -136,8 +136,8 @@ bool TiffDataset::Read(int nx, int ny, int width, int height,
 	if (bandSpace == 0)
 		bandSpace = GetDataTypeBytes(pieDataType);
 
-	CPLErr error = poDataset_->RasterIO(GF_Read, nx, ny, width, height, pData, bufferWidth, bufferHeight, (GDALDataType)pieDataType, nBandCount, pBandMap, pixSpace, lineSapce, bandSpace, (GDALRasterIOExtraArg*)psExtraArg);
-	return error == CE_None;
+	CPLErr error = poDataset_->RasterIO(GF_Read, nx, ny, width, height, pData, bufferWidth, bufferHeight
+		, (GDALDataType)pieDataType, nBandCount, pBandMap, pixSpace, lineSapce, bandSpace, (GDALRasterIOExtraArg*)psExtraArg);
 
-	return true;
+	return error == CE_None;
 }
