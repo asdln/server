@@ -50,10 +50,10 @@ bool DataProcessor::ProcessPerPixel(DatasetInterface* ptrDataset
 	int nRasterWid = ptrDataset->GetRasterXSize();
 	int nRasterHei = ptrDataset->GetRasterYSize();
 
-	PIEDataType ePixelType = ptrDataset->GetDataType();
+	DataType ePixelType = ptrDataset->GetDataType();
 	CoordinateTransformation coordTrans(ptrVisSRef, ptrDSSRef);
 
-	PIEDataType eTpye = ptrDataset->GetDataType();
+	DataType eTpye = ptrDataset->GetDataType();
 	int nTypeSize = GetDataTypeBytes(eTpye);
 	int nDataPixelBytes = nBandCount * nTypeSize;
 
@@ -109,7 +109,7 @@ bool DataProcessor::ProcessPerPixel(DatasetInterface* ptrDataset
 				{
 					bValid = true;
 
-					if (ePixelType < PIEDataType::PIE_CInt16 && m_resampType == RasterResamplingType::BILINEAR_INTERPOLATION && nx1 + 1 < nRasterWid && ny1 + 1 < nRasterHei)
+					if (ePixelType < DataType::DT_CInt16 && m_resampType == RasterResamplingType::BILINEAR_INTERPOLATION && nx1 + 1 < nRasterWid && ny1 + 1 < nRasterHei)
 					{
 						void* pSrc = nullptr;
 						double u = dx1 - nx1;
@@ -127,49 +127,49 @@ bool DataProcessor::ProcessPerPixel(DatasetInterface* ptrDataset
 						{
 							switch (eTpye)
 							{
-							case PIEDataType::PIE_Byte:
+							case DataType::DT_Byte:
 							{
 								unsigned char value = LinearSample<unsigned char>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
 								pSrc = &value;
 							}
 							break;
 
-							case PIEDataType::PIE_UInt16:
+							case DataType::DT_UInt16:
 							{
 								unsigned short value = LinearSample<unsigned short>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
 								pSrc = &value;
 							}
 							break;
 
-							case PIEDataType::PIE_Int16:
+							case DataType::DT_Int16:
 							{
 								short value = LinearSample<short>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
 								pSrc = &value;
 							}
 							break;
 
-							case PIEDataType::PIE_UInt32:
+							case DataType::DT_UInt32:
 							{
 								unsigned int value = LinearSample<unsigned int>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
 								pSrc = &value;
 							}
 							break;
 
-							case PIEDataType::PIE_Int32:
+							case DataType::DT_Int32:
 							{
 								int value = LinearSample<int>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
 								pSrc = &value;
 							}
 							break;
 
-							case PIEDataType::PIE_Float32:
+							case DataType::DT_Float32:
 							{
 								float value = LinearSample<float>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize, false);
 								pSrc = &value;
 							}
 							break;
 
-							case PIEDataType::PIE_Float64:
+							case DataType::DT_Float64:
 							{
 								double value = LinearSample<double>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize, false);
 								pSrc = &value;
@@ -236,7 +236,7 @@ bool DataProcessor::Process(DatasetInterface* ptrDataset
 	}
 
 	Envelop envelopeClone = envelope;
-	PIEDataType ePixelType = ptrDataset->GetDataType();
+	DataType ePixelType = ptrDataset->GetDataType();
 
 	CoordinateTransformation transformation1(ptrDSSRef, ptrVisSRef);
 	CoordinateTransformation transformation2(ptrVisSRef, ptrDSSRef);
@@ -368,7 +368,7 @@ bool DataProcessor::Process(DatasetInterface* ptrDataset
 	int nDesWid = std::ceil(dDesWid);
 	int nDesHei = std::ceil(dDesHei);
 
-	if (ePixelType < PIE_CInt16 && resampType == BILINEAR_INTERPOLATION)
+	if (ePixelType < DT_CInt16 && resampType == BILINEAR_INTERPOLATION)
 	{
 		//双线性重采样，多读一个像素
 		nDesWid++;
@@ -595,7 +595,7 @@ bool DataProcessor::Process(DatasetInterface* ptrDataset
 					void* pSrc = nullptr;
 					unsigned char* pDes = pOutData + (nWidth * RowIndex + ColIndex) * nDataPixelBytes;
 
-					if (ePixelType < PIE_CInt16 && BILINEAR_INTERPOLATION && nColPos + 1 < nDesWid && nRowPos + 1 < nDesHei)
+					if (ePixelType < DT_CInt16 && BILINEAR_INTERPOLATION && nColPos + 1 < nDesWid && nRowPos + 1 < nDesHei)
 					{
 						double u = dColPos - nColPos;
 						double v = dRowPos - nRowPos;
@@ -609,49 +609,49 @@ bool DataProcessor::Process(DatasetInterface* ptrDataset
 						{
 							switch (ePixelType)
 							{
-							case PIE_Byte:
+							case DT_Byte:
 							{
 								unsigned char value = LinearSample<unsigned char>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
 								pSrc = &value;
 							}
 							break;
 
-							case PIE_UInt16:
+							case DT_UInt16:
 							{
 								unsigned short value = LinearSample<unsigned short>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
 								pSrc = &value;
 							}
 							break;
 
-							case PIE_Int16:
+							case DT_Int16:
 							{
 								short value = LinearSample<short>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
 								pSrc = &value;
 							}
 							break;
 
-							case PIE_UInt32:
+							case DT_UInt32:
 							{
 								unsigned int value = LinearSample<unsigned int>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
 								pSrc = &value;
 							}
 							break;
 
-							case PIE_Int32:
+							case DT_Int32:
 							{
 								int value = LinearSample<int>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
 								pSrc = &value;
 							}
 							break;
 
-							case PIE_Float32:
+							case DT_Float32:
 							{
 								float value = LinearSample<float>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
 								pSrc = &value;
 							}
 							break;
 
-							case PIE_Float64:
+							case DT_Float64:
 							{
 								double value = LinearSample<double>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
 								pSrc = &value;
@@ -709,11 +709,11 @@ bool DataProcessor::SimpleProject(DatasetInterface* pDataset, int nBandCount, in
 	int nRasterWidth = pDataset->GetRasterXSize();
 	int nRasterHeight = pDataset->GetRasterYSize();
 
-	PIEDataType pieDataType = pDataset->GetDataType();
+	DataType DataType = pDataset->GetDataType();
 
 	if (dImgLeft >= nRasterWidth || dImgRight < 0.0 || dImgTop >= nRasterHeight || dImgBottom < 0.0)
 	{
-		memset(pData, 255, width * height * nBandCount * GetDataTypeBytes(pieDataType));
+		memset(pData, 255, width * height * nBandCount * GetDataTypeBytes(DataType));
 		return true;
 	}
 
@@ -722,8 +722,8 @@ bool DataProcessor::SimpleProject(DatasetInterface* pDataset, int nBandCount, in
 	double dAdjustRight = dImgRight;
 	double dAdjustBottom = dImgBottom;
 
-	int nBufferWidth = width;
-	int nBufferHeight = height;
+	double dBufferWid = width;
+	double dBufferHei = height;
 
 	bool bNeedAdjust = false;
 	if (dImgLeft < 0.0 || dImgTop < 0.0 || dImgRight >= nRasterWidth || dImgBottom > nRasterHeight)
@@ -737,29 +737,48 @@ bool DataProcessor::SimpleProject(DatasetInterface* pDataset, int nBandCount, in
 		bNeedAdjust = true;
 	}
 
-	int srcWidth = dAdjustRight - dAdjustLeft;
-	int srcHeight = dAdjustBottom - dAdjustTop;
+	double srcWidth = dAdjustRight - dAdjustLeft;
+	double srcHeight = dAdjustBottom - dAdjustTop;
 
 	if (bNeedAdjust)
 	{
-		nBufferWidth = srcWidth / (dImgRight - dImgLeft) * width;
-		nBufferHeight = srcHeight / (dImgBottom - dImgTop) * height;
+		dBufferWid = srcWidth / (dImgRight - dImgLeft) * width;
+		dBufferHei = srcHeight / (dImgBottom - dImgTop) * height;
 	}
 
+	if (dBufferWid <= 0 || dBufferHei <= 0)
+	{
+		memset(pData, 255, width * height * nBandCount * GetDataTypeBytes(DataType));
+		return true;
+	}
+
+	int nBufferWidth = dBufferWid;
+	int nBufferHeight = dBufferHei;
+
 	if (bNeedAdjust)
 	{
-		int nBufferSize = nBufferWidth * nBufferHeight * GetDataTypeBytes(pieDataType) * nBandCount;
+		int nBufferSize = nBufferWidth * nBufferHeight * GetDataTypeBytes(DataType) * nBandCount;
 		char* pTempBuffer = new char[nBufferSize];
 		memset(pTempBuffer, 255, nBufferSize);
 
-		pDataset->Read(dAdjustLeft, dAdjustTop, srcWidth, srcHeight, pTempBuffer, nBufferWidth, nBufferHeight, pieDataType, nBandCount, bandMap, 3, 3 * nBufferWidth, 1);
+		pDataset->Read(dAdjustLeft, dAdjustTop, srcWidth, srcHeight, pTempBuffer, dBufferWid, dBufferHei, DataType, nBandCount, bandMap, 3, 3 * nBufferWidth, 1);
 
-		int nx = (dImgLeft < 0.0 ? -dImgLeft : 0.0) / (dImgRight - dImgLeft) * width;
-		int ny = (dImgTop < 0.0 ? -dImgTop : 0.0) / (dImgBottom - dImgTop) * height;
+		double dx = (dImgLeft < 0.0 ? -dImgLeft : 0.0) / (dImgRight - dImgLeft) * width;
+		double dy = (dImgTop < 0.0 ? -dImgTop : 0.0) / (dImgBottom - dImgTop) * height;
+
+		//粗略修正一下缝隙问题。精确的接缝问题，需要双线性重采样
+		int nx = (int)(dx + dBufferWid + 0.5) - nBufferWidth;
+		int ny = (int)(dy + dBufferHei + 0.5) - nBufferHeight;
+
+		if (dImgLeft >= 0.0)
+			nx = 0;
+
+		if (dImgTop >= 0.0)
+			ny = 0;
 
 		char* pBuffer = (char*)pData;
 
-		int nPixelBytes = GetDataTypeBytes(pieDataType) * nBandCount;
+		int nPixelBytes = GetDataTypeBytes(DataType) * nBandCount;
 		int nSrcLineBytes = nBufferWidth * nPixelBytes;
 		for (int j = nBufferHeight - 1; j >= 0; j--)
 		{
@@ -775,7 +794,7 @@ bool DataProcessor::SimpleProject(DatasetInterface* pDataset, int nBandCount, in
 	}
 	else
 	{
-		pDataset->Read(dAdjustLeft, dAdjustTop, srcWidth, srcHeight, pData, nBufferWidth, nBufferHeight, pieDataType, nBandCount, bandMap, 3, 3 * nBufferWidth, 1);
+		pDataset->Read(dAdjustLeft, dAdjustTop, srcWidth, srcHeight, pData, nBufferWidth, nBufferHeight, DataType, nBandCount, bandMap, 3, 3 * nBufferWidth, 1);
 	}
 
 	return true;
@@ -801,9 +820,9 @@ bool DataProcessor::GetData(const std::string& target, void** pData, unsigned lo
 	//OGRSpatialReference* pDefaultSpatialReference = (OGRSpatialReference*)OSRNewSpatialReference(
 	//	"GEOGCS[\"GCS_WGS_1984\",DATUM[\"D_WGS_1984\",SPHEROID[\"WGS_1984\",6378137,298.257223563]],PRIMEM[\"Greenwich\",0],UNIT[\"Degree\",0.017453292519943295]]");
 
-	OGRSpatialReference* pDefaultSpatialReference = (OGRSpatialReference*)OSRNewSpatialReference(nullptr);
 	const char* pWKT = "PROJCS[\"WGS_1984_Web_Mercator\",GEOGCS[\"GCS_WGS_1984_Major_Auxiliary_Sphere\",DATUM[\"WGS_1984_Major_Auxiliary_Sphere\",SPHEROID[\"WGS_1984_Major_Auxiliary_Sphere\",6378137.0,0.0]],PRIMEM[\"Greenwich\",0.0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Mercator_1SP\"],PARAMETER[\"False_Easting\",0.0],PARAMETER[\"False_Northing\",0.0],PARAMETER[\"Central_Meridian\",0.0],PARAMETER[\"latitude_of_origin\",0.0],UNIT[\"Meter\",1.0]]";
-	pDefaultSpatialReference->importFromWkt(pWKT);
+	OGRSpatialReference* pDefaultSpatialReference = (OGRSpatialReference*)OSRNewSpatialReference(pWKT);
+
 
 	ParseURL(target, env, filePath);
 
@@ -854,6 +873,35 @@ bool DataProcessor::GetData(const std::string& target, void** pData, unsigned lo
 	
 	JpgCompress jpgCompress;
 	jpgCompress.Compress(buff, 256, 256, &pDstBuffer_, nDataBytes);
+
+	//test code
+	//FILE* pFile = nullptr;
+	//std::string path = "d:/test/";
+
+	//int nx, ny, nz;
+	//GetTileIndex(target, nx, ny, nz);
+
+	//char string1[32];
+	//_itoa_s(nx, string1, 10);
+	//path += string1;
+	//path += "_";
+
+	//char string2[32];
+	//_itoa_s(ny, string2, 10);
+	//path += string2;
+	//path += "_";
+
+	//char string3[32];
+	//_itoa_s(nz, string3, 10);
+	//path += string3;
+
+	//path += ".jpg";
+
+	//fopen_s(&pFile, path.c_str(), "wb+");
+	//fwrite(pDstBuffer_, 1, nDataBytes, pFile);
+	//fclose(pFile);
+	//pFile = nullptr;
+
 
 	*pData = pDstBuffer_;
 

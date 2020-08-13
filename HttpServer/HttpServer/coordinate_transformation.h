@@ -1,4 +1,5 @@
-#pragma once
+#ifndef HTTPSERVER_COORDINATE_TRANSFORMATION_H_
+#define HTTPSERVER_COORDINATE_TRANSFORMATION_H_
 
 #include "utility.h"
 
@@ -22,3 +23,4 @@ private:
 	OGRCoordinateTransformation* pOGRCoordinateTransformation_ = nullptr;
 };
 
+#endif //HTTPSERVER_COORDINATE_TRANSFORMATION_H_

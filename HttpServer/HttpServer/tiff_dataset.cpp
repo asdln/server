@@ -11,11 +11,10 @@ void TiffDataset::Open(const std::string& path)
 {
 	poDataset_ = (GDALDataset*)GDALOpen(path.c_str(), GA_ReadOnly);
 
-	poSpatialReference_ = (OGRSpatialReference*)OSRNewSpatialReference(nullptr);
-	poSpatialReference_->importFromWkt(poDataset_->GetProjectionRef());
+	poSpatialReference_ = (OGRSpatialReference*)OSRNewSpatialReference(poDataset_->GetProjectionRef());
 
 	poDataset_->GetGeoTransform(dGeoTransform_);
-	enumPIEDataType_ = (PIEDataType)poDataset_->GetRasterBand(1)->GetRasterDataType();
+	enumDataType_ = (DataType)poDataset_->GetRasterBand(1)->GetRasterDataType();
 
 	int nWid = GetRasterXSize();
 	int nHei = GetRasterYSize();
@@ -64,9 +63,9 @@ void TiffDataset::Close()
 	}
 }
 
-PIEDataType TiffDataset::GetDataType()
+DataType TiffDataset::GetDataType()
 {
-	return enumPIEDataType_;
+	return enumDataType_;
 }
 
 OGRSpatialReference* TiffDataset::GetSpatialReference()
@@ -123,21 +122,21 @@ bool TiffDataset::Pixel2World(double dCol, double dRow, double& dProjX, double& 
 }
 
 bool TiffDataset::Read(int nx, int ny, int width, int height,
-	void* pData, int bufferWidth, int bufferHeight, PIEDataType pieDataType,
+	void* pData, int bufferWidth, int bufferHeight, DataType DataType,
 	int nBandCount, int* pBandMap, long long pixSpace, long long lineSapce, long long bandSpace,
 	void* psExtraArg)
 {
 	if (pixSpace == 0)
-		pixSpace = GetDataTypeBytes(pieDataType) * nBandCount;
+		pixSpace = GetDataTypeBytes(DataType) * nBandCount;
 
 	if (lineSapce == 0)
 		lineSapce = pixSpace * bufferWidth;
 
 	if (bandSpace == 0)
-		bandSpace = GetDataTypeBytes(pieDataType);
+		bandSpace = GetDataTypeBytes(DataType);
 
 	CPLErr error = poDataset_->RasterIO(GF_Read, nx, ny, width, height, pData, bufferWidth, bufferHeight
-		, (GDALDataType)pieDataType, nBandCount, pBandMap, pixSpace, lineSapce, bandSpace, (GDALRasterIOExtraArg*)psExtraArg);
+		, (GDALDataType)DataType, nBandCount, pBandMap, pixSpace, lineSapce, bandSpace, (GDALRasterIOExtraArg*)psExtraArg);
 
 	return error == CE_None;
 }

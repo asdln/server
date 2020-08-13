@@ -1,4 +1,5 @@
-#pragma once
+#ifndef HTTPSERVER_DATA_PROCESSOR_H_
+#define HTTPSERVER_DATA_PROCESSOR_H_
 
 #include <string>
 #include <vector>
@@ -45,3 +46,4 @@ private:
 	void* pDstBuffer_ = nullptr;
 };
 
+#endif //HTTPSERVER_DATA_PROCESSOR_H_

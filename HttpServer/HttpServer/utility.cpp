@@ -15,7 +15,7 @@ void GetEnvFromTileIndex(int nx, int ny, int nz, Envelop& env)
 
 	double dResoltion = 360.0 / (nTileCountX * 256.0);
 
-	bool bWebMercator = true;
+	bool bWebMercator = 1;
 	if (bWebMercator)
 	{
 		dTotalLeft = -20037508.3427892;
@@ -104,62 +104,62 @@ bool GetTileIndex(const std::string& path, int& nx, int& ny, int& nz)
 	return true;
 }
 
-int GetDataTypeBytes(PIEDataType pieDataType)
+int GetDataTypeBytes(DataType DataType)
 {
 	int nBytes = 0;
-	switch (pieDataType)
+	switch (DataType)
 	{
-	case PIE_Byte:
+	case DT_Byte:
 	{
 		nBytes = 1;
 		break;
 	}
-	case PIE_UInt16:
+	case DT_UInt16:
 	{
 		nBytes = 2;
 		break;
 	}
-	case PIE_Int16:
+	case DT_Int16:
 	{
 		nBytes = 2;
 		break;
 	}
-	case PIE_UInt32:
+	case DT_UInt32:
 	{
 		nBytes = 4;
 		break;
 	}
-	case PIE_Int32:
+	case DT_Int32:
 	{
 		nBytes = 4;
 		break;
 	}
-	case PIE_Float32:
+	case DT_Float32:
 	{
 		nBytes = 4;
 		break;
 	}
-	case PIE_Float64:
+	case DT_Float64:
 	{
 		nBytes = 8;
 		break;
 	}
-	case PIE_CInt16:
+	case DT_CInt16:
 	{
 		nBytes = 2;
 		break;
 	}
-	case PIE_CInt32:
+	case DT_CInt32:
 	{
 		nBytes = 4;
 		break;
 	}
-	case PIE_CFloat32:
+	case DT_CFloat32:
 	{
 		nBytes = 4;
 		break;
 	}
-	case PIE_CFloat64:
+	case DT_CFloat64:
 	{
 		nBytes = 8;
 		break;
