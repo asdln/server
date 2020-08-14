@@ -148,7 +148,7 @@
     <ClCompile Include="compress_interface.cpp" />
     <ClCompile Include="coordinate_transformation.cpp" />
     <ClCompile Include="dataset_interface.cpp" />
-    <ClCompile Include="data_processor.cpp" />
+    <ClCompile Include="request_processor.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="jpg_compress.cpp" />
     <ClCompile Include="max_min_stretch.cpp" />
@@ -160,7 +160,7 @@
     <ClInclude Include="compress_interface.h" />
     <ClInclude Include="coordinate_transformation.h" />
     <ClInclude Include="dataset_interface.h" />
-    <ClInclude Include="data_processor.h" />
+    <ClInclude Include="request_processor.h" />
     <ClInclude Include="jpg_compress.h" />
     <ClInclude Include="max_min_stretch.h" />
     <ClInclude Include="stretch_interface.h" />

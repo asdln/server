@@ -28,7 +28,7 @@
 #include <thread>
 #include <vector>
 
-#include "data_processor.h"
+#include "request_processor.h"
 #include "gdal_priv.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
@@ -154,20 +154,20 @@ template<
     // Make sure we can handle the method
     if (req.method() != http::verb::get &&
         req.method() != http::verb::head)
-        return send(bad_request("Unknown HTTP-method"));
+        return send(bad_request("Unknown HTTP-method"), nullptr);
 
     // Request path must be absolute and not contain "..".
     if (req.target().empty() ||
         req.target()[0] != '/' ||
         req.target().find("..") != beast::string_view::npos)
-        return send(bad_request("Illegal request-target"));
+        return send(bad_request("Illegal request-target"), nullptr);
 
     void* pData = nullptr;
     unsigned long nDataSize = 0;
     std::string mimeType = "image/jpeg";
 
-    DataProcessor processor;
-    processor.GetData(std::string(req.target()), &pData, nDataSize, mimeType);
+    std::shared_ptr<RequestProcessor> pRequestProcessor = std::make_shared<RequestProcessor>();
+    pRequestProcessor->GetData(std::string(req.target()), &pData, nDataSize, mimeType);
 
 	http::buffer_body::value_type body;
 	body.data = pData;
@@ -182,7 +182,7 @@ template<
         res.set(http::field::content_type, mimeType/*mime_type(path)*/);
         res.content_length(nDataSize);
         res.keep_alive(req.keep_alive());
-        return send(std::move(res));
+        return send(std::move(res), nullptr);
     }
 
     // Respond to GET request
@@ -199,7 +199,7 @@ template<
 
     res.content_length(nDataSize);
     res.keep_alive(req.keep_alive());
-    return send(std::move(res));
+    return send(std::move(res), pRequestProcessor);
 }
 
 //------------------------------------------------------------------------------
@@ -228,7 +228,7 @@ class session : public std::enable_shared_from_this<session>
 
         template<bool isRequest, class Body, class Fields>
         void
-            operator()(http::message<isRequest, Body, Fields>&& msg) const
+            operator()(http::message<isRequest, Body, Fields>&& msg, std::shared_ptr<RequestProcessor> requestProcessor) const
         {
             // The lifetime of the message has to extend
             // for the duration of the async operation so
@@ -239,6 +239,8 @@ class session : public std::enable_shared_from_this<session>
             // Store a type-erased version of the shared
             // pointer in the class to keep it alive.
             self_.res_ = sp;
+
+            self_.requestProcessor_ = requestProcessor;
 
             // Write the response
             http::async_write(
@@ -256,6 +258,7 @@ class session : public std::enable_shared_from_this<session>
     std::shared_ptr<std::string const> doc_root_;
     http::request<http::string_body> req_;
     std::shared_ptr<void> res_;
+    std::shared_ptr<void> requestProcessor_;
     send_lambda lambda_;
 
 public:

@@ -36,9 +36,6 @@
     <ClCompile Include="utility.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="data_processor.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="tiff_dataset.cpp">
       <Filter>源文件\dataset</Filter>
     </ClCompile>
@@ -63,12 +60,12 @@
     <ClCompile Include="coordinate_transformation.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="request_processor.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="utility.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="data_processor.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="tiff_dataset.h">
@@ -90,6 +87,9 @@
       <Filter>头文件\stretch</Filter>
     </ClInclude>
     <ClInclude Include="coordinate_transformation.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="request_processor.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

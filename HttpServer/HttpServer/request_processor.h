@@ -8,12 +8,12 @@
 class DatasetInterface;
 class OGRSpatialReference;
 
-class DataProcessor
+class RequestProcessor
 {
 public:
 	
-	DataProcessor();
-	~DataProcessor();
+	RequestProcessor();
+	~RequestProcessor();
 
 	bool GetData(const std::string& target, void** pData, unsigned long& nDataBytes, std::string& mimeType);
 

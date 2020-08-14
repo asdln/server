@@ -1,4 +1,4 @@
-#include "data_processor.h"
+#include "request_processor.h"
 #include "utility.h"
 #include "tiff_dataset.h"
 #include "jpg_compress.h"
@@ -26,12 +26,12 @@ bool IsIntersect(const Envelop& ptrMapEnv, const Envelop& ptrLayerEnv, bool bTag
 	return false;
 }
 
-DataProcessor::DataProcessor()
+RequestProcessor::RequestProcessor()
 {
 	pDstBuffer_ = nullptr;
 }
 
-bool DataProcessor::ProcessPerPixel(DatasetInterface* ptrDataset
+bool RequestProcessor::ProcessPerPixel(DatasetInterface* ptrDataset
 	, const Envelop& ptrEnvelope
 	, OGRSpatialReference* ptrVisSRef
 	, int nWidth, int nHeight
@@ -202,7 +202,7 @@ bool DataProcessor::ProcessPerPixel(DatasetInterface* ptrDataset
 	return bValid;
 }
 
-bool DataProcessor::Process(DatasetInterface* ptrDataset
+bool RequestProcessor::Process(DatasetInterface* ptrDataset
 	, const Envelop& envelope
 	, OGRSpatialReference* ptrVisSRef
 	, int nWidth, int nHeight
@@ -695,7 +695,7 @@ bool DataProcessor::Process(DatasetInterface* ptrDataset
 	return true;
 }
 
-bool DataProcessor::SimpleProject(DatasetInterface* pDataset, int nBandCount, int bandMap[], const Envelop& env, void* pData, int width, int height)
+bool RequestProcessor::SimpleProject(DatasetInterface* pDataset, int nBandCount, int bandMap[], const Envelop& env, void* pData, int width, int height)
 {
 	double dImgLeft = 0.0;
 	double dImgTop = 0.0;
@@ -800,7 +800,7 @@ bool DataProcessor::SimpleProject(DatasetInterface* pDataset, int nBandCount, in
 	return true;
 }
 
-bool DataProcessor::DynamicProject(OGRSpatialReference* pDstSpatialReference, DatasetInterface* pDataset, int nBandCount, int bandMap[], const Envelop& env, void** pData, int width, int height)
+bool RequestProcessor::DynamicProject(OGRSpatialReference* pDstSpatialReference, DatasetInterface* pDataset, int nBandCount, int bandMap[], const Envelop& env, void** pData, int width, int height)
 {
 	unsigned char* pMaskBuffer = nullptr;
 	Process(pDataset, env, pDstSpatialReference, width, height, nBandCount, bandMap, pData, &pMaskBuffer);
@@ -812,7 +812,7 @@ bool DataProcessor::DynamicProject(OGRSpatialReference* pDstSpatialReference, Da
 
 }
 
-bool DataProcessor::GetData(const std::string& target, void** pData, unsigned long& nDataBytes, std::string& mimeType)
+bool RequestProcessor::GetData(const std::string& target, void** pData, unsigned long& nDataBytes, std::string& mimeType)
 {
 	Envelop env;
 	std::string filePath = "";
@@ -913,7 +913,7 @@ bool DataProcessor::GetData(const std::string& target, void** pData, unsigned lo
 	return true;
 }
 
-DataProcessor::~DataProcessor()
+RequestProcessor::~RequestProcessor()
 {
 	if (pDstBuffer_ != nullptr)
 	{
