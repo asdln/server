@@ -60,7 +60,22 @@
     <ClCompile Include="coordinate_transformation.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="request_processor.cpp">
+    <ClCompile Include="handler_mapping.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="handler.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="wmts_handler.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="tile_processor.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="session.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="listener.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -89,7 +104,22 @@
     <ClInclude Include="coordinate_transformation.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="request_processor.h">
+    <ClInclude Include="handler_mapping.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="handler.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="wmts_handler.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="tile_processor.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="session.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="listener.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
