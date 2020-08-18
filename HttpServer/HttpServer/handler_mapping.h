@@ -3,8 +3,9 @@
 
 #include <map>
 #include <string>
+#include <mutex>
 
-#include "handler.h"
+class Handler;
 
 class HandlerMapping
 {

@@ -1,6 +1,6 @@
 #include "handler_mapping.h"
 #include "wmts_handler.h"
-
+#include <exception>
 
 HandlerMapping* HandlerMapping::instance_ = nullptr;
 std::mutex HandlerMapping::mutex_;
@@ -8,7 +8,7 @@ std::mutex HandlerMapping::mutex_;
 
 HandlerMapping::HandlerMapping()
 {
-
+	RegisterAll();
 }
 
 HandlerMapping::~HandlerMapping()
@@ -36,7 +36,15 @@ void HandlerMapping::RegisterAll()
 
 Handler* HandlerMapping::GetHandler(const std::string& path)
 {
-	return handlerMap_.at(path);
+	std::map<std::string, Handler*>::iterator iter = handlerMap_.find(path);
+	if (iter != handlerMap_.end())
+	{
+		return iter->second;
+	}
+	else
+	{
+		return nullptr;
+	}
 }
 
 HandlerMapping* HandlerMapping::GetInstance()
