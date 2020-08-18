@@ -1,6 +1,7 @@
 #include "handler_mapping.h"
 #include "wmts_handler.h"
-#include <exception>
+#include "http_handler.h"
+
 
 HandlerMapping* HandlerMapping::instance_ = nullptr;
 std::mutex HandlerMapping::mutex_;
@@ -30,6 +31,8 @@ void HandlerMapping::DestroyInstance()
 
 void HandlerMapping::RegisterAll()
 {
+	handlerMap_.insert(std::make_pair("http", new HttpHandler));
+
 	Handler* handler = new WMTSHandler;
 	handlerMap_.insert(std::make_pair("wmts", handler));
 }
@@ -43,7 +46,7 @@ Handler* HandlerMapping::GetHandler(const std::string& path)
 	}
 	else
 	{
-		return nullptr;
+		return handlerMap_["http"];
 	}
 }
 

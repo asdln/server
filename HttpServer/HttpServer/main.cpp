@@ -127,7 +127,7 @@ int main(int argc, char* argv[])
     net::io_context ioc{ threads };
 
     // Create and launch a listening port
-    std::make_shared<listener>(
+    std::make_shared<Listener>(
         ioc,
         tcp::endpoint{ address, port },
         doc_root)->run();

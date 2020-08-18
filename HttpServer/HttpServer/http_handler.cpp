@@ -1,7 +1,8 @@
-#include "wmts_handler.h"
+#include "http_handler.h"
 
 
-void WMTSHandler::Handle(Session& ses, boost::beast::string_view doc_root, boost::beast::http::request<boost::beast::http::string_body>&& req)
+
+void HttpHandler::Handle(Session& ses, boost::beast::string_view doc_root, boost::beast::http::request<boost::beast::http::string_body>&& req)
 {
 	void* pData = nullptr;
 	unsigned long nDataSize = 0;

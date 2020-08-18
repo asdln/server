@@ -150,6 +150,7 @@
     <ClCompile Include="dataset_interface.cpp" />
     <ClCompile Include="handler.cpp" />
     <ClCompile Include="handler_mapping.cpp" />
+    <ClCompile Include="http_handler.cpp" />
     <ClCompile Include="listener.cpp" />
     <ClCompile Include="session.cpp" />
     <ClCompile Include="tile_processor.cpp" />
@@ -167,6 +168,7 @@
     <ClInclude Include="dataset_interface.h" />
     <ClInclude Include="handler.h" />
     <ClInclude Include="handler_mapping.h" />
+    <ClInclude Include="http_handler.h" />
     <ClInclude Include="listener.h" />
     <ClInclude Include="session.h" />
     <ClInclude Include="tile_processor.h" />

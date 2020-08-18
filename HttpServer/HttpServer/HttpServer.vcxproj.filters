@@ -31,6 +31,12 @@
     <Filter Include="源文件\stretch">
       <UniqueIdentifier>{4f3eacb8-cc00-4728-84b7-2ed43f7aab7f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="头文件\net">
+      <UniqueIdentifier>{6aae4e65-e50f-4353-9ed4-5f4375041ebe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\net">
+      <UniqueIdentifier>{fb90fdba-07df-4e7c-a296-5bef53467902}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="utility.cpp">
@@ -60,23 +66,26 @@
     <ClCompile Include="coordinate_transformation.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="handler_mapping.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="handler.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="wmts_handler.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="tile_processor.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="session.cpp">
-      <Filter>源文件</Filter>
+    <ClCompile Include="handler.cpp">
+      <Filter>源文件\net</Filter>
+    </ClCompile>
+    <ClCompile Include="http_handler.cpp">
+      <Filter>源文件\net</Filter>
+    </ClCompile>
+    <ClCompile Include="handler_mapping.cpp">
+      <Filter>源文件\net</Filter>
     </ClCompile>
     <ClCompile Include="listener.cpp">
-      <Filter>源文件</Filter>
+      <Filter>源文件\net</Filter>
+    </ClCompile>
+    <ClCompile Include="session.cpp">
+      <Filter>源文件\net</Filter>
+    </ClCompile>
+    <ClCompile Include="wmts_handler.cpp">
+      <Filter>源文件\net</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -104,23 +113,26 @@
     <ClInclude Include="coordinate_transformation.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="handler_mapping.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="handler.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="wmts_handler.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="tile_processor.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="session.h">
-      <Filter>头文件</Filter>
+      <Filter>头文件\net</Filter>
     </ClInclude>
     <ClInclude Include="listener.h">
-      <Filter>头文件</Filter>
+      <Filter>头文件\net</Filter>
+    </ClInclude>
+    <ClInclude Include="http_handler.h">
+      <Filter>头文件\net</Filter>
+    </ClInclude>
+    <ClInclude Include="handler_mapping.h">
+      <Filter>头文件\net</Filter>
+    </ClInclude>
+    <ClInclude Include="handler.h">
+      <Filter>头文件\net</Filter>
+    </ClInclude>
+    <ClInclude Include="wmts_handler.h">
+      <Filter>头文件\net</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
