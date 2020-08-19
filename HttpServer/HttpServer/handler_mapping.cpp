@@ -23,7 +23,7 @@ HandlerMapping::~HandlerMapping()
 
 void HandlerMapping::DestroyInstance()
 {
-	if(instance_ == nullptr)
+	if(instance_ != nullptr)
 		delete instance_;
 
 	instance_ = nullptr;
@@ -37,9 +37,18 @@ void HandlerMapping::RegisterAll()
 	handlerMap_.insert(std::make_pair("wmts", handler));
 }
 
-Handler* HandlerMapping::GetHandler(const std::string& path)
+Handler* HandlerMapping::GetHandler(Url& url)
 {
-	std::map<std::string, Handler*>::iterator iter = handlerMap_.find(path);
+	std::string service = "";
+	if (!url.QueryValue("service", service))
+	{
+		if (!url.QueryValue("Service", service))
+		{
+			url.QueryValue("SERVICE", service);
+		}
+	}
+
+	std::map<std::string, Handler*>::iterator iter = handlerMap_.find(service);
 	if (iter != handlerMap_.end())
 	{
 		return iter->second;

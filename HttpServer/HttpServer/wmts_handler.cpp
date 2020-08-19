@@ -1,44 +1,63 @@
 #include "wmts_handler.h"
+#include "jpg_buffer.h"
 
+std::shared_ptr<HandleResult> WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, const std::string& mimeType)
+{
+	std::string request;
+	if (url.QueryValue("request", request))
+	{
+		if (request.compare("GetTile") == 0)
+		{
+			return GetTile(doc_root, url, mimeType);
+		}
+		else if (request.compare("GetCapabilities") == 0)
+		{
+			return GetCapabilities(doc_root, url, mimeType);
+		}
+		else if (request.compare("GetFeatureInfo") == 0)
+		{
+			return GetFeatureInfo(doc_root, url, mimeType);
+		}
+	}
 
-void WMTSHandler::Handle(Session& ses, boost::beast::string_view doc_root, boost::beast::http::request<boost::beast::http::string_body>&& req)
+	return GetTile(doc_root, url, mimeType);
+}
+
+std::shared_ptr<HandleResult> WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, const std::string& mimeType)
 {
 	void* pData = nullptr;
 	unsigned long nDataSize = 0;
-	std::string mimeType = "image/jpeg";
+
+	std::list<std::string> paths;
+	QueryDataPath(url, paths);
+
+	int nx = QueryX(url);
+	int ny = QueryY(url);
+	int nz = QueryZ(url);
+
+	Envelop env;
+	GetEnvFromTileIndex(nx, ny, nz, env);
 
 	std::shared_ptr<TileProcessor> pRequestProcessor = std::make_shared<TileProcessor>();
-	pRequestProcessor->GetData(std::string(req.target()), &pData, nDataSize, mimeType);
+	bool bRes = pRequestProcessor->GetTileData(paths, env, 256, &pData, nDataSize, mimeType);
+	auto result = std::make_shared<HandleResult>();
 
-	http::buffer_body::value_type body;
-	body.data = pData;
-	body.size = nDataSize;
-	body.more = false;
-
-	// Respond to HEAD request
-	if (req.method() == http::verb::head)
+	if (bRes)
 	{
-		http::response<http::empty_body> res{ http::status::ok, req.version() };
-		res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-		res.set(http::field::content_type, mimeType/*mime_type(path)*/);
-		res.content_length(nDataSize);
-		res.keep_alive(req.keep_alive());
-		return ses.Send(std::move(res), nullptr);
+		auto buffer = std::make_shared<JpgBuffer>();
+		buffer->set_data(pData, nDataSize);
+		result->set_buffer(buffer);
 	}
 
-	// Respond to GET request
-	http::response<http::buffer_body> res{
-		std::piecewise_construct,
-		std::make_tuple(std::move(body)),
-		std::make_tuple(http::status::ok, req.version()) };
-	res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-	res.set(http::field::content_type, mimeType/*mime_type(path)*/);
+	return result;
+}
 
-	res.set(http::field::access_control_allow_origin, "*");
-	res.set(http::field::access_control_allow_methods, "POST, GET, OPTIONS, DELETE");
-	res.set(http::field::access_control_allow_credentials, "true");
+std::shared_ptr<HandleResult> WMTSHandler::GetCapabilities(boost::beast::string_view doc_root, const Url& url, const std::string& mimeType)
+{
+	return nullptr;
+}
 
-	res.content_length(nDataSize);
-	res.keep_alive(req.keep_alive());
-	return ses.Send(std::move(res), pRequestProcessor);
+std::shared_ptr<HandleResult> WMTSHandler::GetFeatureInfo(boost::beast::string_view doc_root, const Url& url, const std::string& mimeType)
+{
+	return nullptr;
 }

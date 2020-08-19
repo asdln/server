@@ -145,13 +145,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="buffer.cpp" />
+    <ClCompile Include="buffer_pool.cpp" />
     <ClCompile Include="compress_interface.cpp" />
     <ClCompile Include="coordinate_transformation.cpp" />
+    <ClCompile Include="dataset_factory.cpp" />
     <ClCompile Include="dataset_interface.cpp" />
     <ClCompile Include="handler.cpp" />
     <ClCompile Include="handler_mapping.cpp" />
+    <ClCompile Include="handle_result.cpp" />
     <ClCompile Include="http_handler.cpp" />
+    <ClCompile Include="jpg_buffer.cpp" />
     <ClCompile Include="listener.cpp" />
+    <ClCompile Include="resource_pool.cpp" />
     <ClCompile Include="session.cpp" />
     <ClCompile Include="tile_processor.cpp" />
     <ClCompile Include="main.cpp" />
@@ -159,23 +165,31 @@
     <ClCompile Include="max_min_stretch.cpp" />
     <ClCompile Include="stretch_interface.cpp" />
     <ClCompile Include="tiff_dataset.cpp" />
+    <ClCompile Include="url.cpp" />
     <ClCompile Include="utility.cpp" />
     <ClCompile Include="wmts_handler.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="buffer.h" />
+    <ClInclude Include="buffer_pool.h" />
     <ClInclude Include="compress_interface.h" />
     <ClInclude Include="coordinate_transformation.h" />
+    <ClInclude Include="dataset_factory.h" />
     <ClInclude Include="dataset_interface.h" />
     <ClInclude Include="handler.h" />
     <ClInclude Include="handler_mapping.h" />
+    <ClInclude Include="handle_result.h" />
     <ClInclude Include="http_handler.h" />
+    <ClInclude Include="jpg_buffer.h" />
     <ClInclude Include="listener.h" />
+    <ClInclude Include="resource_pool.h" />
     <ClInclude Include="session.h" />
     <ClInclude Include="tile_processor.h" />
     <ClInclude Include="jpg_compress.h" />
     <ClInclude Include="max_min_stretch.h" />
     <ClInclude Include="stretch_interface.h" />
     <ClInclude Include="tiff_dataset.h" />
+    <ClInclude Include="url.h" />
     <ClInclude Include="utility.h" />
     <ClInclude Include="wmts_handler.h" />
   </ItemGroup>

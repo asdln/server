@@ -2,6 +2,7 @@
 #define HTTPSERVER_UTILITY_H_
 
 #include <string>
+#include <vector>
 
 class utility
 {
@@ -128,6 +129,8 @@ bool GetTileIndex(const std::string& path, int& nx, int& ny, int& nz);
 bool LoadData(const std::string& path);
 
 void ParseURL(const std::string& path, Envelop& env, std::string& filePath);
+
+void Split(const std::string& s, std::vector<std::string>& tokens, const std::string& delimiters = " ");
 
 
 #endif  //HTTPSERVER_UTILITY_H_

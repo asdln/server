@@ -37,6 +37,12 @@
     <Filter Include="源文件\net">
       <UniqueIdentifier>{fb90fdba-07df-4e7c-a296-5bef53467902}</UniqueIdentifier>
     </Filter>
+    <Filter Include="头文件\pool">
+      <UniqueIdentifier>{a852a577-a2a7-47df-b41b-2fa8c0b83f95}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\pool">
+      <UniqueIdentifier>{29e0b7ae-6801-485e-aa34-d6424e251a12}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="utility.cpp">
@@ -87,6 +93,27 @@
     <ClCompile Include="wmts_handler.cpp">
       <Filter>源文件\net</Filter>
     </ClCompile>
+    <ClCompile Include="url.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="buffer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="jpg_buffer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="handle_result.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="dataset_factory.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="buffer_pool.cpp">
+      <Filter>源文件\pool</Filter>
+    </ClCompile>
+    <ClCompile Include="resource_pool.cpp">
+      <Filter>源文件\pool</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="utility.h">
@@ -133,6 +160,27 @@
     </ClInclude>
     <ClInclude Include="wmts_handler.h">
       <Filter>头文件\net</Filter>
+    </ClInclude>
+    <ClInclude Include="url.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="buffer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="jpg_buffer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="handle_result.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="dataset_factory.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="resource_pool.h">
+      <Filter>头文件\pool</Filter>
+    </ClInclude>
+    <ClInclude Include="buffer_pool.h">
+      <Filter>头文件\pool</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

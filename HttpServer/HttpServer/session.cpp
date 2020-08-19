@@ -2,8 +2,7 @@
 #include "handler.h"
 
 // Report a failure
-void
-fail(beast::error_code ec, char const* what)
+void fail(beast::error_code ec, char const* what)
 {
 	std::cerr << what << ": " << ec.message() << "\n";
 }
@@ -63,56 +62,61 @@ void Session::handle_request(
 	// Make sure we can handle the method
 	if (req.method() != http::verb::get &&
 		req.method() != http::verb::head)
-		return Send(bad_request("Unknown HTTP-method"), nullptr);
+		return Send(bad_request("Unknown HTTP-method"));
 
 	// Request path must be absolute and not contain "..".
 	if (req.target().empty() ||
 		req.target()[0] != '/' ||
 		req.target().find("..") != beast::string_view::npos)
-		return Send(bad_request("Illegal request-target"), nullptr);
+		return Send(bad_request("Illegal request-target"));
 
+	// Respond to HEAD request
+	if (req.method() == http::verb::head) //Ê²Ã´º¬Òå?
+	{
+		//http::response<http::empty_body> res{ http::status::ok, req.version() };
+		//res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+		//res.set(http::field::content_type, mimeType/*mime_type(path)*/);
+		//res.content_length(nDataSize);
+		//res.keep_alive(req.keep_alive());
+		//return Send(std::move(res), nullptr);
+	}
+
+	std::string mimeType = "image/jpeg";
 	HandlerMapping* pHandlerMapping = HandlerMapping::GetInstance();
-	Handler* pHandler = pHandlerMapping->GetHandler(std::string(req.target()));
-	pHandler->Handle(*this, doc_root, std::move(req));
+	Url url(std::string(req.target()));
+	Handler* pHandler = pHandlerMapping->GetHandler(url);
+	std::shared_ptr<HandleResult> result = pHandler->Handle(doc_root, url, mimeType);
 
-	//void* pData = nullptr;
-	//unsigned long nDataSize = 0;
-	//std::string mimeType = "image/jpeg";
+	if (result->IsEmpty())
+	{
+		return Send(not_found(mimeType));
+	}
+	else
+	{
+		http::buffer_body::value_type body;
+		body.data = result->buffer()->data();
+		body.size = result->buffer()->size();
+		body.more = false;
 
-	//std::shared_ptr<TileProcessor> pRequestProcessor = std::make_shared<TileProcessor>();
-	//pRequestProcessor->GetData(std::string(req.target()), &pData, nDataSize, mimeType);
+		auto msg = std::make_shared<http::response<http::buffer_body>>(
+			std::piecewise_construct,
+			std::make_tuple(std::move(body)),
+			std::make_tuple(http::status::ok, req.version()));
 
-	//http::buffer_body::value_type body;
-	//body.data = pData;
-	//body.size = nDataSize;
-	//body.more = false;
+		msg->set(http::field::server, BOOST_BEAST_VERSION_STRING);
+		msg->set(http::field::content_type, mimeType/*mime_type(path)*/);
 
-	//// Respond to HEAD request
-	//if (req.method() == http::verb::head)
-	//{
-	//	http::response<http::empty_body> res{ http::status::ok, req.version() };
-	//	res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-	//	res.set(http::field::content_type, mimeType/*mime_type(path)*/);
-	//	res.content_length(nDataSize);
-	//	res.keep_alive(req.keep_alive());
-	//	return Send(std::move(res), nullptr);
-	//}
+		msg->set(http::field::access_control_allow_origin, "*");
+		msg->set(http::field::access_control_allow_methods, "POST, GET, OPTIONS, DELETE");
+		msg->set(http::field::access_control_allow_credentials, "true");
 
-	//// Respond to GET request
-	//http::response<http::buffer_body> res{
-	//	std::piecewise_construct,
-	//	std::make_tuple(std::move(body)),
-	//	std::make_tuple(http::status::ok, req.version()) };
-	//res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-	//res.set(http::field::content_type, mimeType/*mime_type(path)*/);
+		msg->content_length(result->buffer()->size());
+		msg->keep_alive(req.keep_alive());
 
-	//res.set(http::field::access_control_allow_origin, "*");
-	//res.set(http::field::access_control_allow_methods, "POST, GET, OPTIONS, DELETE");
-	//res.set(http::field::access_control_allow_credentials, "true");
+		result->set_msg(msg);
 
-	//res.content_length(nDataSize);
-	//res.keep_alive(req.keep_alive());
-	//return Send(std::move(res), pRequestProcessor);
+		Send(result);
+	}
 }
 
 void Session::do_read()
@@ -167,7 +171,7 @@ void Session::on_write(
 
 	// We're done with the response so delete it
 	res_ = nullptr;
-	requestProcessor_ = nullptr;
+	result_ = nullptr;
 
 	// Read another request
 	do_read();

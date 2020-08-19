@@ -1,45 +1,33 @@
 #include "http_handler.h"
 
 
+#include "jpg_buffer.h"
 
-void HttpHandler::Handle(Session& ses, boost::beast::string_view doc_root, boost::beast::http::request<boost::beast::http::string_body>&& req)
+std::shared_ptr<HandleResult> HttpHandler::Handle(boost::beast::string_view doc_root, const Url& url, const std::string& mimeType)
 {
 	void* pData = nullptr;
 	unsigned long nDataSize = 0;
-	std::string mimeType = "image/jpeg";
+
+	std::list<std::string> paths;
+	QueryDataPath(url, paths);
+
+	int nx = QueryX(url);
+	int ny = QueryY(url);
+	int nz = QueryZ(url);
+
+	Envelop env;
+	GetEnvFromTileIndex(nx, ny, nz, env);
 
 	std::shared_ptr<TileProcessor> pRequestProcessor = std::make_shared<TileProcessor>();
-	pRequestProcessor->GetData(std::string(req.target()), &pData, nDataSize, mimeType);
+	bool bRes = pRequestProcessor->GetTileData(paths, env, 256, &pData, nDataSize, mimeType);
+	auto result = std::make_shared<HandleResult>();
 
-	http::buffer_body::value_type body;
-	body.data = pData;
-	body.size = nDataSize;
-	body.more = false;
-
-	// Respond to HEAD request
-	if (req.method() == http::verb::head)
+	if (bRes)
 	{
-		http::response<http::empty_body> res{ http::status::ok, req.version() };
-		res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-		res.set(http::field::content_type, mimeType/*mime_type(path)*/);
-		res.content_length(nDataSize);
-		res.keep_alive(req.keep_alive());
-		return ses.Send(std::move(res), nullptr);
+		auto buffer = std::make_shared<JpgBuffer>();
+		buffer->set_data(pData, nDataSize);
+		result->set_buffer(buffer);
 	}
 
-	// Respond to GET request
-	http::response<http::buffer_body> res{
-		std::piecewise_construct,
-		std::make_tuple(std::move(body)),
-		std::make_tuple(http::status::ok, req.version()) };
-	res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-	res.set(http::field::content_type, mimeType/*mime_type(path)*/);
-
-	res.set(http::field::access_control_allow_origin, "*");
-	res.set(http::field::access_control_allow_methods, "POST, GET, OPTIONS, DELETE");
-	res.set(http::field::access_control_allow_credentials, "true");
-
-	res.content_length(nDataSize);
-	res.keep_alive(req.keep_alive());
-	return ses.Send(std::move(res), pRequestProcessor);
+	return result;
 }

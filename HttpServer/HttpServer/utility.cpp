@@ -34,7 +34,7 @@ void GetEnvFromTileIndex(int nx, int ny, int nz, Envelop& env)
 	env.PutCoords(dx1, dy1, dx2, dy2);
 }
 
-void split(const std::string& s, std::vector<std::string>& tokens, const std::string& delimiters = " ")
+void Split(const std::string& s, std::vector<std::string>& tokens, const std::string& delimiters)
 {
 	std::string::size_type lastPos = s.find_first_not_of(delimiters, 0);
 	std::string::size_type pos = s.find_first_of(delimiters, lastPos);
@@ -66,7 +66,7 @@ void ParseURL(const std::string& path, Envelop& env, std::string& filePath)
 bool GetTileIndex(const std::string& path, int& nx, int& ny, int& nz)
 {
 	std::vector<std::string> tokens;
-	split(path, tokens, "?");
+	Split(path, tokens, "?");
 
 	if (tokens.size() < 2)
 		return false;
@@ -74,7 +74,7 @@ bool GetTileIndex(const std::string& path, int& nx, int& ny, int& nz)
 	const std::string& token = tokens.back();
 
 	std::vector<std::string> params;
-	split(token, params, "&");
+	Split(token, params, "&");
 
 	for (auto& param : params)
 	{
@@ -82,7 +82,7 @@ bool GetTileIndex(const std::string& path, int& nx, int& ny, int& nz)
 		if (index != -1)
 		{
 			std::vector<std::string> keyValue;
-			split(param, keyValue, "=");
+			Split(param, keyValue, "=");
 			if (keyValue.size() == 2)
 			{
 				if (keyValue[0].compare("x") == 0 || keyValue[0].compare("X") == 0 || keyValue[0].compare("TILECOL") == 0)

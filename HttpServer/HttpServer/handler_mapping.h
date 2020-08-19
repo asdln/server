@@ -5,13 +5,15 @@
 #include <string>
 #include <mutex>
 
+#include "url.h"
+
 class Handler;
 
 class HandlerMapping
 {
 public:
 
-	Handler* GetHandler(const std::string& path);
+	Handler* GetHandler(Url& url);
 
 	void RegisterAll();
 

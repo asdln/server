@@ -19,6 +19,7 @@
 
 #include "tile_processor.h"
 #include "handler_mapping.h"
+#include "handle_result.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
@@ -42,7 +43,7 @@ public:
 	void handle_request(beast::string_view doc_root, http::request<http::string_body>&& req);
 
 	template<bool isRequest, class Body, class Fields>
-	void Send(http::message<isRequest, Body, Fields>&& msg, std::shared_ptr<TileProcessor> requestProcessor)
+	void Send(http::message<isRequest, Body, Fields>&& msg)
 	{
 		// The lifetime of the message has to extend
 		// for the duration of the async operation so
@@ -54,8 +55,6 @@ public:
 		// pointer in the class to keep it alive.
 		res_ = sp;
 
-		requestProcessor_ = requestProcessor;
-
 		// Write the response
 		http::async_write(
 			stream_,
@@ -64,6 +63,20 @@ public:
 				&Session::on_write,
 				shared_from_this(),
 				sp->need_eof()));
+	}
+
+	void Send(std::shared_ptr<HandleResult> result)
+	{
+		result_ = result;
+
+		// Write the response
+		http::async_write(
+			stream_,
+			*(result->msg()),
+			beast::bind_front_handler(
+				&Session::on_write,
+				shared_from_this(),
+				result->msg()->need_eof()));
 	}
 
 	// Take ownership of the stream
@@ -99,7 +112,7 @@ private:
 	std::shared_ptr<std::string const> doc_root_;
 	http::request<http::string_body> req_;
 	std::shared_ptr<void> res_;
-	std::shared_ptr<void> requestProcessor_;
+	std::shared_ptr<HandleResult> result_;
 };
 
 #endif //HTTPSERVER_SESSION_H_

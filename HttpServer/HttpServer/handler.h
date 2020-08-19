@@ -3,14 +3,19 @@
 
 #include <boost/beast/http.hpp>
 #include "session.h"
+#include "handle_result.h"
 
 class Handler
 {
 public:
 
-	//virtual void Handle(boost::beast::http::request<boost::beast::http::string_body>&& request) = 0;
+	virtual std::shared_ptr<HandleResult> Handle(boost::beast::string_view doc_root, const Url& url, const std::string& mimeType) { return nullptr; }
 
-	virtual void Handle(Session& ses, boost::beast::string_view doc_root, boost::beast::http::request<boost::beast::http::string_body>&& req) = 0;
+	virtual int QueryX(const Url& url);
+	virtual int QueryY(const Url& url);
+	virtual int QueryZ(const Url& url);
+
+	virtual void QueryDataPath(const Url& url, std::list<std::string>& paths);
 };
 
 #endif //HTTPSERVER_HANDLER_H_

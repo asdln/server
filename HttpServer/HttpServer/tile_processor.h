@@ -2,7 +2,7 @@
 #define HTTPSERVER_DATA_PROCESSOR_H_
 
 #include <string>
-#include <vector>
+#include <list>
 #include "utility.h"
 
 class DatasetInterface;
@@ -15,7 +15,7 @@ public:
 	TileProcessor();
 	~TileProcessor();
 
-	bool GetData(const std::string& target, void** pData, unsigned long& nDataBytes, std::string& mimeType);
+	bool GetTileData(std::list<std::string> paths, const Envelop& env, int nTileSize, void** pData, unsigned long& nDataBytes, const std::string& mimeType);
 
 protected:
 
@@ -41,9 +41,6 @@ protected:
 		, void** memDataOut
 		, unsigned char** dataMask);
 
-private:
-
-	void* pDstBuffer_ = nullptr;
 };
 
 #endif //HTTPSERVER_DATA_PROCESSOR_H_

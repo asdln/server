@@ -7,6 +7,7 @@
 #include "coordinate_transformation.h"
 #include "math.h"
 #include <algorithm>
+#include "resource_pool.h"
 
 template<typename T>
 T LinearSample(double u, double v, void* value1, void* value2, void* value3, void* value4, bool bAdjust = true)
@@ -28,7 +29,6 @@ bool IsIntersect(const Envelop& ptrMapEnv, const Envelop& ptrLayerEnv, bool bTag
 
 TileProcessor::TileProcessor()
 {
-	pDstBuffer_ = nullptr;
 }
 
 bool TileProcessor::ProcessPerPixel(DatasetInterface* ptrDataset
@@ -803,19 +803,19 @@ bool TileProcessor::SimpleProject(DatasetInterface* pDataset, int nBandCount, in
 bool TileProcessor::DynamicProject(OGRSpatialReference* pDstSpatialReference, DatasetInterface* pDataset, int nBandCount, int bandMap[], const Envelop& env, void** pData, int width, int height)
 {
 	unsigned char* pMaskBuffer = nullptr;
-	Process(pDataset, env, pDstSpatialReference, width, height, nBandCount, bandMap, pData, &pMaskBuffer);
+	bool bRes = Process(pDataset, env, pDstSpatialReference, width, height, nBandCount, bandMap, pData, &pMaskBuffer);
 
 	if(pMaskBuffer != nullptr)
 		delete[] pMaskBuffer;
 
-	return true;
+	return bRes;
 
 }
 
-bool TileProcessor::GetData(const std::string& target, void** pData, unsigned long& nDataBytes, std::string& mimeType)
+bool TileProcessor::GetTileData(std::list<std::string> paths, const Envelop& env, int nTileSize, void** pData, unsigned long& nDataBytes, const std::string& mimeType)
 {
-	Envelop env;
-	std::string filePath = "";
+	//暂时只获取第一个数据集
+	std::string filePath = paths.front();
 
 	//OGRSpatialReference* pDefaultSpatialReference = (OGRSpatialReference*)OSRNewSpatialReference(
 	//	"GEOGCS[\"GCS_WGS_1984\",DATUM[\"D_WGS_1984\",SPHEROID[\"WGS_1984\",6378137,298.257223563]],PRIMEM[\"Greenwich\",0],UNIT[\"Degree\",0.017453292519943295]]");
@@ -823,46 +823,46 @@ bool TileProcessor::GetData(const std::string& target, void** pData, unsigned lo
 	const char* pWKT = "PROJCS[\"WGS_1984_Web_Mercator\",GEOGCS[\"GCS_WGS_1984_Major_Auxiliary_Sphere\",DATUM[\"WGS_1984_Major_Auxiliary_Sphere\",SPHEROID[\"WGS_1984_Major_Auxiliary_Sphere\",6378137.0,0.0]],PRIMEM[\"Greenwich\",0.0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Mercator_1SP\"],PARAMETER[\"False_Easting\",0.0],PARAMETER[\"False_Northing\",0.0],PARAMETER[\"Central_Meridian\",0.0],PARAMETER[\"latitude_of_origin\",0.0],UNIT[\"Meter\",1.0]]";
 	OGRSpatialReference* pDefaultSpatialReference = (OGRSpatialReference*)OSRNewSpatialReference(pWKT);
 
-
-	ParseURL(target, env, filePath);
-
 	const size_t nSize = 196608;  // 196608 = 256 * 256 * 3
 	//const size_t nSize = 262144;  // 262144 = 256 * 256 * 4
 	void* buff = nullptr;
 
-	//后期添加文件句柄缓存
-	int nTileSize = 256;
-	TiffDataset tiffDataset;
-	tiffDataset.Open(filePath);
+	std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(filePath));
 
 	int nBandCount = 3;
 	int bandMap[3] = { 1, 2, 3 };
 
-	OGRSpatialReference* poSpatialReference = tiffDataset.GetSpatialReference();
+	OGRSpatialReference* poSpatialReference = tiffDataset->GetSpatialReference();
 
 	bool bSimple = poSpatialReference == nullptr ||
 		std::string(pDefaultSpatialReference->GetAttrValue("DATUM")).compare(poSpatialReference->GetAttrValue("DATUM")) == 0 ||
 		poSpatialReference->IsSame(pDefaultSpatialReference);
 
+	bool bRes = true;
+
 	if (bSimple)
 	{
 		buff = new unsigned char[nSize];
 		memset(buff, 255, nSize);
-		SimpleProject(&tiffDataset, nBandCount, bandMap, env, buff, nTileSize, nTileSize);
+		bRes = SimpleProject(tiffDataset.get(), nBandCount, bandMap, env, buff, nTileSize, nTileSize);
 	}
 	else
 	{
 		//env 必须是 pDefaultSpatialReference 的空间参考
-		DynamicProject(pDefaultSpatialReference, &tiffDataset, nBandCount, bandMap, env, &buff, nTileSize, nTileSize);
+		bRes = DynamicProject(pDefaultSpatialReference, tiffDataset.get(), nBandCount, bandMap, env, &buff, nTileSize, nTileSize);
 	}
 
 	MaxMinStretch stretch;
-	stretch.DoStretch(buff, nSize, nBandCount, bandMap, tiffDataset.GetDataType());
-	
-	if (pDstBuffer_ != nullptr)
+	stretch.DoStretch(buff, nSize, nBandCount, bandMap, tiffDataset->GetDataType());
+
+	if (!bRes)
 	{
-		free(pDstBuffer_);
-		pDstBuffer_ = nullptr;
+		if (buff != nullptr)
+			delete[] buff;
+
+		OSRDestroySpatialReference(pDefaultSpatialReference);
+
+		return false;
 	}
 
 	if (buff == nullptr)
@@ -872,7 +872,7 @@ bool TileProcessor::GetData(const std::string& target, void** pData, unsigned lo
 	}
 	
 	JpgCompress jpgCompress;
-	jpgCompress.Compress(buff, 256, 256, &pDstBuffer_, nDataBytes);
+	jpgCompress.Compress(buff, 256, 256, pData, nDataBytes);
 
 	//test code
 	//FILE* pFile = nullptr;
@@ -902,9 +902,6 @@ bool TileProcessor::GetData(const std::string& target, void** pData, unsigned lo
 	//fclose(pFile);
 	//pFile = nullptr;
 
-
-	*pData = pDstBuffer_;
-
 	if(buff != nullptr)
 		delete[] buff;
 
@@ -915,9 +912,4 @@ bool TileProcessor::GetData(const std::string& target, void** pData, unsigned lo
 
 TileProcessor::~TileProcessor()
 {
-	if (pDstBuffer_ != nullptr)
-	{
-		free(pDstBuffer_);
-		pDstBuffer_ = nullptr;
-	}
 }
