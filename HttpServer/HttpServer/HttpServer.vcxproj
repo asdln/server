@@ -114,7 +114,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>D:\work\boost_1_73_0;D:\work\libjpeg-turbo-master;D:\work\gdal-release-2.4\gdal\bld\include</AdditionalIncludeDirectories>
     </ClCompile>
@@ -147,6 +147,8 @@
   <ItemGroup>
     <ClCompile Include="buffer.cpp" />
     <ClCompile Include="buffer_pool.cpp" />
+    <ClCompile Include="cJSON.c" />
+    <ClCompile Include="CJsonObject.cpp" />
     <ClCompile Include="compress_interface.cpp" />
     <ClCompile Include="coordinate_transformation.cpp" />
     <ClCompile Include="dataset_factory.cpp" />
@@ -159,12 +161,15 @@
     <ClCompile Include="listener.cpp" />
     <ClCompile Include="resource_pool.cpp" />
     <ClCompile Include="session.cpp" />
+    <ClCompile Include="style.cpp" />
+    <ClCompile Include="style_manager.cpp" />
     <ClCompile Include="tile_processor.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="jpg_compress.cpp" />
     <ClCompile Include="max_min_stretch.cpp" />
     <ClCompile Include="stretch_interface.cpp" />
     <ClCompile Include="tiff_dataset.cpp" />
+    <ClCompile Include="true_color_style.cpp" />
     <ClCompile Include="url.cpp" />
     <ClCompile Include="utility.cpp" />
     <ClCompile Include="wmts_handler.cpp" />
@@ -172,6 +177,8 @@
   <ItemGroup>
     <ClInclude Include="buffer.h" />
     <ClInclude Include="buffer_pool.h" />
+    <ClInclude Include="cJSON.h" />
+    <ClInclude Include="CJsonObject.hpp" />
     <ClInclude Include="compress_interface.h" />
     <ClInclude Include="coordinate_transformation.h" />
     <ClInclude Include="dataset_factory.h" />
@@ -184,11 +191,14 @@
     <ClInclude Include="listener.h" />
     <ClInclude Include="resource_pool.h" />
     <ClInclude Include="session.h" />
+    <ClInclude Include="style.h" />
+    <ClInclude Include="style_manager.h" />
     <ClInclude Include="tile_processor.h" />
     <ClInclude Include="jpg_compress.h" />
     <ClInclude Include="max_min_stretch.h" />
     <ClInclude Include="stretch_interface.h" />
     <ClInclude Include="tiff_dataset.h" />
+    <ClInclude Include="true_color_style.h" />
     <ClInclude Include="url.h" />
     <ClInclude Include="utility.h" />
     <ClInclude Include="wmts_handler.h" />

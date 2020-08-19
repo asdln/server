@@ -16,6 +16,8 @@ public:
 	virtual int QueryZ(const Url& url);
 
 	virtual void QueryDataPath(const Url& url, std::list<std::string>& paths);
+
+	virtual std::string QueryStyle(const Url& url);
 };
 
 #endif //HTTPSERVER_HANDLER_H_

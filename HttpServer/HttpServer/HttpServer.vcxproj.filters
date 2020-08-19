@@ -43,6 +43,12 @@
     <Filter Include="源文件\pool">
       <UniqueIdentifier>{29e0b7ae-6801-485e-aa34-d6424e251a12}</UniqueIdentifier>
     </Filter>
+    <Filter Include="头文件\style">
+      <UniqueIdentifier>{023ea494-0002-4476-8836-991d35fd4ab5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\style">
+      <UniqueIdentifier>{82fb7ddb-0a62-4e56-8850-e53a54a513fc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="utility.cpp">
@@ -105,14 +111,29 @@
     <ClCompile Include="handle_result.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="dataset_factory.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="buffer_pool.cpp">
       <Filter>源文件\pool</Filter>
     </ClCompile>
     <ClCompile Include="resource_pool.cpp">
       <Filter>源文件\pool</Filter>
+    </ClCompile>
+    <ClCompile Include="cJSON.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CJsonObject.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="dataset_factory.cpp">
+      <Filter>源文件\dataset</Filter>
+    </ClCompile>
+    <ClCompile Include="true_color_style.cpp">
+      <Filter>源文件\style</Filter>
+    </ClCompile>
+    <ClCompile Include="style.cpp">
+      <Filter>源文件\style</Filter>
+    </ClCompile>
+    <ClCompile Include="style_manager.cpp">
+      <Filter>源文件\style</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -173,14 +194,29 @@
     <ClInclude Include="handle_result.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="dataset_factory.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="resource_pool.h">
       <Filter>头文件\pool</Filter>
     </ClInclude>
     <ClInclude Include="buffer_pool.h">
       <Filter>头文件\pool</Filter>
+    </ClInclude>
+    <ClInclude Include="cJSON.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CJsonObject.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="dataset_factory.h">
+      <Filter>头文件\dataset</Filter>
+    </ClInclude>
+    <ClInclude Include="style.h">
+      <Filter>头文件\style</Filter>
+    </ClInclude>
+    <ClInclude Include="style_manager.h">
+      <Filter>头文件\style</Filter>
+    </ClInclude>
+    <ClInclude Include="true_color_style.h">
+      <Filter>头文件\style</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

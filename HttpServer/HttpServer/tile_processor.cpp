@@ -8,6 +8,7 @@
 #include "math.h"
 #include <algorithm>
 #include "resource_pool.h"
+#include "style.h"
 
 template<typename T>
 T LinearSample(double u, double v, void* value1, void* value2, void* value3, void* value4, bool bAdjust = true)
@@ -812,7 +813,7 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* pDstSpatialReference, Da
 
 }
 
-bool TileProcessor::GetTileData(std::list<std::string> paths, const Envelop& env, int nTileSize, void** pData, unsigned long& nDataBytes, const std::string& mimeType)
+bool TileProcessor::GetTileData(std::list<std::string> paths, const Envelop& env, int nTileSize, void** pData, unsigned long& nDataBytes, Style* style, const std::string& mimeType)
 {
 	//暂时只获取第一个数据集
 	std::string filePath = paths.front();

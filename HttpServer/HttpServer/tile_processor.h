@@ -7,6 +7,7 @@
 
 class DatasetInterface;
 class OGRSpatialReference;
+class Style;
 
 class TileProcessor
 {
@@ -15,7 +16,7 @@ public:
 	TileProcessor();
 	~TileProcessor();
 
-	bool GetTileData(std::list<std::string> paths, const Envelop& env, int nTileSize, void** pData, unsigned long& nDataBytes, const std::string& mimeType);
+	bool GetTileData(std::list<std::string> paths, const Envelop& env, int nTileSize, void** pData, unsigned long& nDataBytes, Style* style, const std::string& mimeType);
 
 protected:
 
