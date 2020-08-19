@@ -815,6 +815,15 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* pDstSpatialReference, Da
 
 bool TileProcessor::GetTileData(std::list<std::string> paths, const Envelop& env, int nTileSize, void** pData, unsigned long& nDataBytes, Style* style, const std::string& mimeType)
 {
+	if (style->kind().compare("TrueColor") == 0)
+	{
+
+	}
+	else
+	{
+
+	}
+
 	//暂时只获取第一个数据集
 	std::string filePath = paths.front();
 

@@ -11,9 +11,11 @@ public:
 
 	virtual ~Style() = default;
 
+	const std::string& kind() { return kind_; }
+
 protected:
 
-	std::string kind;
+	std::string kind_;
 };
 
 #endif //HTTPSERVER_STYLE_H_
