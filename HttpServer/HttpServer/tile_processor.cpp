@@ -817,7 +817,7 @@ bool TileProcessor::GetTileData(std::list<std::string> paths, const Envelop& env
 {
 	if (style->kind().compare("TrueColor") == 0)
 	{
-
+		
 	}
 	else
 	{

@@ -153,6 +153,7 @@
     <ClCompile Include="coordinate_transformation.cpp" />
     <ClCompile Include="dataset_factory.cpp" />
     <ClCompile Include="dataset_interface.cpp" />
+    <ClCompile Include="etcd_storage.cpp" />
     <ClCompile Include="handler.cpp" />
     <ClCompile Include="handler_mapping.cpp" />
     <ClCompile Include="handle_result.cpp" />
@@ -183,6 +184,7 @@
     <ClInclude Include="coordinate_transformation.h" />
     <ClInclude Include="dataset_factory.h" />
     <ClInclude Include="dataset_interface.h" />
+    <ClInclude Include="etcd_storage.h" />
     <ClInclude Include="handler.h" />
     <ClInclude Include="handler_mapping.h" />
     <ClInclude Include="handle_result.h" />

@@ -1,7 +1,7 @@
 #include "style_manager.h"
 #include "true_color_style.h"
 
-bool StyleManager::UpdateStyle(const std::string& jsonStyle)
+bool StyleManager::UpdateStyle(const std::string& json_style)
 {
 	return true;
 }
