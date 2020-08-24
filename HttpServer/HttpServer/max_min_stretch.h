@@ -1,9 +1,9 @@
 #ifndef HTTPSERVER_MAX_MIN_STRETCH_H_
 #define HTTPSERVER_MAX_MIN_STRETCH_H_
 
-#include "stretch_interface.h"
+#include "stretch.h"
 class MaxMinStretch :
-    public StretchInterface
+    public Stretch
 {
 public:
 

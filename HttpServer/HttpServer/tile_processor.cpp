@@ -32,7 +32,7 @@ TileProcessor::TileProcessor()
 {
 }
 
-bool TileProcessor::ProcessPerPixel(DatasetInterface* ptrDataset
+bool TileProcessor::ProcessPerPixel(Dataset* ptrDataset
 	, const Envelop& ptrEnvelope
 	, OGRSpatialReference* ptrVisSRef
 	, int nWidth, int nHeight
@@ -203,7 +203,7 @@ bool TileProcessor::ProcessPerPixel(DatasetInterface* ptrDataset
 	return bValid;
 }
 
-bool TileProcessor::Process(DatasetInterface* ptrDataset
+bool TileProcessor::Process(Dataset* ptrDataset
 	, const Envelop& envelope
 	, OGRSpatialReference* ptrVisSRef
 	, int nWidth, int nHeight
@@ -696,7 +696,7 @@ bool TileProcessor::Process(DatasetInterface* ptrDataset
 	return true;
 }
 
-bool TileProcessor::SimpleProject(DatasetInterface* pDataset, int nBandCount, int bandMap[], const Envelop& env, void* pData, int width, int height)
+bool TileProcessor::SimpleProject(Dataset* pDataset, int nBandCount, int bandMap[], const Envelop& env, void* pData, int width, int height)
 {
 	double dImgLeft = 0.0;
 	double dImgTop = 0.0;
@@ -801,7 +801,7 @@ bool TileProcessor::SimpleProject(DatasetInterface* pDataset, int nBandCount, in
 	return true;
 }
 
-bool TileProcessor::DynamicProject(OGRSpatialReference* pDstSpatialReference, DatasetInterface* pDataset, int nBandCount, int bandMap[], const Envelop& env, void** pData, int width, int height)
+bool TileProcessor::DynamicProject(OGRSpatialReference* pDstSpatialReference, Dataset* pDataset, int nBandCount, int bandMap[], const Envelop& env, void** pData, int width, int height)
 {
 	unsigned char* pMaskBuffer = nullptr;
 	bool bRes = Process(pDataset, env, pDstSpatialReference, width, height, nBandCount, bandMap, pData, &pMaskBuffer);
@@ -815,7 +815,7 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* pDstSpatialReference, Da
 
 bool TileProcessor::GetTileData(std::list<std::string> paths, const Envelop& env, int nTileSize, void** pData, unsigned long& nDataBytes, Style* style, const std::string& mimeType)
 {
-	if (style->kind().compare("TrueColor") == 0)
+	if (style->kind_.compare("TrueColor") == 0)
 	{
 		
 	}
@@ -882,7 +882,7 @@ bool TileProcessor::GetTileData(std::list<std::string> paths, const Envelop& env
 	}
 	
 	JpgCompress jpgCompress;
-	jpgCompress.Compress(buff, 256, 256, pData, nDataBytes);
+	jpgCompress.DoCompress(buff, 256, 256, pData, nDataBytes);
 
 	//test code
 	//FILE* pFile = nullptr;

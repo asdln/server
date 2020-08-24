@@ -2,7 +2,7 @@
 #include "jpg_buffer.h"
 #include "style_manager.h"
 
-std::shared_ptr<HandleResult> WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, const std::string& mimeType)
+std::shared_ptr<HandleResult> WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, const std::string& mimeType)
 {
 	std::string request;
 	if (url.QueryValue("request", request))
@@ -18,6 +18,10 @@ std::shared_ptr<HandleResult> WMTSHandler::Handle(boost::beast::string_view doc_
 		else if (request.compare("GetFeatureInfo") == 0)
 		{
 			return GetFeatureInfo(doc_root, url, mimeType);
+		}
+		else if (request.compare("UpdateStyle") == 0)
+		{
+			return UpdateStyle(doc_root, url, request_body, mimeType);
 		}
 	}
 
@@ -63,5 +67,12 @@ std::shared_ptr<HandleResult> WMTSHandler::GetCapabilities(boost::beast::string_
 
 std::shared_ptr<HandleResult> WMTSHandler::GetFeatureInfo(boost::beast::string_view doc_root, const Url& url, const std::string& mimeType)
 {
+	return nullptr;
+}
+
+std::shared_ptr<HandleResult> WMTSHandler::UpdateStyle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, const std::string& mimeType)
+{
+	StyleManager::UpdateStyle(request_body);
+
 	return nullptr;
 }

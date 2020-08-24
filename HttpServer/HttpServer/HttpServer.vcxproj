@@ -149,10 +149,10 @@
     <ClCompile Include="buffer_pool.cpp" />
     <ClCompile Include="cJSON.c" />
     <ClCompile Include="CJsonObject.cpp" />
-    <ClCompile Include="compress_interface.cpp" />
+    <ClCompile Include="compress.cpp" />
     <ClCompile Include="coordinate_transformation.cpp" />
     <ClCompile Include="dataset_factory.cpp" />
-    <ClCompile Include="dataset_interface.cpp" />
+    <ClCompile Include="dataset.cpp" />
     <ClCompile Include="etcd_storage.cpp" />
     <ClCompile Include="handler.cpp" />
     <ClCompile Include="handler_mapping.cpp" />
@@ -160,6 +160,7 @@
     <ClCompile Include="http_handler.cpp" />
     <ClCompile Include="jpg_buffer.cpp" />
     <ClCompile Include="listener.cpp" />
+    <ClCompile Include="registry.cpp" />
     <ClCompile Include="resource_pool.cpp" />
     <ClCompile Include="session.cpp" />
     <ClCompile Include="style.cpp" />
@@ -168,7 +169,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="jpg_compress.cpp" />
     <ClCompile Include="max_min_stretch.cpp" />
-    <ClCompile Include="stretch_interface.cpp" />
+    <ClCompile Include="stretch.cpp" />
     <ClCompile Include="tiff_dataset.cpp" />
     <ClCompile Include="true_color_style.cpp" />
     <ClCompile Include="url.cpp" />
@@ -180,10 +181,10 @@
     <ClInclude Include="buffer_pool.h" />
     <ClInclude Include="cJSON.h" />
     <ClInclude Include="CJsonObject.hpp" />
-    <ClInclude Include="compress_interface.h" />
+    <ClInclude Include="compress.h" />
     <ClInclude Include="coordinate_transformation.h" />
     <ClInclude Include="dataset_factory.h" />
-    <ClInclude Include="dataset_interface.h" />
+    <ClInclude Include="dataset.h" />
     <ClInclude Include="etcd_storage.h" />
     <ClInclude Include="handler.h" />
     <ClInclude Include="handler_mapping.h" />
@@ -191,6 +192,7 @@
     <ClInclude Include="http_handler.h" />
     <ClInclude Include="jpg_buffer.h" />
     <ClInclude Include="listener.h" />
+    <ClInclude Include="registry.h" />
     <ClInclude Include="resource_pool.h" />
     <ClInclude Include="session.h" />
     <ClInclude Include="style.h" />
@@ -198,7 +200,7 @@
     <ClInclude Include="tile_processor.h" />
     <ClInclude Include="jpg_compress.h" />
     <ClInclude Include="max_min_stretch.h" />
-    <ClInclude Include="stretch_interface.h" />
+    <ClInclude Include="stretch.h" />
     <ClInclude Include="tiff_dataset.h" />
     <ClInclude Include="true_color_style.h" />
     <ClInclude Include="url.h" />

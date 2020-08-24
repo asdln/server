@@ -57,20 +57,11 @@
     <ClCompile Include="tiff_dataset.cpp">
       <Filter>源文件\dataset</Filter>
     </ClCompile>
-    <ClCompile Include="dataset_interface.cpp">
-      <Filter>源文件\dataset</Filter>
-    </ClCompile>
-    <ClCompile Include="compress_interface.cpp">
-      <Filter>源文件\compress</Filter>
-    </ClCompile>
     <ClCompile Include="jpg_compress.cpp">
       <Filter>源文件\compress</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="stretch_interface.cpp">
-      <Filter>源文件\stretch</Filter>
     </ClCompile>
     <ClCompile Include="max_min_stretch.cpp">
       <Filter>源文件\stretch</Filter>
@@ -98,9 +89,6 @@
     </ClCompile>
     <ClCompile Include="wmts_handler.cpp">
       <Filter>源文件\net</Filter>
-    </ClCompile>
-    <ClCompile Include="handle_result.cpp">
-      <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="buffer_pool.cpp">
       <Filter>源文件\pool</Filter>
@@ -138,6 +126,21 @@
     <ClCompile Include="etcd_storage.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="handle_result.cpp">
+      <Filter>源文件\net</Filter>
+    </ClCompile>
+    <ClCompile Include="registry.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="dataset.cpp">
+      <Filter>源文件\dataset</Filter>
+    </ClCompile>
+    <ClCompile Include="stretch.cpp">
+      <Filter>源文件\stretch</Filter>
+    </ClCompile>
+    <ClCompile Include="compress.cpp">
+      <Filter>源文件\compress</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="utility.h">
@@ -146,17 +149,8 @@
     <ClInclude Include="tiff_dataset.h">
       <Filter>头文件\dataset</Filter>
     </ClInclude>
-    <ClInclude Include="dataset_interface.h">
-      <Filter>头文件\dataset</Filter>
-    </ClInclude>
     <ClInclude Include="jpg_compress.h">
       <Filter>头文件\compress</Filter>
-    </ClInclude>
-    <ClInclude Include="compress_interface.h">
-      <Filter>头文件\compress</Filter>
-    </ClInclude>
-    <ClInclude Include="stretch_interface.h">
-      <Filter>头文件\stretch</Filter>
     </ClInclude>
     <ClInclude Include="max_min_stretch.h">
       <Filter>头文件\stretch</Filter>
@@ -184,9 +178,6 @@
     </ClInclude>
     <ClInclude Include="wmts_handler.h">
       <Filter>头文件\net</Filter>
-    </ClInclude>
-    <ClInclude Include="handle_result.h">
-      <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="resource_pool.h">
       <Filter>头文件\pool</Filter>
@@ -223,6 +214,21 @@
     </ClInclude>
     <ClInclude Include="etcd_storage.h">
       <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="handle_result.h">
+      <Filter>头文件\net</Filter>
+    </ClInclude>
+    <ClInclude Include="registry.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="dataset.h">
+      <Filter>头文件\dataset</Filter>
+    </ClInclude>
+    <ClInclude Include="stretch.h">
+      <Filter>头文件\stretch</Filter>
+    </ClInclude>
+    <ClInclude Include="compress.h">
+      <Filter>头文件\compress</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

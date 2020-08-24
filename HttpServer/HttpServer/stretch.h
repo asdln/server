@@ -3,7 +3,7 @@
 
 #include "utility.h"
 
-class StretchInterface
+class Stretch
 {
 public: 
 	virtual void DoStretch(void* pData, int nSize, int nBandCount, int bandMap[], DataType DataType) = 0;

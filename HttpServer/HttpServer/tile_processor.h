@@ -5,7 +5,7 @@
 #include <list>
 #include "utility.h"
 
-class DatasetInterface;
+class Dataset;
 class OGRSpatialReference;
 class Style;
 
@@ -20,11 +20,11 @@ public:
 
 protected:
 
-	bool SimpleProject(DatasetInterface* pDataset, int nBandCount, int bandMap[], const Envelop& env, void* pData, int width, int height);
+	bool SimpleProject(Dataset* pDataset, int nBandCount, int bandMap[], const Envelop& env, void* pData, int width, int height);
 
-	bool DynamicProject(OGRSpatialReference* pDstSpatialReference, DatasetInterface* pDataset, int nBandCount, int bandMap[], const Envelop& env, void** pData, int width, int height);
+	bool DynamicProject(OGRSpatialReference* pDstSpatialReference, Dataset* pDataset, int nBandCount, int bandMap[], const Envelop& env, void** pData, int width, int height);
 
-	bool ProcessPerPixel(DatasetInterface* ptrDataset
+	bool ProcessPerPixel(Dataset* ptrDataset
 		, const Envelop& ptrEnvelope
 		, OGRSpatialReference* ptrVisSRef
 		, int nWidth, int nHeight
@@ -34,7 +34,7 @@ protected:
 		, RasterResamplingType m_resampType
 		, bool bDynProjectToGeoCoord);
 
-	bool Process(DatasetInterface* ptrDataset
+	bool Process(Dataset* ptrDataset
 		, const Envelop& envelope
 		, OGRSpatialReference* ptrVisSRef
 		, int nWidth, int nHeight

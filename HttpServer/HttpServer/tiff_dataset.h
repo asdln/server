@@ -1,12 +1,12 @@
 #ifndef HTTPSERVER_TIFF_DATASET_H_
 #define HTTPSERVER_TIFF_DATASET_H_
 
-#include "dataset_interface.h"
+#include "dataset.h"
 
 class GDALDataset;
 
 class TiffDataset :
-    public DatasetInterface
+    public Dataset
 {
 public:
 

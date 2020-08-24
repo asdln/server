@@ -1,12 +1,12 @@
 #include "true_color_style.h"
 
 
-std::shared_ptr<StretchInterface> TrueColorStyle::stretch()
+std::shared_ptr<Stretch> TrueColorStyle::stretch()
 {
 	return stretch_;
 }
 
-void TrueColorStyle::set_stretch(std::shared_ptr<StretchInterface> stretch)
+void TrueColorStyle::set_stretch(std::shared_ptr<Stretch> stretch)
 {
 	stretch_ = stretch;
 }

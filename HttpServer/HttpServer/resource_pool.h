@@ -3,7 +3,7 @@
 
 #include <memory>
 #include <mutex>
-#include "dataset_interface.h"
+#include "dataset.h"
 
 class ResourcePool
 {
@@ -31,7 +31,7 @@ public:
 
 	static void DestroyInstance();
 
-	std::shared_ptr<DatasetInterface> GetDataset(const std::string& path);
+	std::shared_ptr<Dataset> GetDataset(const std::string& path);
 
 	OGRSpatialReference* GetSpatialReference(const std::string& wkt) { return nullptr; }
 

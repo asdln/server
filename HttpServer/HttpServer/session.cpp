@@ -61,7 +61,7 @@ void Session::handle_request(
 
 	// Make sure we can handle the method
 	if (req.method() != http::verb::get &&
-		req.method() != http::verb::head)
+		req.method() != http::verb::post)
 		return Send(bad_request("Unknown HTTP-method"));
 
 	// Request path must be absolute and not contain "..".
@@ -70,22 +70,12 @@ void Session::handle_request(
 		req.target().find("..") != beast::string_view::npos)
 		return Send(bad_request("Illegal request-target"));
 
-	// Respond to HEAD request
-	if (req.method() == http::verb::head) // ≤√¥∫¨“Â?
-	{
-		//http::response<http::empty_body> res{ http::status::ok, req.version() };
-		//res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-		//res.set(http::field::content_type, mimeType/*mime_type(path)*/);
-		//res.content_length(nDataSize);
-		//res.keep_alive(req.keep_alive());
-		//return Send(std::move(res), nullptr);
-	}
-
 	std::string mimeType = "image/jpeg";
 	HandlerMapping* pHandlerMapping = HandlerMapping::GetInstance();
 	Url url(std::string(req.target()));
+	std::string request_body = req.body().data();
 	Handler* pHandler = pHandlerMapping->GetHandler(url);
-	std::shared_ptr<HandleResult> result = pHandler->Handle(doc_root, url, mimeType);
+	std::shared_ptr<HandleResult> result = pHandler->Handle(doc_root, url, request_body, mimeType);
 
 	if (result->IsEmpty())
 	{

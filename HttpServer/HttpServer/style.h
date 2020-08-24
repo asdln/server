@@ -3,18 +3,8 @@
 
 #include <string>
 
-class Style
+struct Style
 {
-public:
-
-	Style() = default;
-
-	virtual ~Style() = default;
-
-	const std::string& kind() { return kind_; }
-
-protected:
-
 	std::string kind_;
 };
 

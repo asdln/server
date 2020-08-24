@@ -8,7 +8,7 @@ void error_exit(j_common_ptr cinfo) {
 	fprintf(stderr, "JpgCompress error\n", "http_server");
 }
 
-bool JpgCompress::Compress(void* srcbuffer, int nSrcWidth, int nSrcHeight, void** dstBuffer, unsigned long& pOutSize)
+bool JpgCompress::DoCompress(void* srcbuffer, int nSrcWidth, int nSrcHeight, void** dstBuffer, unsigned long& pOutSize)
 {
 	jpeg_compress_struct toWriteInfo;
 	jpeg_error_mgr errorMgr;

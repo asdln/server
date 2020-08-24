@@ -27,7 +27,7 @@ void ResourcePool::DestroyInstance()
 	instance_ = nullptr;
 }
 
-std::shared_ptr<DatasetInterface> ResourcePool::GetDataset(const std::string& path)
+std::shared_ptr<Dataset> ResourcePool::GetDataset(const std::string& path)
 {
 	auto p = DatasetFactory::OpenDataset(path);
 	return p;

@@ -4,7 +4,7 @@
 #include "utility.h"
 class OGRSpatialReference;
 
-class DatasetInterface
+class Dataset
 {
 public:
 
@@ -31,7 +31,7 @@ public:
 
 	virtual OGRSpatialReference* GetSpatialReference() = 0;
 
-	virtual ~DatasetInterface() {};
+	virtual ~Dataset() {};
 };
 
 #endif //HTTPSERVER_DATASET_INTERFACE_H_

@@ -3,7 +3,7 @@
 
 #include <memory>
 #include "style.h"
-#include "stretch_interface.h"
+#include "stretch.h"
 
 class TrueColorStyle :
     public Style
@@ -12,9 +12,9 @@ public:
 
     TrueColorStyle() = default;
 
-    std::shared_ptr<StretchInterface> stretch();
+    std::shared_ptr<Stretch> stretch();
 
-    void set_stretch(std::shared_ptr<StretchInterface> stretch);
+    void set_stretch(std::shared_ptr<Stretch> stretch);
 
     int band_count();
 
@@ -26,7 +26,7 @@ protected:
 
     int band_map_[3] = { 1, 2, 3 };
 
-    std::shared_ptr<StretchInterface> stretch_;
+    std::shared_ptr<Stretch> stretch_;
 };
 
 #endif //HTTPSERVER_TRUE_COLOR_STYLE_H_
