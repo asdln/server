@@ -8,6 +8,8 @@ class EtcdStorage
 {
 public:
 
+	EtcdStorage();
+
 	EtcdStorage(const std::string& host, const std::string& port = "2379");
 
 	

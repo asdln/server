@@ -41,6 +41,8 @@ enum RasterResamplingType
 
 int GetDataTypeBytes(DataType DataType);
 
+void CreateUID(std::string& uid);
+
 class Envelop
 {
 public:

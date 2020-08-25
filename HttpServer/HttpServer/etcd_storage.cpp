@@ -10,11 +10,18 @@
 #include <string>
 #include <sstream>
 #include "CJsonObject.hpp"
+#include "registry.h"
 
 namespace beast = boost::beast;     // from <boost/beast.hpp>
 namespace http = beast::http;       // from <boost/beast/http.hpp>
 namespace net = boost::asio;        // from <boost/asio.hpp>
 using tcp = net::ip::tcp;           // from <boost/asio/ip/tcp.hpp>
+
+EtcdStorage::EtcdStorage()
+{
+	host_ = Registry::etcd_host_;
+	port_ = Registry::etcd_port_;
+}
 
 EtcdStorage::EtcdStorage(const std::string& host, const std::string& port)
 {
@@ -32,6 +39,9 @@ std::string EtcdStorage::GetValue(const std::string& key)
 {
 	std::string value;
 	HttpRequest(host_, port_, "/v2/keys" + key, http::verb::get, value);
+
+	if (value.empty())
+		return "";
 
 	neb::CJsonObject oJson(value);
 	

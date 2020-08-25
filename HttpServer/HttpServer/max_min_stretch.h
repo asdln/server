@@ -7,6 +7,10 @@ class MaxMinStretch :
 {
 public:
 
+    MaxMinStretch() = default;
+
+    MaxMinStretch(double dMin, double dMax) { min_value_ = dMin; max_value_ = dMax; }
+
     void DoStretch(void* pData, int nSize, int nBandCount, int bandMap[], DataType DataType) override;
 
     double min_value();
@@ -17,10 +21,10 @@ public:
 
     void set_max_value(double max_value);
 
-protected:
+public:
 
-    double min_value_;
-    double max_value_;
+    double min_value_ = 0.0;
+    double max_value_ = 0.0;
 };
 
 #endif //HTTPSERVER_MAX_MIN_STRETCH_H_

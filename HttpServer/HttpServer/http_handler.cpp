@@ -10,8 +10,17 @@ std::shared_ptr<HandleResult> HttpHandler::Handle(boost::beast::string_view doc_
 	std::list<std::string> paths;
 	QueryDataPath(url, paths);
 
+	std::vector<std::string> tokens;
 	std::string style_str = QueryStyle(url);
-	std::shared_ptr<Style> style = StyleManager::GetStyle(style_str);
+	Split(style_str, tokens, ":");
+
+	if (tokens.size() != 2)
+		return nullptr;
+
+	std::shared_ptr<Style> style = StyleManager::GetStyle(tokens[0], atoi(tokens[1].c_str()));
+
+	if (style == nullptr)
+		return nullptr;
 
 	int nx = QueryX(url);
 	int ny = QueryY(url);

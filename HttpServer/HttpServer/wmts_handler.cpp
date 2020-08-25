@@ -1,6 +1,7 @@
 #include "wmts_handler.h"
 #include "jpg_buffer.h"
 #include "style_manager.h"
+#include "utility.h"
 
 std::shared_ptr<HandleResult> WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, const std::string& mimeType)
 {
@@ -36,8 +37,17 @@ std::shared_ptr<HandleResult> WMTSHandler::GetTile(boost::beast::string_view doc
 	std::list<std::string> paths;
 	QueryDataPath(url, paths);
 
+	std::vector<std::string> tokens;
 	std::string style_str = QueryStyle(url);
-	std::shared_ptr<Style> style = StyleManager::GetStyle(style_str);
+	Split(style_str, tokens, ":");
+
+	if (tokens.size() != 2)
+		return nullptr;
+
+	std::shared_ptr<Style> style = StyleManager::GetStyle(tokens[0], atoi(tokens[1].c_str()));
+
+	if (style == nullptr)
+		return nullptr;
 
 	int nx = QueryX(url);
 	int ny = QueryY(url);
@@ -72,7 +82,11 @@ std::shared_ptr<HandleResult> WMTSHandler::GetFeatureInfo(boost::beast::string_v
 
 std::shared_ptr<HandleResult> WMTSHandler::UpdateStyle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, const std::string& mimeType)
 {
-	StyleManager::UpdateStyle(request_body);
+	std::string style_key;
+	if (!StyleManager::UpdateStyle(request_body, style_key))
+		return nullptr;
+
+
 
 	return nullptr;
 }

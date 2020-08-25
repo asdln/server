@@ -815,7 +815,7 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* pDstSpatialReference, Da
 
 bool TileProcessor::GetTileData(std::list<std::string> paths, const Envelop& env, int nTileSize, void** pData, unsigned long& nDataBytes, Style* style, const std::string& mimeType)
 {
-	if (style->kind_.compare("TrueColor") == 0)
+	if (style->kind_ == StyleType::TRUE_COLOR)
 	{
 		
 	}
@@ -862,7 +862,7 @@ bool TileProcessor::GetTileData(std::list<std::string> paths, const Envelop& env
 		bRes = DynamicProject(pDefaultSpatialReference, tiffDataset.get(), nBandCount, bandMap, env, &buff, nTileSize, nTileSize);
 	}
 
-	MaxMinStretch stretch;
+	MaxMinStretch stretch(0.0, 255.0);
 	stretch.DoStretch(buff, nSize, nBandCount, bandMap, tiffDataset->GetDataType());
 
 	if (!bRes)

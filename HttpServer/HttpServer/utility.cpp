@@ -1,5 +1,10 @@
 #include "utility.h"
 
+#include <sstream>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
 #include "math.h"
 #include <vector>
 
@@ -172,4 +177,13 @@ int GetDataTypeBytes(DataType DataType)
 	}
 
 	return nBytes;
+}
+
+void CreateUID(std::string& uid)
+{
+	auto uidGen = boost::uuids::random_generator();
+	boost::uuids::uuid uid1 = uidGen();
+	std::stringstream sGuid;
+	sGuid << uid1;
+	uid = sGuid.str();
 }

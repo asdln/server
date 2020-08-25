@@ -2,6 +2,8 @@
 #define HTTPSERVER_COMPRESSINTERFACE_H_
 
 
+
+
 class Compress
 {
 public:
