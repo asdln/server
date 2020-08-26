@@ -36,6 +36,9 @@ void Session::handle_request(
 			res.set(http::field::content_type, "text/html");
 			res.keep_alive(req.keep_alive());
 			res.body() = std::string(why);
+			res.set(http::field::access_control_allow_origin, "*");
+			res.set(http::field::access_control_allow_methods, "POST, GET, OPTIONS, DELETE");
+			res.set(http::field::access_control_allow_credentials, "true");
 			res.prepare_payload();
 			return res;
 		};
@@ -64,6 +67,9 @@ void Session::handle_request(
 			res.set(http::field::content_type, "text/html");
 			res.keep_alive(req.keep_alive());
 			//res.body() = "The resource '" + std::string(target) + "' was not found.";
+			res.set(http::field::access_control_allow_origin, "*");
+			res.set(http::field::access_control_allow_methods, "POST, GET, OPTIONS, DELETE");
+			res.set(http::field::access_control_allow_credentials, "true");
 			res.prepare_payload();
 			return res;
 		};

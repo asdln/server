@@ -11,6 +11,9 @@ std::map<std::string, std::shared_ptr<Style>> StyleManager::s_style_map_;
 bool StyleManager::UpdateStyle(const std::string& json_style, std::string& style_key)
 {
 	std::shared_ptr<Style> style = FromJson(json_style);
+	if (nullptr == style)
+		return false;
+
 	style_key = "";
 	EtcdStorage etcd_storage;
 

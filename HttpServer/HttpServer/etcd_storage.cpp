@@ -31,21 +31,38 @@ EtcdStorage::EtcdStorage(const std::string& host, const std::string& port)
 
 void EtcdStorage::SetValue(const std::string& key, const std::string& value)
 {
-	std::string value1;
-	HttpRequest(host_, port_, "/v2/keys" + key + "?value=" + value, http::verb::put, value1);
+	try
+	{
+		std::string value1;
+		HttpRequest(host_, port_, "/v2/keys" + key + "?value=" + value, http::verb::put, value1);
+	}
+	catch (...)
+	{
+		
+	}
 }
 
 std::string EtcdStorage::GetValue(const std::string& key)
 {
-	std::string value;
-	HttpRequest(host_, port_, "/v2/keys" + key, http::verb::get, value);
+	std::string res;
 
-	if (value.empty())
-		return "";
+	try
+	{
+		std::string value;
+		HttpRequest(host_, port_, "/v2/keys" + key, http::verb::get, value);
 
-	neb::CJsonObject oJson(value);
-	
-	return oJson["node"]("value");
+		if (value.empty())
+			return "";
+
+		neb::CJsonObject oJson(value);
+		res = oJson["node"]("value");
+	}
+	catch (...)
+	{
+		
+	}
+
+	return res;
 }
 
 void EtcdStorage::HttpRequest(const std::string& host, const std::string& port, const std::string& target, http::verb op, std::string& value)

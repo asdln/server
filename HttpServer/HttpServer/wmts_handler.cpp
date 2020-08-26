@@ -109,12 +109,16 @@ bool WMTSHandler::UpdateStyle(boost::beast::string_view doc_root, const Url& url
 	if (!StyleManager::UpdateStyle(request_body, style_key))
 		return false;
 
-	auto string_body = std::make_shared<http::response<http::string_body>>(http::status::internal_server_error, result->version());
+	auto string_body = std::make_shared<http::response<http::string_body>>(http::status::ok, result->version());
 	string_body->set(http::field::server, BOOST_BEAST_VERSION_STRING);
 	string_body->set(http::field::content_type, "text/html");
 	string_body->keep_alive(result->keep_alive());
 	string_body->body() = style_key;
 	string_body->prepare_payload();
+
+	string_body->set(http::field::access_control_allow_origin, "*");
+	string_body->set(http::field::access_control_allow_methods, "POST, GET, OPTIONS, DELETE");
+	string_body->set(http::field::access_control_allow_credentials, "true");
 
 	result->set_string_body(string_body);
 
