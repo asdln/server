@@ -67,16 +67,32 @@ public:
 
 	void Send(std::shared_ptr<HandleResult> result)
 	{
+		//保存一下智能指针对象。在session发送完毕，释放的时候才析构result
 		result_ = result;
 
-		// Write the response
-		http::async_write(
-			stream_,
-			*(result->msg()),
-			beast::bind_front_handler(
-				&Session::on_write,
-				shared_from_this(),
-				result->msg()->need_eof()));
+		if (result->buffer_body() != nullptr)
+		{
+			// Write the response
+			http::async_write(
+				stream_,
+				*(result->buffer_body()),
+				beast::bind_front_handler(
+					&Session::on_write,
+					shared_from_this(),
+					result->buffer_body()->need_eof()));
+		}
+		else if (result->string_body() != nullptr)
+		{
+			// Write the response
+			http::async_write(
+				stream_,
+				*(result->string_body()),
+				beast::bind_front_handler(
+					&Session::on_write,
+					shared_from_this(),
+					result->string_body()->need_eof()));
+		}
+
 	}
 
 	// Take ownership of the stream

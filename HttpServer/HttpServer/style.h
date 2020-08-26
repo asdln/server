@@ -3,21 +3,21 @@
 
 #include <string>
 #include <memory>
-#include "stretch.h"
+#include "max_min_stretch.h"
 
 #include "enums.h"
 
 struct Style
 {
-	std::string uid_;
+	std::string uid_ = "";
 
-	size_t version_;
+	size_t version_ = 0;
 
-	StyleType kind_;
-	int bandMap_[4];
-	int bandCount_;
+	StyleType kind_ = StyleType::TRUE_COLOR;
+	int bandMap_[4] = {1, 2, 3, 4};
+	int bandCount_ = 3;
 
-	std::shared_ptr<Stretch> stretch_;
+	std::shared_ptr<Stretch> stretch_ = std::make_shared<MaxMinStretch>();
 };
 
 #endif //HTTPSERVER_STYLE_H_

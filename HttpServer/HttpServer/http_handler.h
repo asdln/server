@@ -8,7 +8,7 @@
 class HttpHandler : public Handler
 {
 public:
-	virtual std::shared_ptr<HandleResult> Handle(boost::beast::string_view doc_root, const Url& url, const std::string& mimeType);
+	virtual bool Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, const std::string& mimeType, std::shared_ptr<HandleResult> result) override;
 
 };
 

@@ -3,33 +3,33 @@
 #include "style_manager.h"
 #include "utility.h"
 
-std::shared_ptr<HandleResult> WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, const std::string& mimeType)
+bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, const std::string& mimeType, std::shared_ptr<HandleResult> result)
 {
 	std::string request;
 	if (url.QueryValue("request", request))
 	{
 		if (request.compare("GetTile") == 0)
 		{
-			return GetTile(doc_root, url, mimeType);
+			return GetTile(doc_root, url, mimeType, result);
 		}
 		else if (request.compare("GetCapabilities") == 0)
 		{
-			return GetCapabilities(doc_root, url, mimeType);
+			return GetCapabilities(doc_root, url, mimeType, result);
 		}
 		else if (request.compare("GetFeatureInfo") == 0)
 		{
-			return GetFeatureInfo(doc_root, url, mimeType);
+			return GetFeatureInfo(doc_root, url, mimeType, result);
 		}
 		else if (request.compare("UpdateStyle") == 0)
 		{
-			return UpdateStyle(doc_root, url, request_body, mimeType);
+			return UpdateStyle(doc_root, url, request_body, mimeType, result);
 		}
 	}
 
-	return GetTile(doc_root, url, mimeType);
+	return GetTile(doc_root, url, mimeType, result);
 }
 
-std::shared_ptr<HandleResult> WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, const std::string& mimeType)
+bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, const std::string& mimeType, std::shared_ptr<HandleResult> result)
 {
 	void* pData = nullptr;
 	unsigned long nDataSize = 0;
@@ -41,13 +41,14 @@ std::shared_ptr<HandleResult> WMTSHandler::GetTile(boost::beast::string_view doc
 	std::string style_str = QueryStyle(url);
 	Split(style_str, tokens, ":");
 
-	if (tokens.size() != 2)
-		return nullptr;
-
-	std::shared_ptr<Style> style = StyleManager::GetStyle(tokens[0], atoi(tokens[1].c_str()));
+	std::shared_ptr<Style> style;
+	if (tokens.size() == 2)
+	{
+		style = StyleManager::GetStyle(tokens[0], atoi(tokens[1].c_str()));
+	}
 
 	if (style == nullptr)
-		return nullptr;
+		style = std::make_shared<Style>();
 
 	int nx = QueryX(url);
 	int ny = QueryY(url);
@@ -58,35 +59,64 @@ std::shared_ptr<HandleResult> WMTSHandler::GetTile(boost::beast::string_view doc
 
 	std::shared_ptr<TileProcessor> pRequestProcessor = std::make_shared<TileProcessor>();
 	bool bRes = pRequestProcessor->GetTileData(paths, env, 256, &pData, nDataSize, style.get(), mimeType);
-	auto result = std::make_shared<HandleResult>();
 
 	if (bRes)
 	{
 		auto buffer = std::make_shared<JpgBuffer>();
 		buffer->set_data(pData, nDataSize);
 		result->set_buffer(buffer);
+
+		http::buffer_body::value_type body;
+		body.data = result->buffer()->data();
+		body.size = result->buffer()->size();
+		body.more = false;
+
+		auto msg = std::make_shared<http::response<http::buffer_body>>(
+			std::piecewise_construct,
+			std::make_tuple(std::move(body)),
+			std::make_tuple(http::status::ok, result->version()));
+
+		msg->set(http::field::server, BOOST_BEAST_VERSION_STRING);
+		msg->set(http::field::content_type, mimeType/*mime_type(path)*/);
+
+		msg->set(http::field::access_control_allow_origin, "*");
+		msg->set(http::field::access_control_allow_methods, "POST, GET, OPTIONS, DELETE");
+		msg->set(http::field::access_control_allow_credentials, "true");
+
+		msg->content_length(result->buffer()->size());
+		msg->keep_alive(result->keep_alive());
+
+		result->set_buffer_body(msg);
 	}
 
-	return result;
+	return true;
 }
 
-std::shared_ptr<HandleResult> WMTSHandler::GetCapabilities(boost::beast::string_view doc_root, const Url& url, const std::string& mimeType)
+bool WMTSHandler::GetCapabilities(boost::beast::string_view doc_root, const Url& url, const std::string& mimeType, std::shared_ptr<HandleResult> result)
 {
-	return nullptr;
+	return true;
 }
 
-std::shared_ptr<HandleResult> WMTSHandler::GetFeatureInfo(boost::beast::string_view doc_root, const Url& url, const std::string& mimeType)
+bool WMTSHandler::GetFeatureInfo(boost::beast::string_view doc_root, const Url& url, const std::string& mimeType, std::shared_ptr<HandleResult> result)
 {
-	return nullptr;
+	return true;
 }
 
-std::shared_ptr<HandleResult> WMTSHandler::UpdateStyle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, const std::string& mimeType)
+bool WMTSHandler::UpdateStyle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, const std::string& mimeType, std::shared_ptr<HandleResult> result)
 {
 	std::string style_key;
+
 	if (!StyleManager::UpdateStyle(request_body, style_key))
-		return nullptr;
+		return false;
 
+	auto string_body = std::make_shared<http::response<http::string_body>>(http::status::internal_server_error, result->version());
+	string_body->set(http::field::server, BOOST_BEAST_VERSION_STRING);
+	string_body->set(http::field::content_type, "text/html");
+	string_body->keep_alive(result->keep_alive());
+	string_body->body() = style_key;
+	string_body->prepare_payload();
 
+	result->set_string_body(string_body);
 
-	return nullptr;
+	return true;
 }

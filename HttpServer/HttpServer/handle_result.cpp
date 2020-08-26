@@ -1,14 +1,29 @@
 #include "handle_result.h"
 
-
-std::shared_ptr<boost::beast::http::response<boost::beast::http::buffer_body>> HandleResult::msg()
+HandleResult::HandleResult(unsigned int version, bool keep_alive)
 {
-	return msg_;
+	version_ = version;
+	keep_alive_ = keep_alive;
 }
 
-void HandleResult::set_msg(std::shared_ptr<boost::beast::http::response<boost::beast::http::buffer_body>> msg)
+std::shared_ptr<boost::beast::http::response<boost::beast::http::buffer_body>> HandleResult::buffer_body()
 {
-	msg_ = msg;
+	return buffer_body_;
+}
+
+void HandleResult::set_buffer_body(std::shared_ptr<boost::beast::http::response<boost::beast::http::buffer_body>> buffer_body)
+{
+	buffer_body_ = buffer_body;
+}
+
+std::shared_ptr<boost::beast::http::response<boost::beast::http::string_body>> HandleResult::string_body()
+{
+	return string_body_;
+}
+
+void HandleResult::set_string_body(std::shared_ptr<boost::beast::http::response<boost::beast::http::string_body>> string_body)
+{
+	string_body_ = string_body;
 }
 
 std::shared_ptr<Buffer> HandleResult::buffer()
@@ -23,5 +38,5 @@ void HandleResult::set_buffer(std::shared_ptr<Buffer> buffer)
 
 bool HandleResult::IsEmpty()
 {
-	return buffer_ == nullptr ? true : false;
+	return buffer_ == nullptr && string_body_ == nullptr ? true : false;
 }

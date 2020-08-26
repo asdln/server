@@ -839,8 +839,8 @@ bool TileProcessor::GetTileData(std::list<std::string> paths, const Envelop& env
 
 	std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(filePath));
 
-	int nBandCount = 3;
-	int bandMap[3] = { 1, 2, 3 };
+	int nBandCount = style->bandCount_;
+	int* bandMap = style->bandMap_;
 
 	OGRSpatialReference* poSpatialReference = tiffDataset->GetSpatialReference();
 

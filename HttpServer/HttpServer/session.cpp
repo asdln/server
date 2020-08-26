@@ -20,91 +20,58 @@ void Session::handle_request(
 	beast::string_view doc_root,
 	http::request<http::string_body>&& req)
 {
-	// Returns a bad request response
-	auto const bad_request =
-		[&req](beast::string_view why)
-	{
-		http::response<http::string_body> res{ http::status::bad_request, req.version() };
-		res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-		res.set(http::field::content_type, "text/html");
-		res.keep_alive(req.keep_alive());
-		res.body() = std::string(why);
-		res.prepare_payload();
-		return res;
-	};
-
-	// Returns a not found response
-	auto const not_found =
-		[&req](beast::string_view target)
-	{
-		http::response<http::string_body> res{ http::status::not_found, req.version() };
-		res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-		res.set(http::field::content_type, "text/html");
-		res.keep_alive(req.keep_alive());
-		res.body() = "The resource '" + std::string(target) + "' was not found.";
-		res.prepare_payload();
-		return res;
-	};
-
-	// Returns a server error response
-	auto const server_error =
-		[&req](beast::string_view what)
-	{
-		http::response<http::string_body> res{ http::status::internal_server_error, req.version() };
-		res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-		res.set(http::field::content_type, "text/html");
-		res.keep_alive(req.keep_alive());
-		res.body() = "An error occurred: '" + std::string(what) + "'";
-		res.prepare_payload();
-		return res;
-	};
-
 	// Make sure we can handle the method
 	if (req.method() != http::verb::get &&
-		req.method() != http::verb::post)
-		return Send(bad_request("Unknown HTTP-method"));
-
-	// Request path must be absolute and not contain "..".
-	if (req.target().empty() ||
+		req.method() != http::verb::post || 
+		req.target().empty() ||
 		req.target()[0] != '/' ||
 		req.target().find("..") != beast::string_view::npos)
-		return Send(bad_request("Illegal request-target"));
+	{
+		// Returns a bad request response
+		auto const bad_request =
+			[&req](beast::string_view why)
+		{
+			http::response<http::string_body> res{ http::status::bad_request, req.version() };
+			res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+			res.set(http::field::content_type, "text/html");
+			res.keep_alive(req.keep_alive());
+			res.body() = std::string(why);
+			res.prepare_payload();
+			return res;
+		};
+
+		return Send(bad_request("Unknown HTTP-method"));
+	}
 
 	std::string mimeType = "image/jpeg";
 	HandlerMapping* pHandlerMapping = HandlerMapping::GetInstance();
 	Url url(std::string(req.target()));
+	
 	std::string request_body = req.body().data();
 	Handler* pHandler = pHandlerMapping->GetHandler(url);
-	std::shared_ptr<HandleResult> result = pHandler->Handle(doc_root, url, request_body, mimeType);
+
+	auto result = std::make_shared<HandleResult>(req.version(), req.keep_alive());
+	bool bRes = pHandler->Handle(doc_root, url, request_body, mimeType, result);
 
 	if (result->IsEmpty())
 	{
-		return Send(not_found(mimeType));
+		// Returns a not found response
+		auto const not_found =
+			[&req](beast::string_view target)
+		{
+			http::response<http::string_body> res{ http::status::not_found, req.version() };
+			res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+			res.set(http::field::content_type, "text/html");
+			res.keep_alive(req.keep_alive());
+			//res.body() = "The resource '" + std::string(target) + "' was not found.";
+			res.prepare_payload();
+			return res;
+		};
+
+		Send(not_found(mimeType));
 	}
 	else
 	{
-		http::buffer_body::value_type body;
-		body.data = result->buffer()->data();
-		body.size = result->buffer()->size();
-		body.more = false;
-
-		auto msg = std::make_shared<http::response<http::buffer_body>>(
-			std::piecewise_construct,
-			std::make_tuple(std::move(body)),
-			std::make_tuple(http::status::ok, req.version()));
-
-		msg->set(http::field::server, BOOST_BEAST_VERSION_STRING);
-		msg->set(http::field::content_type, mimeType/*mime_type(path)*/);
-
-		msg->set(http::field::access_control_allow_origin, "*");
-		msg->set(http::field::access_control_allow_methods, "POST, GET, OPTIONS, DELETE");
-		msg->set(http::field::access_control_allow_credentials, "true");
-
-		msg->content_length(result->buffer()->size());
-		msg->keep_alive(req.keep_alive());
-
-		result->set_msg(msg);
-
 		Send(result);
 	}
 }
