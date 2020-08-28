@@ -21,7 +21,6 @@ bool StyleManager::UpdateStyle(const std::string& json_style, std::string& style
 	if (style->uid_.empty())
 	{
 		CreateUID(style->uid_);
-		style->version_ = 0;
 
 		style_key = GetStyleKey(style.get());
 		std::string new_json = ToJson(style);
@@ -37,18 +36,19 @@ bool StyleManager::UpdateStyle(const std::string& json_style, std::string& style
 		std::shared_ptr<Style> oldStyle = GetFromStyleMap(style_key);
 		if (oldStyle == nullptr || oldStyle->version_ < style->version_)
 		{
+			AddOrUpdateStyleMap(style_key, style);
+
 			std::string old_json_style = etcd_storage.GetValue(style_key);
 			oldStyle = FromJson(old_json_style);
+
+			if (oldStyle != nullptr && oldStyle->version_ < style->version_)
+			{
+				etcd_storage.SetValue(style_key, json_style);
+				return true;
+			}
 		}
 
-		if (oldStyle->version_ < style->version_)
-		{
-			AddOrUpdateStyleMap(style_key, style);
-			etcd_storage.SetValue(style_key, json_style);
-			return true;
-		}
-
-		return false;
+		return true;
 	}
 
 	//std::string style_key;
@@ -68,7 +68,7 @@ bool StyleManager::UpdateStyle(const std::string& json_style, std::string& style
 
 std::string StyleManager::GetStyleKey(Style* pStyle)
 {
-	return StyleType2String(pStyle->kind_) + '#' + pStyle->uid_;
+	return StyleType2String(pStyle->kind_) + ':' + pStyle->uid_;
 }
 
 std::shared_ptr<Style> StyleManager::GetStyle(const std::string& styleKey, size_t version)
@@ -85,7 +85,7 @@ std::shared_ptr<Style> StyleManager::GetStyle(const std::string& styleKey, size_
 		EtcdStorage etcd_storge;
 		std::string str_json_style = etcd_storge.GetValue(styleKey);
 		style = FromJson(str_json_style);
-		if(style->version_ != version)
+		if(style == nullptr || style->version_ != version)
 		{
 			return nullptr;
 		}
@@ -114,7 +114,7 @@ std::shared_ptr<Style> StyleManager::FromJson(const std::string& jsonStyle)
 	oJson.Get("bandCount", style->bandCount_);
 	for (int i = 0; i < style->bandCount_; i ++)
 	{
-		oJson.Get(i, style->bandMap_[i]);
+		oJson["bandMap"].Get(i, style->bandMap_[i]);
 	}
 
 	oJson.Get("version", style->version_);

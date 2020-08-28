@@ -42,9 +42,9 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, co
 	Split(style_str, tokens, ":");
 
 	std::shared_ptr<Style> style;
-	if (tokens.size() == 2)
+	if (tokens.size() == 3)
 	{
-		style = StyleManager::GetStyle(tokens[0], atoi(tokens[1].c_str()));
+		style = StyleManager::GetStyle(tokens[0] + ":" + tokens[1], atoi(tokens[2].c_str()));
 	}
 
 	if (style == nullptr)
