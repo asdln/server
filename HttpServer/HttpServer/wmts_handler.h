@@ -18,7 +18,7 @@ public:
 	
 	bool GetFeatureInfo(boost::beast::string_view doc_root, const Url& url, const std::string& mimeType, std::shared_ptr<HandleResult> result);
 	
-	bool UpdateStyle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, const std::string& mimeType, std::shared_ptr<HandleResult> result);
+	bool UpdateStyle(const std::string& request_body, std::shared_ptr<HandleResult> result);
 
 protected:
 

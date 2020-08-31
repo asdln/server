@@ -2,7 +2,7 @@
 #include "utility.h"
 #include "tiff_dataset.h"
 #include "jpg_compress.h"
-#include "max_min_stretch.h"
+#include "min_max_stretch.h"
 #include "gdal_priv.h"
 #include "coordinate_transformation.h"
 #include "math.h"
@@ -596,7 +596,7 @@ bool TileProcessor::Process(Dataset* ptrDataset
 					void* pSrc = nullptr;
 					unsigned char* pDes = pOutData + (nWidth * RowIndex + ColIndex) * nDataPixelBytes;
 
-					if (ePixelType < DT_CInt16 && BILINEAR_INTERPOLATION && nColPos + 1 < nDesWid && nRowPos + 1 < nDesHei)
+					if (ePixelType < DT_CInt16 && resampType == BILINEAR_INTERPOLATION && nColPos + 1 < nDesWid && nRowPos + 1 < nDesHei)
 					{
 						double u = dColPos - nColPos;
 						double v = dRowPos - nRowPos;
@@ -862,8 +862,8 @@ bool TileProcessor::GetTileData(std::list<std::string> paths, const Envelop& env
 		bRes = DynamicProject(pDefaultSpatialReference, tiffDataset.get(), nBandCount, bandMap, env, &buff, nTileSize, nTileSize);
 	}
 
-	MaxMinStretch stretch(0.0, 255.0);
-	stretch.DoStretch(buff, nSize, nBandCount, bandMap, tiffDataset->GetDataType());
+	
+	style->stretch_->DoStretch(buff, nSize, nBandCount, bandMap, tiffDataset->GetDataType());
 
 	if (!bRes)
 	{

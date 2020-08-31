@@ -22,7 +22,7 @@ bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, con
 		}
 		else if (request.compare("UpdateStyle") == 0)
 		{
-			return UpdateStyle(doc_root, url, request_body, mimeType, result);
+			return UpdateStyle(request_body, result);
 		}
 	}
 
@@ -102,7 +102,7 @@ bool WMTSHandler::GetFeatureInfo(boost::beast::string_view doc_root, const Url& 
 	return true;
 }
 
-bool WMTSHandler::UpdateStyle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, const std::string& mimeType, std::shared_ptr<HandleResult> result)
+bool WMTSHandler::UpdateStyle(const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
 	std::string style_key;
 

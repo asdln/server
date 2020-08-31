@@ -169,7 +169,7 @@
     <ClCompile Include="tile_processor.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="jpg_compress.cpp" />
-    <ClCompile Include="max_min_stretch.cpp" />
+    <ClCompile Include="min_max_stretch.cpp" />
     <ClCompile Include="stretch.cpp" />
     <ClCompile Include="tiff_dataset.cpp" />
     <ClCompile Include="true_color_style.cpp" />
@@ -201,7 +201,7 @@
     <ClInclude Include="style_manager.h" />
     <ClInclude Include="tile_processor.h" />
     <ClInclude Include="jpg_compress.h" />
-    <ClInclude Include="max_min_stretch.h" />
+    <ClInclude Include="min_max_stretch.h" />
     <ClInclude Include="stretch.h" />
     <ClInclude Include="tiff_dataset.h" />
     <ClInclude Include="true_color_style.h" />

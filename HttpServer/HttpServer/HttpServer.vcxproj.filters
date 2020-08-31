@@ -63,9 +63,6 @@
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="max_min_stretch.cpp">
-      <Filter>源文件\stretch</Filter>
-    </ClCompile>
     <ClCompile Include="coordinate_transformation.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -144,6 +141,9 @@
     <ClCompile Include="enums.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="min_max_stretch.cpp">
+      <Filter>源文件\stretch</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="utility.h">
@@ -154,9 +154,6 @@
     </ClInclude>
     <ClInclude Include="jpg_compress.h">
       <Filter>头文件\compress</Filter>
-    </ClInclude>
-    <ClInclude Include="max_min_stretch.h">
-      <Filter>头文件\stretch</Filter>
     </ClInclude>
     <ClInclude Include="coordinate_transformation.h">
       <Filter>头文件</Filter>
@@ -235,6 +232,9 @@
     </ClInclude>
     <ClInclude Include="enums.h">
       <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="min_max_stretch.h">
+      <Filter>头文件\stretch</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

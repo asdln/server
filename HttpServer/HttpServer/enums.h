@@ -20,7 +20,7 @@ StyleType String2StyleType(const std::string& str_style);
 
 enum class StretchType
 {
-	MAX_MIN
+	MINIMUM_MAXIMUM
 };
 
 #endif //HTTPSERVER_ENUMS_H_

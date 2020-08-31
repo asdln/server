@@ -1,7 +1,7 @@
 #include "style_manager.h"
 #include "true_color_style.h"
 #include "CJsonObject.hpp"
-#include "max_min_stretch.h"
+#include "min_max_stretch.h"
 #include "etcd_storage.h"
 #include "registry.h"
 
@@ -127,11 +127,14 @@ std::shared_ptr<Style> StyleManager::FromJson(const std::string& jsonStyle)
 		double dMin = 0.0;
 		double dMax = 0.0;
 
-		oJson["stretch"].Get("minimum", dMin);
-		oJson["stretch"].Get("maximum", dMax);
-
-		auto stretch = std::make_shared<MaxMinStretch>(dMin, dMax);
+		auto stretch = std::make_shared<MinMaxStretch>();
 		style->stretch_ = stretch;
+
+		for (int i = 0; i < style->bandCount_; i++)
+		{
+			oJson["stretch"]["minimum"].Get(i, stretch->min_value_[i]);
+			oJson["stretch"]["maximum"].Get(i, stretch->max_value_[i]);
+		}
 	}
 
 	return style;
@@ -152,7 +155,7 @@ std::string StyleManager::ToJson(std::shared_ptr<Style> style)
 	}
 
 	oJson.AddEmptySubObject("stretch");
-	if (style->stretch_->kind_ == StretchType::MAX_MIN)
+	if (style->stretch_->kind_ == StretchType::MINIMUM_MAXIMUM)
 	{
 		oJson["stretch"].Add("kind", "maxMin");
 		oJson["stretch"].Add("minimum", 0.0);
