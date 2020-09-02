@@ -897,27 +897,23 @@ bool TileProcessor::GetTileData(std::list<std::string> paths, const Envelop& env
 	//FILE* pFile = nullptr;
 	//std::string path = "d:/test/";
 
-	//int nx, ny, nz;
-	//GetTileIndex(target, nx, ny, nz);
+	//double dx = env.GetXMin();
+	//double dy = env.GetYMin();
 
 	//char string1[32];
-	//_itoa_s(nx, string1, 10);
+	//_itoa_s(dx, string1, 10);
 	//path += string1;
 	//path += "_";
 
 	//char string2[32];
-	//_itoa_s(ny, string2, 10);
+	//_itoa_s(dy, string2, 10);
 	//path += string2;
 	//path += "_";
-
-	//char string3[32];
-	//_itoa_s(nz, string3, 10);
-	//path += string3;
 
 	//path += ".jpg";
 
 	//fopen_s(&pFile, path.c_str(), "wb+");
-	//fwrite(pDstBuffer_, 1, nDataBytes, pFile);
+	//fwrite(*pData, 1, nDataBytes, pFile);
 	//fclose(pFile);
 	//pFile = nullptr;
 

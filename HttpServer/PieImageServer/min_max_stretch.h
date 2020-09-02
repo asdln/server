@@ -27,7 +27,7 @@ protected:
                 if(pMaskBuffer[i] == 0)
                     continue;
 
-                if (have_no_data[j] && no_data_value[j] == (double)(*pData))
+                if (have_no_data[j] && no_data_value[j] == (double)(pData[pixel_index]))
                 {
                     pMaskBuffer[i] = 0;
                     continue;
