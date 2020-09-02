@@ -31,6 +31,8 @@ public:
 
 	virtual OGRSpatialReference* GetSpatialReference() = 0;
 
+	virtual double GetNoDataValue(int band, int* pbSuccess = nullptr) = 0;
+
 	virtual ~Dataset() {};
 };
 

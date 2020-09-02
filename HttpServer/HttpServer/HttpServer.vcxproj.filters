@@ -138,9 +138,6 @@
     <ClCompile Include="compress.cpp">
       <Filter>源文件\compress</Filter>
     </ClCompile>
-    <ClCompile Include="enums.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="min_max_stretch.cpp">
       <Filter>源文件\stretch</Filter>
     </ClCompile>
@@ -229,9 +226,6 @@
     </ClInclude>
     <ClInclude Include="compress.h">
       <Filter>头文件\compress</Filter>
-    </ClInclude>
-    <ClInclude Include="enums.h">
-      <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="min_max_stretch.h">
       <Filter>头文件\stretch</Filter>

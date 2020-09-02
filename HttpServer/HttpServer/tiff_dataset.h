@@ -33,6 +33,8 @@ public:
 
     virtual OGRSpatialReference* GetSpatialReference() override;
 
+    virtual double GetNoDataValue(int band, int* pbSuccess = nullptr) override;
+
     ~TiffDataset();
 
 protected:

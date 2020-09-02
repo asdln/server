@@ -151,22 +151,22 @@ int GetDataTypeBytes(DataType DataType)
 	}
 	case DT_CInt16:
 	{
-		nBytes = 2;
+		nBytes = 4;
 		break;
 	}
 	case DT_CInt32:
 	{
-		nBytes = 4;
+		nBytes = 8;
 		break;
 	}
 	case DT_CFloat32:
 	{
-		nBytes = 4;
+		nBytes = 8;
 		break;
 	}
 	case DT_CFloat64:
 	{
-		nBytes = 8;
+		nBytes = 16;
 		break;
 	}
 	default:

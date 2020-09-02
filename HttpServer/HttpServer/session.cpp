@@ -54,7 +54,15 @@ void Session::handle_request(
 	Handler* pHandler = pHandlerMapping->GetHandler(url);
 
 	auto result = std::make_shared<HandleResult>(req.version(), req.keep_alive());
-	bool bRes = pHandler->Handle(doc_root, url, request_body, mimeType, result);
+	
+	try
+	{
+		bool bRes = pHandler->Handle(doc_root, url, request_body, mimeType, result);
+	}
+	catch (...)
+	{
+
+	}
 
 	if (result->IsEmpty())
 	{

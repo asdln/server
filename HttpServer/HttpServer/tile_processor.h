@@ -22,7 +22,7 @@ protected:
 
 	bool SimpleProject(Dataset* pDataset, int nBandCount, int bandMap[], const Envelop& env, void* pData, int width, int height);
 
-	bool DynamicProject(OGRSpatialReference* pDstSpatialReference, Dataset* pDataset, int nBandCount, int bandMap[], const Envelop& env, void** pData, int width, int height);
+	bool DynamicProject(OGRSpatialReference* pDstSpatialReference, Dataset* pDataset, int nBandCount, int bandMap[], const Envelop& env, void** pData, unsigned char** pMaskBuffer, int width, int height);
 
 	bool ProcessPerPixel(Dataset* ptrDataset
 		, const Envelop& ptrEnvelope

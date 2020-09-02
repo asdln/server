@@ -14,7 +14,7 @@ bool HttpHandler::Handle(boost::beast::string_view doc_root, const Url& url, con
 	std::string style_str = QueryStyle(url);
 	Split(style_str, tokens, ":");
 
-	std::shared_ptr<Style> style;
+	StylePtr style;
 	if (tokens.size() == 2)
 	{
 		style = StyleManager::GetStyle(tokens[0], atoi(tokens[1].c_str()));

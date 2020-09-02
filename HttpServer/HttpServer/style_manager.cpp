@@ -6,11 +6,11 @@
 #include "registry.h"
 
 std::shared_mutex StyleManager::s_shared_mutex;
-std::map<std::string, std::shared_ptr<Style>> StyleManager::s_style_map_;
+std::map<std::string, StylePtr> StyleManager::s_style_map_;
 
 bool StyleManager::UpdateStyle(const std::string& json_style, std::string& style_key)
 {
-	std::shared_ptr<Style> style = FromJson(json_style);
+	StylePtr style = FromJson(json_style);
 	if (nullptr == style)
 		return false;
 
@@ -33,7 +33,7 @@ bool StyleManager::UpdateStyle(const std::string& json_style, std::string& style
 	else
 	{
 		style_key = GetStyleKey(style.get());
-		std::shared_ptr<Style> oldStyle = GetFromStyleMap(style_key);
+		StylePtr oldStyle = GetFromStyleMap(style_key);
 		if (oldStyle == nullptr || oldStyle->version_ < style->version_)
 		{
 			AddOrUpdateStyleMap(style_key, style);
@@ -52,7 +52,7 @@ bool StyleManager::UpdateStyle(const std::string& json_style, std::string& style
 	}
 
 	//std::string style_key;
-	//std::shared_ptr<Style> style = GetFromStyleMap(style_key);
+	//StylePtr style = GetFromStyleMap(style_key);
 
 	//EtcdStorage etcd_storge(Registry::etcd_host_, Registry::etcd_port_);
 	//std::string json_style = etcd_storge.GetValue(style_key);
@@ -71,9 +71,9 @@ std::string StyleManager::GetStyleKey(Style* pStyle)
 	return StyleType2String(pStyle->kind_) + ':' + pStyle->uid_;
 }
 
-std::shared_ptr<Style> StyleManager::GetStyle(const std::string& styleKey, size_t version)
+StylePtr StyleManager::GetStyle(const std::string& styleKey, size_t version)
 {
-	std::shared_ptr<Style> style = GetFromStyleMap(styleKey);
+	StylePtr style = GetFromStyleMap(styleKey);
 
 	if (style == nullptr)
 	{
@@ -101,7 +101,7 @@ std::shared_ptr<Style> StyleManager::GetStyle(const std::string& styleKey, size_
 	return style;
 }
 
-std::shared_ptr<Style> StyleManager::FromJson(const std::string& jsonStyle)
+StylePtr StyleManager::FromJson(const std::string& jsonStyle)
 {
 	if (jsonStyle.empty())
 		return nullptr;
@@ -122,7 +122,7 @@ std::shared_ptr<Style> StyleManager::FromJson(const std::string& jsonStyle)
 	style->uid_ = oJson("uid");
 
 	std::string stretch_kind = oJson["stretch"]("kind");
-	if (stretch_kind.compare("maxMin") == 0)
+	if (stretch_kind.compare("minimumMaximum") == 0)
 	{
 		double dMin = 0.0;
 		double dMax = 0.0;
@@ -140,7 +140,7 @@ std::shared_ptr<Style> StyleManager::FromJson(const std::string& jsonStyle)
 	return style;
 }
 
-std::string StyleManager::ToJson(std::shared_ptr<Style> style)
+std::string StyleManager::ToJson(StylePtr style)
 {
 	neb::CJsonObject oJson;
 	oJson.Add("uid", style->uid_.c_str());
@@ -165,9 +165,9 @@ std::string StyleManager::ToJson(std::shared_ptr<Style> style)
 	return oJson.ToString();
 }
 
-std::shared_ptr<Style> StyleManager::GetFromStyleMap(const std::string& key)
+StylePtr StyleManager::GetFromStyleMap(const std::string& key)
 {	
-	std::map<std::string, std::shared_ptr<Style>>::iterator itr;
+	std::map<std::string, StylePtr>::iterator itr;
 	std::shared_lock<std::shared_mutex> lock(s_shared_mutex);
 	itr = s_style_map_.find(key);
 	if (itr != s_style_map_.end())
@@ -178,7 +178,7 @@ std::shared_ptr<Style> StyleManager::GetFromStyleMap(const std::string& key)
 	return nullptr;
 }
 
-bool StyleManager::AddOrUpdateStyleMap(const std::string& key, std::shared_ptr<Style> style)
+bool StyleManager::AddOrUpdateStyleMap(const std::string& key, StylePtr style)
 {
 	std::unique_lock<std::shared_mutex> lock(s_shared_mutex);
 	s_style_map_[key] = style;

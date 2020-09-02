@@ -801,16 +801,10 @@ bool TileProcessor::SimpleProject(Dataset* pDataset, int nBandCount, int bandMap
 	return true;
 }
 
-bool TileProcessor::DynamicProject(OGRSpatialReference* pDstSpatialReference, Dataset* pDataset, int nBandCount, int bandMap[], const Envelop& env, void** pData, int width, int height)
+bool TileProcessor::DynamicProject(OGRSpatialReference* pDstSpatialReference, Dataset* pDataset, int nBandCount, int bandMap[], const Envelop& env, void** pData, unsigned char** pMaskBuffer, int width, int height)
 {
-	unsigned char* pMaskBuffer = nullptr;
-	bool bRes = Process(pDataset, env, pDstSpatialReference, width, height, nBandCount, bandMap, pData, &pMaskBuffer);
-
-	if(pMaskBuffer != nullptr)
-		delete[] pMaskBuffer;
-
+	bool bRes = Process(pDataset, env, pDstSpatialReference, width, height, nBandCount, bandMap, pData, pMaskBuffer);
 	return bRes;
-
 }
 
 bool TileProcessor::GetTileData(std::list<std::string> paths, const Envelop& env, int nTileSize, void** pData, unsigned long& nDataBytes, Style* style, const std::string& mimeType)
@@ -833,11 +827,11 @@ bool TileProcessor::GetTileData(std::list<std::string> paths, const Envelop& env
 	const char* pWKT = "PROJCS[\"WGS_1984_Web_Mercator\",GEOGCS[\"GCS_WGS_1984_Major_Auxiliary_Sphere\",DATUM[\"WGS_1984_Major_Auxiliary_Sphere\",SPHEROID[\"WGS_1984_Major_Auxiliary_Sphere\",6378137.0,0.0]],PRIMEM[\"Greenwich\",0.0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Mercator_1SP\"],PARAMETER[\"False_Easting\",0.0],PARAMETER[\"False_Northing\",0.0],PARAMETER[\"Central_Meridian\",0.0],PARAMETER[\"latitude_of_origin\",0.0],UNIT[\"Meter\",1.0]]";
 	OGRSpatialReference* pDefaultSpatialReference = (OGRSpatialReference*)OSRNewSpatialReference(pWKT);
 
-	const size_t nSize = 196608;  // 196608 = 256 * 256 * 3
-	//const size_t nSize = 262144;  // 262144 = 256 * 256 * 4
 	void* buff = nullptr;
+	unsigned char* pMaskBuffer = nullptr;
 
 	std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(filePath));
+	int pixel_bytes = GetDataTypeBytes(tiffDataset->GetDataType());
 
 	int nBandCount = style->bandCount_;
 	int* bandMap = style->bandMap_;
@@ -849,6 +843,8 @@ bool TileProcessor::GetTileData(std::list<std::string> paths, const Envelop& env
 		poSpatialReference->IsSame(pDefaultSpatialReference);
 
 	bool bRes = true;
+	const size_t nSize = (size_t)nTileSize * nTileSize * nBandCount * pixel_bytes;  // 196608 = 256 * 256 * 3
+	//const size_t nSize = 262144;  // 262144 = 256 * 256 * 4
 
 	if (bSimple)
 	{
@@ -859,16 +855,16 @@ bool TileProcessor::GetTileData(std::list<std::string> paths, const Envelop& env
 	else
 	{
 		//env 必须是 pDefaultSpatialReference 的空间参考
-		bRes = DynamicProject(pDefaultSpatialReference, tiffDataset.get(), nBandCount, bandMap, env, &buff, nTileSize, nTileSize);
+		bRes = DynamicProject(pDefaultSpatialReference, tiffDataset.get(), nBandCount, bandMap, env, &buff, &pMaskBuffer, nTileSize, nTileSize);
 	}
-
-	
-	style->stretch_->DoStretch(buff, nSize, nBandCount, bandMap, tiffDataset->GetDataType());
 
 	if (!bRes)
 	{
 		if (buff != nullptr)
 			delete[] buff;
+
+		if (pMaskBuffer != nullptr)
+			delete[] pMaskBuffer;
 
 		OSRDestroySpatialReference(pDefaultSpatialReference);
 
@@ -880,9 +876,22 @@ bool TileProcessor::GetTileData(std::list<std::string> paths, const Envelop& env
 		buff = new unsigned char[nSize];
 		memset(buff, 255, nSize);
 	}
-	
-	JpgCompress jpgCompress;
-	jpgCompress.DoCompress(buff, 256, 256, pData, nDataBytes);
+
+	int hava_no_data[4] = { 0, 0, 0, 0 };
+	double no_data_value[4] = { 0.0, 0.0, 0.0, 0.0 };
+
+	for (int i = 0; i < nBandCount; i++)
+	{
+		no_data_value[i] = tiffDataset->GetNoDataValue(bandMap[i], hava_no_data + i);
+	}
+
+	style->stretch_->DoStretch(buff, pMaskBuffer, nTileSize * nTileSize, nBandCount, tiffDataset->GetDataType(), no_data_value, hava_no_data);
+
+	if (nBandCount == 3)
+	{
+		JpgCompress jpgCompress;
+		jpgCompress.DoCompress(buff, 256, 256, pData, nDataBytes);
+	}
 
 	//test code
 	//FILE* pFile = nullptr;
@@ -914,6 +923,9 @@ bool TileProcessor::GetTileData(std::list<std::string> paths, const Envelop& env
 
 	if(buff != nullptr)
 		delete[] buff;
+
+	if (pMaskBuffer != nullptr)
+		delete[] pMaskBuffer;
 
 	OSRDestroySpatialReference(pDefaultSpatialReference);
 

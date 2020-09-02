@@ -140,3 +140,8 @@ bool TiffDataset::Read(int nx, int ny, int width, int height,
 
 	return error == CE_None;
 }
+
+double TiffDataset::GetNoDataValue(int band, int* pbSuccess)
+{
+	return poDataset_->GetRasterBand(band)->GetNoDataValue(pbSuccess);
+}
