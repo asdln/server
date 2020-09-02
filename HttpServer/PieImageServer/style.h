@@ -14,6 +14,24 @@ enum class StyleType
 	GRAY
 };
 
+
+//json格式样例数据：
+/*
+{
+	"uid":"ece881bb-6020-4b37-93fb-f1b27feda99c",
+	"version":2,
+	"kind":"trueColor",
+	"bandMap":[1,2,3],
+	"bandCount":3,
+	"stretch":
+	{
+		"kind":"minimumMaximum",
+		"minimum":[0,0,0,0],
+		"maximum":[255,255,255,255]
+	}
+}
+*/
+
 struct Style
 {
 	std::string uid_ = "";
