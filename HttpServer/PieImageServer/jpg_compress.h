@@ -8,7 +8,7 @@ class JpgCompress :
 {
 public:
 
-    virtual bool DoCompress(void* lpBmpBuffer, int nWidth, int nHeight, void** ppJpegBuffer, unsigned long& pOutSize) override;
+    virtual BufferPtr DoCompress(void* lpBmpBuffer, int nWidth, int nHeight) override;
 };
 
 #endif //HTTPSERVER_JPGCOMPRESS_H_

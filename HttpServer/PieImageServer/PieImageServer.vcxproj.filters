@@ -141,6 +141,12 @@
     <ClCompile Include="min_max_stretch.cpp">
       <Filter>源文件\stretch</Filter>
     </ClCompile>
+    <ClCompile Include="png_compress.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="png_buffer.cpp">
+      <Filter>源文件\pool</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="utility.h">
@@ -229,6 +235,12 @@
     </ClInclude>
     <ClInclude Include="min_max_stretch.h">
       <Filter>头文件\stretch</Filter>
+    </ClInclude>
+    <ClInclude Include="png_compress.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="png_buffer.h">
+      <Filter>头文件\pool</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

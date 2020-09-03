@@ -14,6 +14,13 @@ enum class StyleType
 	GRAY
 };
 
+enum class Format
+{
+	JPG = 0,
+	PNG,
+	WEBP,
+	AUTO
+};
 
 //json格式样例数据：
 /*
@@ -21,6 +28,7 @@ enum class StyleType
 	"uid":"ece881bb-6020-4b37-93fb-f1b27feda99c",
 	"version":2,
 	"kind":"trueColor",
+	"format":"png",
 	"bandMap":[1,2,3],
 	"bandCount":3,
 	"stretch":
@@ -38,6 +46,8 @@ struct Style
 
 	size_t version_ = 0;
 
+	Format format_ = Format::PNG;
+
 	StyleType kind_ = StyleType::TRUE_COLOR;
 	int bandMap_[4] = {1, 2, 3, 4};
 	int bandCount_ = 3;
@@ -50,5 +60,9 @@ typedef std::shared_ptr<Style> StylePtr;
 std::string StyleType2String(StyleType style_type);
 
 StyleType String2StyleType(const std::string& str_style);
+
+std::string Format2String(Format format);
+
+Format String2Format(const std::string& format_string);
 
 #endif //HTTPSERVER_STYLE_H_

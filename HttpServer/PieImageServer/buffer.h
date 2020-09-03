@@ -1,25 +1,24 @@
 #ifndef HTTPSERVER_BUFFER_H_
 #define HTTPSERVER_BUFFER_H_
 
+#include <memory>
 
 class Buffer
 {
 public:
 
-	virtual void* data();
+	virtual void* data() = 0;
 
-	virtual size_t size();
-
-	virtual void set_data(void* data, size_t size);
+	virtual size_t size() = 0;
 
 	virtual ~Buffer(){}
 
 protected:
 
-	void* data_ = nullptr;
 
-	size_t size_ = 0;
 
 };
+
+typedef std::shared_ptr<Buffer> BufferPtr;
 
 #endif //HTTPSERVER_BUFFER_H_

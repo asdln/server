@@ -31,9 +31,6 @@ bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, con
 
 bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, const std::string& mimeType, std::shared_ptr<HandleResult> result)
 {
-	void* pData = nullptr;
-	unsigned long nDataSize = 0;
-
 	std::list<std::string> paths;
 	QueryDataPath(url, paths);
 
@@ -58,12 +55,10 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, co
 	GetEnvFromTileIndex(nx, ny, nz, env);
 
 	std::shared_ptr<TileProcessor> pRequestProcessor = std::make_shared<TileProcessor>();
-	bool bRes = pRequestProcessor->GetTileData(paths, env, 256, &pData, nDataSize, style.get(), mimeType);
+	BufferPtr buffer = pRequestProcessor->GetTileData(paths, env, 256, style.get(), mimeType);
 
-	if (bRes)
+	if (buffer != nullptr)
 	{
-		auto buffer = std::make_shared<JpgBuffer>();
-		buffer->set_data(pData, nDataSize);
 		result->set_buffer(buffer);
 
 		http::buffer_body::value_type body;

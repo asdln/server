@@ -4,9 +4,6 @@
 
 bool HttpHandler::Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, const std::string& mimeType, std::shared_ptr<HandleResult> result)
 {
-	void* pData = nullptr;
-	unsigned long nDataSize = 0;
-
 	std::list<std::string> paths;
 	QueryDataPath(url, paths);
 
@@ -15,9 +12,9 @@ bool HttpHandler::Handle(boost::beast::string_view doc_root, const Url& url, con
 	Split(style_str, tokens, ":");
 
 	StylePtr style;
-	if (tokens.size() == 2)
+	if (tokens.size() == 3)
 	{
-		style = StyleManager::GetStyle(tokens[0], atoi(tokens[1].c_str()));
+		style = StyleManager::GetStyle(tokens[0] + ":" + tokens[1], atoi(tokens[2].c_str()));
 	}
 
 	if (style == nullptr)
@@ -31,12 +28,10 @@ bool HttpHandler::Handle(boost::beast::string_view doc_root, const Url& url, con
 	GetEnvFromTileIndex(nx, ny, nz, env);
 
 	std::shared_ptr<TileProcessor> pRequestProcessor = std::make_shared<TileProcessor>();
-	bool bRes = pRequestProcessor->GetTileData(paths, env, 256, &pData, nDataSize, style.get(), mimeType);
+	BufferPtr buffer = pRequestProcessor->GetTileData(paths, env, 256, style.get(), mimeType);
 
-	if (bRes)
+	if (buffer != nullptr)
 	{
-		auto buffer = std::make_shared<JpgBuffer>();
-		buffer->set_data(pData, nDataSize);
 		result->set_buffer(buffer);
 
 		http::buffer_body::value_type body;

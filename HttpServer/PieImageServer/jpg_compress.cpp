@@ -3,13 +3,17 @@
 #include "cdjpeg.h"             /* Common decls for cjpeg/djpeg applications */
 #include "jversion.h"           /* for version message */
 #include "jconfigint.h"
+#include "jpg_buffer.h"
 
 void error_exit(j_common_ptr cinfo) {
 	fprintf(stderr, "JpgCompress error\n", "http_server");
 }
 
-bool JpgCompress::DoCompress(void* srcbuffer, int nSrcWidth, int nSrcHeight, void** dstBuffer, unsigned long& pOutSize)
+BufferPtr JpgCompress::DoCompress(void* srcbuffer, int nSrcWidth, int nSrcHeight)
 {
+	void* dstBuffer;
+	unsigned long pOutSize = 0;
+
 	jpeg_compress_struct toWriteInfo;
 	jpeg_error_mgr errorMgr;
 	toWriteInfo.err = jpeg_std_error(&errorMgr);
@@ -19,7 +23,7 @@ bool JpgCompress::DoCompress(void* srcbuffer, int nSrcWidth, int nSrcHeight, voi
 	jpeg_create_compress(&toWriteInfo);
 
 	//确定要用于输出压缩的jpeg的数据空间
-	jpeg_mem_dest(&toWriteInfo, (unsigned char**)dstBuffer, &pOutSize);
+	jpeg_mem_dest(&toWriteInfo, (unsigned char**)&dstBuffer, &pOutSize);
 
 	toWriteInfo.image_width = nSrcWidth;
 	toWriteInfo.image_height = nSrcHeight;
@@ -46,5 +50,8 @@ bool JpgCompress::DoCompress(void* srcbuffer, int nSrcWidth, int nSrcHeight, voi
 	jpeg_finish_compress(&toWriteInfo);
 	jpeg_destroy_compress(&toWriteInfo);
 
-	return true;
+	auto buffer = std::make_shared<JpgBuffer>();
+	buffer->set_data(dstBuffer, pOutSize);
+
+	return buffer;
 }

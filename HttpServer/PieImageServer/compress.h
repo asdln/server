@@ -2,13 +2,13 @@
 #define HTTPSERVER_COMPRESSINTERFACE_H_
 
 
-
+#include "buffer.h"
 
 class Compress
 {
 public:
 
-	virtual bool DoCompress(void* lpBmpBuffer, int nWidth, int nHeight, void** ppJpegBuffer, unsigned long& pOutSize) = 0;
+	virtual BufferPtr DoCompress(void* lpBmpBuffer, int nWidth, int nHeight) = 0;
 	
 };
 

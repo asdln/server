@@ -41,3 +41,52 @@ StyleType String2StyleType(const std::string& str_style)
 
 	return StyleType::NONE;
 }
+
+std::string Format2String(Format format)
+{
+	std::string string_fromat = "";
+	switch (format)
+	{
+	case Format::JPG:
+		string_fromat = "jpg";
+		break;
+	case Format::PNG:
+		string_fromat = "png";
+		break;
+	case Format::WEBP:
+		string_fromat = "webp";
+		break;
+	case Format::AUTO:
+		string_fromat = "auto";
+		break;
+	default:
+		string_fromat = "png";
+		break;
+	}
+
+	return string_fromat;
+}
+
+Format String2Format(const std::string& format_string)
+{
+	if (format_string.compare("jpg") == 0)
+	{
+		return Format::JPG;
+	}
+	else if (format_string.compare("png") == 0)
+	{
+		return Format::PNG;
+	}
+	else if (format_string.compare("webp") == 0)
+	{
+		return Format::WEBP;
+	}
+	else if (format_string.compare("auto") == 0)
+	{
+		return Format::AUTO;
+	}
+	else
+	{
+		return Format::PNG;
+	}
+}

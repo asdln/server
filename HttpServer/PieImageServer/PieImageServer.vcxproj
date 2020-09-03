@@ -116,13 +116,14 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>D:\work\boost_1_73_0;D:\work\libjpeg-turbo-master;D:\work\gdal-release-2.4\gdal\bld\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\work\boost_1_73_0;D:\work\libjpeg-turbo-master;D:\work\gdal-release-2.4\gdal\bld\include;D:\work\libpng-libpng16</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>D:\work\boost_1_73_0\stage\lib;D:\work\libjpeg-turbo-master\Debug;D:\work\gdal-release-2.4\gdal\bld\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>turbojpeg-static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;gdal_i.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>D:\work\boost_1_73_0\stage\lib;D:\work\libjpeg-turbo-master\Debug;D:\work\gdal-release-2.4\gdal\bld\lib;D:\work\libpng-libpng16\Release;D:\work\zlib-master\build\Release</AdditionalLibraryDirectories>
+      <AdditionalDependencies>turbojpeg-static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;gdal_i.lib;libpng16_static.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/NODEFAULTLIB:"libcmtd.lib"  /NODEFAULTLIB:"MSVCRT.lib" %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -133,15 +134,15 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>D:\work\boost_1_73_0;D:\work\libjpeg-turbo-master;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\work\boost_1_73_0;D:\work\libjpeg-turbo-master;D:\work\libpng-libpng16</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>D:\work\boost_1_73_0\stage\lib;D:\work\libjpeg-turbo-master\release</AdditionalLibraryDirectories>
-      <AdditionalDependencies>turbojpeg-static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>D:\work\boost_1_73_0\stage\lib;D:\work\libjpeg-turbo-master\release;D:\work\libpng-libpng16\Release;D:\work\zlib-master\build\Release</AdditionalLibraryDirectories>
+      <AdditionalDependencies>turbojpeg-static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;libpng16_static.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -160,6 +161,8 @@
     <ClCompile Include="http_handler.cpp" />
     <ClCompile Include="jpg_buffer.cpp" />
     <ClCompile Include="listener.cpp" />
+    <ClCompile Include="png_buffer.cpp" />
+    <ClCompile Include="png_compress.cpp" />
     <ClCompile Include="registry.cpp" />
     <ClCompile Include="resource_pool.cpp" />
     <ClCompile Include="session.cpp" />
@@ -192,6 +195,8 @@
     <ClInclude Include="http_handler.h" />
     <ClInclude Include="jpg_buffer.h" />
     <ClInclude Include="listener.h" />
+    <ClInclude Include="png_buffer.h" />
+    <ClInclude Include="png_compress.h" />
     <ClInclude Include="registry.h" />
     <ClInclude Include="resource_pool.h" />
     <ClInclude Include="session.h" />

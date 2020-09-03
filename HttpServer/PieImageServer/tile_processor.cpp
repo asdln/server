@@ -2,6 +2,7 @@
 #include "utility.h"
 #include "tiff_dataset.h"
 #include "jpg_compress.h"
+#include "png_compress.h"
 #include "min_max_stretch.h"
 #include "gdal_priv.h"
 #include "coordinate_transformation.h"
@@ -37,8 +38,8 @@ bool TileProcessor::ProcessPerPixel(Dataset* ptrDataset
 	, OGRSpatialReference* ptrVisSRef
 	, int nWidth, int nHeight
 	, int nBandCount, int bandMap[]
-	, void** memDataOut
-	, unsigned char** dataMask
+	, unsigned char* pOutData
+	, unsigned char* pMaskData
 	, RasterResamplingType m_resampType
 	, bool bDynProjectToGeoCoord)
 {
@@ -57,14 +58,6 @@ bool TileProcessor::ProcessPerPixel(Dataset* ptrDataset
 	DataType eTpye = ptrDataset->GetDataType();
 	int nTypeSize = GetDataTypeBytes(eTpye);
 	int nDataPixelBytes = nBandCount * nTypeSize;
-
-	unsigned char* pOutData = new unsigned char[nDataPixelBytes * nWidth * nHeight];
-	*memDataOut = pOutData;
-	//memDataOut.Attach(new SysDataSource::PixelBuffer(nWidth, nHeight, vecBands, eTpye, pOutData));
-
-	unsigned char* pMaskData = new unsigned char[nWidth * nHeight];
-	*dataMask = pMaskData;
-	memset(pMaskData, 1, nWidth * nHeight);
 
 	bool bValid = false;
 
@@ -208,8 +201,8 @@ bool TileProcessor::Process(Dataset* ptrDataset
 	, OGRSpatialReference* ptrVisSRef
 	, int nWidth, int nHeight
 	, int nBandCount, int bandMap[]
-	, void** memDataOut
-	, unsigned char** dataMask)
+	, unsigned char* pOutData
+	, unsigned char* pMaskData)
 {
 	const Envelop& ptrEnvDataset = ptrDataset->GetExtent();
 	OGRSpatialReference* ptrDSSRef = ptrDataset->GetSpatialReference();
@@ -254,7 +247,7 @@ bool TileProcessor::Process(Dataset* ptrDataset
 		//针对极地坐标做特殊处理
 		if (!bTransRes || std::isnan(dx1) || std::isnan(dy1) || std::isnan(dx2) || std::isnan(dy2))
 		{
-			return ProcessPerPixel(ptrDataset, envelope, ptrDSSRef, nWidth, nHeight, nBandCount, bandMap, memDataOut, dataMask, resampType, bDynProjectToGeoCoord);
+			return ProcessPerPixel(ptrDataset, envelope, ptrDSSRef, nWidth, nHeight, nBandCount, bandMap, pOutData, pMaskData, resampType, bDynProjectToGeoCoord);
 		}
 	}
 
@@ -273,7 +266,7 @@ bool TileProcessor::Process(Dataset* ptrDataset
 		Envelop ptrEvnTemp = envelope;
 		if (IsIntersect(ptrEnvDataset, ptrEvnTemp))
 		{
-			return ProcessPerPixel(ptrDataset, envelope, ptrDSSRef, nWidth, nHeight, nBandCount, bandMap, memDataOut, dataMask, resampType, bDynProjectToGeoCoord);
+			return ProcessPerPixel(ptrDataset, envelope, ptrDSSRef, nWidth, nHeight, nBandCount, bandMap, pOutData, pMaskData, resampType, bDynProjectToGeoCoord);
 		}
 
 		return false;
@@ -471,8 +464,6 @@ bool TileProcessor::Process(Dataset* ptrDataset
 
 	int nTypeSize = GetDataTypeBytes(ePixelType);
 	int nDataPixelBytes = nBandCount * nTypeSize;
-	unsigned char* pOutData = new unsigned char[nDataPixelBytes * nWidth * nHeight];
-	*memDataOut = pOutData;
 
 	//优化显示速度。如果是动态投影，先统一Transform，然后再进行其他操作
 	double* pdx = nullptr;
@@ -513,10 +504,6 @@ bool TileProcessor::Process(Dataset* ptrDataset
 			return false;
 		}
 	}
-
-	unsigned char* pMaskData = new unsigned char[nWidth * nHeight];
-	*dataMask = pMaskData;
-	memset(pMaskData, 1, nWidth * nHeight);
 
 	double ddx1, ddy1, ddx2, ddy2;
 	ptrEnvDataset.QueryCoords(ddx1, ddy1, ddx2, ddy2);
@@ -801,34 +788,21 @@ bool TileProcessor::SimpleProject(Dataset* pDataset, int nBandCount, int bandMap
 	return true;
 }
 
-bool TileProcessor::DynamicProject(OGRSpatialReference* pDstSpatialReference, Dataset* pDataset, int nBandCount, int bandMap[], const Envelop& env, void** pData, unsigned char** pMaskBuffer, int width, int height)
+bool TileProcessor::DynamicProject(OGRSpatialReference* pDstSpatialReference, Dataset* pDataset, int nBandCount, int bandMap[], const Envelop& env, unsigned char* pData, unsigned char* pMaskBuffer, int width, int height)
 {
 	bool bRes = Process(pDataset, env, pDstSpatialReference, width, height, nBandCount, bandMap, pData, pMaskBuffer);
 	return bRes;
 }
 
-bool TileProcessor::GetTileData(std::list<std::string> paths, const Envelop& env, int nTileSize, void** pData, unsigned long& nDataBytes, Style* style, const std::string& mimeType)
+BufferPtr TileProcessor::GetTileData(std::list<std::string> paths, const Envelop& env, int nTileSize, Style* style, const std::string& mimeType)
 {
-	if (style->kind_ == StyleType::TRUE_COLOR)
-	{
-		
-	}
-	else
-	{
-
-	}
-
 	//暂时只获取第一个数据集
 	std::string filePath = paths.front();
-
 	//OGRSpatialReference* pDefaultSpatialReference = (OGRSpatialReference*)OSRNewSpatialReference(
 	//	"GEOGCS[\"GCS_WGS_1984\",DATUM[\"D_WGS_1984\",SPHEROID[\"WGS_1984\",6378137,298.257223563]],PRIMEM[\"Greenwich\",0],UNIT[\"Degree\",0.017453292519943295]]");
 
 	const char* pWKT = "PROJCS[\"WGS_1984_Web_Mercator\",GEOGCS[\"GCS_WGS_1984_Major_Auxiliary_Sphere\",DATUM[\"WGS_1984_Major_Auxiliary_Sphere\",SPHEROID[\"WGS_1984_Major_Auxiliary_Sphere\",6378137.0,0.0]],PRIMEM[\"Greenwich\",0.0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Mercator_1SP\"],PARAMETER[\"False_Easting\",0.0],PARAMETER[\"False_Northing\",0.0],PARAMETER[\"Central_Meridian\",0.0],PARAMETER[\"latitude_of_origin\",0.0],UNIT[\"Meter\",1.0]]";
 	OGRSpatialReference* pDefaultSpatialReference = (OGRSpatialReference*)OSRNewSpatialReference(pWKT);
-
-	void* buff = nullptr;
-	unsigned char* pMaskBuffer = nullptr;
 
 	std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(filePath));
 	int pixel_bytes = GetDataTypeBytes(tiffDataset->GetDataType());
@@ -836,45 +810,54 @@ bool TileProcessor::GetTileData(std::list<std::string> paths, const Envelop& env
 	int nBandCount = style->bandCount_;
 	int* bandMap = style->bandMap_;
 
+	if (style->format_ == Format::JPG)
+		nBandCount = 3;
+
+	if (nBandCount != 3 && nBandCount != 4)
+	{
+		nBandCount = 3;
+	}
+
 	OGRSpatialReference* poSpatialReference = tiffDataset->GetSpatialReference();
 
 	bool bSimple = poSpatialReference == nullptr ||
 		std::string(pDefaultSpatialReference->GetAttrValue("DATUM")).compare(poSpatialReference->GetAttrValue("DATUM")) == 0 ||
 		poSpatialReference->IsSame(pDefaultSpatialReference);
 
+	int nRenderBand = 3;
+	if (style->format_ == Format::PNG)
+		nRenderBand = 4;
+
 	bool bRes = true;
-	const size_t nSize = (size_t)nTileSize * nTileSize * nBandCount * pixel_bytes;  // 196608 = 256 * 256 * 3
-	//const size_t nSize = 262144;  // 262144 = 256 * 256 * 4
+	const size_t nSize = (size_t)nTileSize * nTileSize * nRenderBand * pixel_bytes;
+
+	unsigned char* buff = nullptr;
+	unsigned char* pMaskBuffer = nullptr;
+	buff = new unsigned char[nSize];
+	memset(buff, 255, nSize);
 
 	if (bSimple)
 	{
-		buff = new unsigned char[nSize];
-		memset(buff, 255, nSize);
 		bRes = SimpleProject(tiffDataset.get(), nBandCount, bandMap, env, buff, nTileSize, nTileSize);
 	}
 	else
 	{
 		//env 必须是 pDefaultSpatialReference 的空间参考
-		bRes = DynamicProject(pDefaultSpatialReference, tiffDataset.get(), nBandCount, bandMap, env, &buff, &pMaskBuffer, nTileSize, nTileSize);
+		pMaskBuffer = new unsigned char[(size_t)nTileSize * nTileSize];
+		memset(pMaskBuffer, 255, (size_t)nTileSize * nTileSize);
+		bRes = DynamicProject(pDefaultSpatialReference, tiffDataset.get(), nBandCount, bandMap, env, buff, pMaskBuffer, nTileSize, nTileSize);
 	}
 
 	if (!bRes)
 	{
-		if (buff != nullptr)
-			delete[] buff;
+		delete[] buff;
+		buff = nullptr;
 
 		if (pMaskBuffer != nullptr)
 			delete[] pMaskBuffer;
 
 		OSRDestroySpatialReference(pDefaultSpatialReference);
-
-		return false;
-	}
-
-	if (buff == nullptr)
-	{
-		buff = new unsigned char[nSize];
-		memset(buff, 255, nSize);
+		return nullptr;
 	}
 
 	int hava_no_data[4] = { 0, 0, 0, 0 };
@@ -887,10 +870,32 @@ bool TileProcessor::GetTileData(std::list<std::string> paths, const Envelop& env
 
 	style->stretch_->DoStretch(buff, pMaskBuffer, nTileSize * nTileSize, nBandCount, tiffDataset->GetDataType(), no_data_value, hava_no_data);
 
-	if (nBandCount == 3)
+	void* pData = nullptr;
+	unsigned long nDataBytes = 0;
+
+	BufferPtr buffer = nullptr;
+	if (style->format_ == Format::JPG)
 	{
 		JpgCompress jpgCompress;
-		jpgCompress.DoCompress(buff, 256, 256, pData, nDataBytes);
+		buffer = jpgCompress.DoCompress(buff, 256, 256);
+	}
+	else if (style->format_ == Format::PNG)
+	{
+		//根据mask的值，添加透明通道的值。
+		if (nBandCount == 3)
+		{
+			for (int j = (nTileSize * nTileSize) - 1; j >= 0; j--)
+			{
+				int srcIndex = j * 3;
+				int dstIndex = j * 4;
+
+				memcpy(buff + dstIndex, buff + srcIndex, 3);
+				buff[dstIndex + 3] = pMaskBuffer[j];
+			}
+		}
+
+		PngCompress pngCompress;
+		buffer = pngCompress.DoCompress(buff, 256, 256);
 	}
 
 	//test code
@@ -917,15 +922,15 @@ bool TileProcessor::GetTileData(std::list<std::string> paths, const Envelop& env
 	//fclose(pFile);
 	//pFile = nullptr;
 
-	if(buff != nullptr)
-		delete[] buff;
+	
+	delete[] buff;
+	buff = nullptr;
 
 	if (pMaskBuffer != nullptr)
 		delete[] pMaskBuffer;
 
 	OSRDestroySpatialReference(pDefaultSpatialReference);
-
-	return true;
+	return buffer;
 }
 
 TileProcessor::~TileProcessor()

@@ -109,8 +109,6 @@ StylePtr StyleManager::FromJson(const std::string& jsonStyle)
 	neb::CJsonObject oJson(jsonStyle);
 	auto style = std::make_shared<Style>();
 
-	style->bandCount_ = 4;
-
 	oJson.Get("bandCount", style->bandCount_);
 	for (int i = 0; i < style->bandCount_; i ++)
 	{
@@ -118,6 +116,8 @@ StylePtr StyleManager::FromJson(const std::string& jsonStyle)
 	}
 
 	oJson.Get("version", style->version_);
+	style->kind_ = String2StyleType(oJson("kind"));
+	style->format_ = String2Format(oJson("format"));
 
 	style->uid_ = oJson("uid");
 
@@ -146,6 +146,7 @@ std::string StyleManager::ToJson(StylePtr style)
 	oJson.Add("uid", style->uid_.c_str());
 	oJson.Add("version", style->version_);
 	oJson.Add("kind", StyleType2String(style->kind_));
+	oJson.Add("format", Format2String(style->format_));
 	oJson.Add("bandCount", style->bandCount_);
 	oJson.AddEmptySubArray("bandMap");
 
