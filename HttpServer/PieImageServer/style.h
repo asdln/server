@@ -46,7 +46,7 @@ struct Style
 
 	size_t version_ = 0;
 
-	Format format_ = Format::PNG;
+	Format format_ = Format::WEBP;
 
 	StyleType kind_ = StyleType::TRUE_COLOR;
 	int bandMap_[4] = {1, 2, 3, 4};

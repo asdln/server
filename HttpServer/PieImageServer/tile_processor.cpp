@@ -3,6 +3,7 @@
 #include "tiff_dataset.h"
 #include "jpg_compress.h"
 #include "png_compress.h"
+#include "webp_compress.h"
 #include "min_max_stretch.h"
 #include "gdal_priv.h"
 #include "coordinate_transformation.h"
@@ -825,7 +826,7 @@ BufferPtr TileProcessor::GetTileData(std::list<std::string> paths, const Envelop
 		poSpatialReference->IsSame(pDefaultSpatialReference);
 
 	int nRenderBand = 3;
-	if (style->format_ == Format::PNG)
+	if (style->format_ == Format::PNG || style->format_ == Format::WEBP)
 		nRenderBand = 4;
 
 	bool bRes = true;
@@ -879,7 +880,7 @@ BufferPtr TileProcessor::GetTileData(std::list<std::string> paths, const Envelop
 		JpgCompress jpgCompress;
 		buffer = jpgCompress.DoCompress(buff, 256, 256);
 	}
-	else if (style->format_ == Format::PNG)
+	else
 	{
 		//根据mask的值，添加透明通道的值。
 		if (nBandCount == 3)
@@ -894,8 +895,16 @@ BufferPtr TileProcessor::GetTileData(std::list<std::string> paths, const Envelop
 			}
 		}
 
-		PngCompress pngCompress;
-		buffer = pngCompress.DoCompress(buff, 256, 256);
+		if (style->format_ == Format::PNG)
+		{
+			PngCompress pngCompress;
+			buffer = pngCompress.DoCompress(buff, 256, 256);
+		}
+		else if (style->format_ == Format::WEBP)
+		{
+			WebpCompress webpCompress;
+			buffer = webpCompress.DoCompress(buff, 256, 256);
+		}
 	}
 
 	//test code
@@ -921,7 +930,6 @@ BufferPtr TileProcessor::GetTileData(std::list<std::string> paths, const Envelop
 	//fwrite(*pData, 1, nDataBytes, pFile);
 	//fclose(pFile);
 	//pFile = nullptr;
-
 	
 	delete[] buff;
 	buff = nullptr;
