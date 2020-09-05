@@ -32,6 +32,7 @@ BufferPtr WebpCompress::DoCompress(void* lpBmpBuffer, int nWidth, int nHeight)
 	int stride = nWidth * 4;
 	WebPPictureImportRGBA(&picture, (const uint8_t*)lpBmpBuffer, stride);
 
+	//内存释放方式与png相同。此处复用PngBuffer。
 	PngBuffer* pngBuffer = new PngBuffer;
 	std::shared_ptr<PngBuffer> buffer(pngBuffer);
 
