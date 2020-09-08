@@ -150,6 +150,9 @@
     <ClCompile Include="webp_compress.cpp">
       <Filter>源文件\compress</Filter>
     </ClCompile>
+    <ClCompile Include="application.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="utility.h">
@@ -247,6 +250,9 @@
     </ClInclude>
     <ClInclude Include="png_compress.h">
       <Filter>头文件\compress</Filter>
+    </ClInclude>
+    <ClInclude Include="application.h">
+      <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
