@@ -197,16 +197,115 @@ bool TileProcessor::ProcessPerPixel(Dataset* ptrDataset
 	return bValid;
 }
 
-bool TileProcessor::Process(Dataset* ptrDataset
-	, const Envelop& envelope
-	, OGRSpatialReference* ptrVisSRef
-	, int nWidth, int nHeight
-	, int nBandCount, int bandMap[]
-	, unsigned char* pOutData
-	, unsigned char* pMaskData)
+bool TileProcessor::SimpleProject(Dataset* pDataset, int nBandCount, int bandMap[], const Envelop& env, void* pData, int width, int height)
 {
-	const Envelop& ptrEnvDataset = ptrDataset->GetExtent();
-	OGRSpatialReference* ptrDSSRef = ptrDataset->GetSpatialReference();
+	double dImgLeft = 0.0;
+	double dImgTop = 0.0;
+
+	double dImgRight = 0.0;
+	double dImgBottom = 0.0;
+
+	pDataset->World2Pixel(env.GetXMin(), env.GetYMax(), dImgLeft, dImgTop);
+	pDataset->World2Pixel(env.GetXMax(), env.GetYMin(), dImgRight, dImgBottom);
+
+	int nRasterWidth = pDataset->GetRasterXSize();
+	int nRasterHeight = pDataset->GetRasterYSize();
+
+	DataType DataType = pDataset->GetDataType();
+
+	if (dImgLeft >= nRasterWidth || dImgRight < 0.0 || dImgTop >= nRasterHeight || dImgBottom < 0.0)
+	{
+		//memset(pData, 255, width * height * nBandCount * GetDataTypeBytes(DataType));
+		return false;
+	}
+
+	double dAdjustLeft = dImgLeft;
+	double dAdjustTop = dImgTop;
+	double dAdjustRight = dImgRight;
+	double dAdjustBottom = dImgBottom;
+
+	double dBufferWid = width;
+	double dBufferHei = height;
+
+	bool bNeedAdjust = false;
+	if (dImgLeft < 0.0 || dImgTop < 0.0 || dImgRight >= nRasterWidth || dImgBottom > nRasterHeight)
+	{
+		dAdjustLeft = dImgLeft < 0.0 ? 0.0 : dImgLeft;
+		dAdjustTop = dImgTop < 0.0 ? 0.0 : dImgTop;
+
+		dAdjustRight = dImgRight > nRasterWidth ? nRasterWidth : dImgRight;
+		dAdjustBottom = dImgBottom > nRasterHeight ? nRasterHeight : dImgBottom;
+
+		bNeedAdjust = true;
+	}
+
+	double srcWidth = dAdjustRight - dAdjustLeft;
+	double srcHeight = dAdjustBottom - dAdjustTop;
+
+	if (bNeedAdjust)
+	{
+		dBufferWid = srcWidth / (dImgRight - dImgLeft) * width;
+		dBufferHei = srcHeight / (dImgBottom - dImgTop) * height;
+	}
+
+	if (dBufferWid <= 0 || dBufferHei <= 0)
+	{
+		//memset(pData, 255, width * height * nBandCount * GetDataTypeBytes(DataType));
+		return false;
+	}
+
+	int nBufferWidth = dBufferWid;
+	int nBufferHeight = dBufferHei;
+
+	if (bNeedAdjust)
+	{
+		int nBufferSize = nBufferWidth * nBufferHeight * GetDataTypeBytes(DataType) * nBandCount;
+		char* pTempBuffer = new char[nBufferSize];
+		memset(pTempBuffer, 255, nBufferSize);
+
+		pDataset->Read(dAdjustLeft, dAdjustTop, srcWidth, srcHeight, pTempBuffer, dBufferWid, dBufferHei, DataType, nBandCount, bandMap, 3, 3 * nBufferWidth, 1);
+
+		double dx = (dImgLeft < 0.0 ? -dImgLeft : 0.0) / (dImgRight - dImgLeft) * width;
+		double dy = (dImgTop < 0.0 ? -dImgTop : 0.0) / (dImgBottom - dImgTop) * height;
+
+		//粗略修正一下缝隙问题。精确的接缝问题，需要双线性重采样
+		int nx = (int)(dx + dBufferWid + 0.5) - nBufferWidth;
+		int ny = (int)(dy + dBufferHei + 0.5) - nBufferHeight;
+
+		if (dImgLeft >= 0.0)
+			nx = 0;
+
+		if (dImgTop >= 0.0)
+			ny = 0;
+
+		char* pBuffer = (char*)pData;
+
+		int nPixelBytes = GetDataTypeBytes(DataType) * nBandCount;
+		int nSrcLineBytes = nBufferWidth * nPixelBytes;
+		for (int j = nBufferHeight - 1; j >= 0; j--)
+		{
+			char* pSrcLine = pTempBuffer + j * nSrcLineBytes;
+			char* pDstLine = pBuffer + ((j + ny) * width + nx) * nPixelBytes;
+
+			memcpy(pDstLine, pSrcLine, nSrcLineBytes);
+			//memset(pSrcLine, 0, nSrcLineBytes);
+		}
+
+		//memcpy(pData, pTempBuffer, width * height * GetPixelDataTypeSize(pixelType));
+		delete[] pTempBuffer;
+	}
+	else
+	{
+		pDataset->Read(dAdjustLeft, dAdjustTop, srcWidth, srcHeight, pData, nBufferWidth, nBufferHeight, DataType, nBandCount, bandMap, 3, 3 * nBufferWidth, 1);
+	}
+
+	return true;
+}
+
+bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDataset, int nBandCount, int bandMap[], const Envelop& envelope, unsigned char* pData, unsigned char* pMaskData, int nWidth, int nHeight)
+{
+	const Envelop& ptrEnvDataset = pDataset->GetExtent();
+	OGRSpatialReference* ptrDSSRef = pDataset->GetSpatialReference();
 
 	RasterResamplingType resampType = NEAREST_NEIGHBOR;
 
@@ -219,7 +318,7 @@ bool TileProcessor::Process(Dataset* ptrDataset
 		{
 			bDynPrjTrans = true;
 		}
-		
+
 	}
 
 	bool bDynProjectToGeoCoord = false;
@@ -231,7 +330,7 @@ bool TileProcessor::Process(Dataset* ptrDataset
 	}
 
 	Envelop envelopeClone = envelope;
-	DataType ePixelType = ptrDataset->GetDataType();
+	DataType ePixelType = pDataset->GetDataType();
 
 	CoordinateTransformation transformation1(ptrDSSRef, ptrVisSRef);
 	CoordinateTransformation transformation2(ptrVisSRef, ptrDSSRef);
@@ -248,15 +347,15 @@ bool TileProcessor::Process(Dataset* ptrDataset
 		//针对极地坐标做特殊处理
 		if (!bTransRes || std::isnan(dx1) || std::isnan(dy1) || std::isnan(dx2) || std::isnan(dy2))
 		{
-			return ProcessPerPixel(ptrDataset, envelope, ptrDSSRef, nWidth, nHeight, nBandCount, bandMap, pOutData, pMaskData, resampType, bDynProjectToGeoCoord);
+			return ProcessPerPixel(pDataset, envelope, ptrDSSRef, nWidth, nHeight, nBandCount, bandMap, pData, pMaskData, resampType, bDynProjectToGeoCoord);
 		}
 	}
 
 	double dScreenResolutionX = envelope.GetWidth() / (double)nWidth;
 	double dScreenResolutionY = envelope.GetHeight() / (double)nHeight;
 
-	int nRasterWid = ptrDataset->GetRasterXSize();
-	int nRasterHei = ptrDataset->GetRasterYSize();
+	int nRasterWid = pDataset->GetRasterXSize();
+	int nRasterHei = pDataset->GetRasterYSize();
 
 	envelopeClone.Normalize();
 	Envelop ptrEnvInterSect;
@@ -267,17 +366,17 @@ bool TileProcessor::Process(Dataset* ptrDataset
 		Envelop ptrEvnTemp = envelope;
 		if (IsIntersect(ptrEnvDataset, ptrEvnTemp))
 		{
-			return ProcessPerPixel(ptrDataset, envelope, ptrDSSRef, nWidth, nHeight, nBandCount, bandMap, pOutData, pMaskData, resampType, bDynProjectToGeoCoord);
+			return ProcessPerPixel(pDataset, envelope, ptrDSSRef, nWidth, nHeight, nBandCount, bandMap, pData, pMaskData, resampType, bDynProjectToGeoCoord);
 		}
 
 		return false;
 	}
 
 	double dx1, dy1, dx2, dy2, dx3, dy3, dx4, dy4;
-	ptrDataset->World2Pixel(ptrEnvInterSect.GetXMin(), ptrEnvInterSect.GetYMin(), dx1, dy1);
-	ptrDataset->World2Pixel(ptrEnvInterSect.GetXMin(), ptrEnvInterSect.GetYMax(), dx2, dy2);
-	ptrDataset->World2Pixel(ptrEnvInterSect.GetXMax(), ptrEnvInterSect.GetYMax(), dx3, dy3);
-	ptrDataset->World2Pixel(ptrEnvInterSect.GetXMax(), ptrEnvInterSect.GetYMin(), dx4, dy4);
+	pDataset->World2Pixel(ptrEnvInterSect.GetXMin(), ptrEnvInterSect.GetYMin(), dx1, dy1);
+	pDataset->World2Pixel(ptrEnvInterSect.GetXMin(), ptrEnvInterSect.GetYMax(), dx2, dy2);
+	pDataset->World2Pixel(ptrEnvInterSect.GetXMax(), ptrEnvInterSect.GetYMax(), dx3, dy3);
+	pDataset->World2Pixel(ptrEnvInterSect.GetXMax(), ptrEnvInterSect.GetYMin(), dx4, dy4);
 
 	double dLeft = std::min(std::min(dx1, dx2), std::min(dx3, dx4));
 	double dRight = std::max(std::max(dx1, dx2), std::max(dx3, dx4));
@@ -314,8 +413,8 @@ bool TileProcessor::Process(Dataset* ptrDataset
 	double dxTmp[2];
 	double dyTmp[2];
 
-	ptrDataset->Pixel2World(nRasterWid * 0.2, nRasterHei * 0.5, dxTmp[0], dyTmp[0]);
-	ptrDataset->Pixel2World(nRasterWid * 0.8, nRasterHei * 0.5, dxTmp[1], dyTmp[1]);
+	pDataset->Pixel2World(nRasterWid * 0.2, nRasterHei * 0.5, dxTmp[0], dyTmp[0]);
+	pDataset->Pixel2World(nRasterWid * 0.8, nRasterHei * 0.5, dxTmp[1], dyTmp[1]);
 
 	if (bDynPrjTrans)
 	{
@@ -429,10 +528,10 @@ bool TileProcessor::Process(Dataset* ptrDataset
 
 	void* pSrcData = new char[GetDataTypeBytes(ePixelType) * nDesWid * nDesHei * nBandCount];
 
-	//QString pszItem = ptrDataset->GetMetadataItem("INTERLEAVE", "IMAGE_STRUCTURE");
+	//QString pszItem = pDataset->GetMetadataItem("INTERLEAVE", "IMAGE_STRUCTURE");
 	//if (pszItem == "BAND" || pszItem == "LINE") // 如果是bsq或者bil格式，则按波段分别读取
 	//{
-	//	SysDataSource::PixelDataType eType = ptrDataset->GetRasterBand(0)->GetRasterDataType();
+	//	SysDataSource::PixelDataType eType = pDataset->GetRasterBand(0)->GetRasterDataType();
 	//	ptrPixelBuffer.Attach(new SysDataSource::PixelBuffer(nDesWid, nDesHei, vecBands, eType));
 	//	char* pData = (char*)(ptrPixelBuffer->GetData());
 	//	int nBandCount = vecBands.size();
@@ -443,7 +542,7 @@ bool TileProcessor::Process(Dataset* ptrDataset
 
 	//	for (int i = 0; i < nBandCount; i++)
 	//	{
-	//		SysDataSource::RasterBandPtr ptrRasterBand = ptrDataset->GetRasterBand(vecBands[i] - 1);
+	//		SysDataSource::RasterBandPtr ptrRasterBand = pDataset->GetRasterBand(vecBands[i] - 1);
 	//		ptrRasterBand->Read(nLeft, nTop, nSrcWid, nSrcHei, pData + i * nTypeSize, nDesWid, nDesHei, eType, nPixelSpace, nLineSpace);
 
 	//		if (ptrTrack && ptrTrack->IsCanced())
@@ -454,7 +553,7 @@ bool TileProcessor::Process(Dataset* ptrDataset
 	//}
 	//else
 	{
-		ptrDataset->Read(nLeft, nTop, nSrcWid, nSrcHei, pSrcData, nDesWid, nDesHei, ePixelType, nBandCount, bandMap);
+		pDataset->Read(nLeft, nTop, nSrcWid, nSrcHei, pSrcData, nDesWid, nDesHei, ePixelType, nBandCount, bandMap);
 	}
 
 
@@ -554,7 +653,7 @@ bool TileProcessor::Process(Dataset* ptrDataset
 			}
 			else
 			{
-				ptrDataset->World2Pixel(dbSrcX, dbSrcY, dImagePosX, dImagePosY);
+				pDataset->World2Pixel(dbSrcX, dbSrcY, dImagePosX, dImagePosY);
 				//计算
 				double dColPos = (dImagePosX - nLeft) * dScaleX;
 				double dRowPos = (dImagePosY - nTop) * dScaleY;
@@ -573,16 +672,16 @@ bool TileProcessor::Process(Dataset* ptrDataset
 					int nImagePosY = dImagePosY;
 
 					unsigned char* buffer = new unsigned char[nDataPixelBytes];
-					ptrDataset->Read(nImagePosX, nImagePosY, 1, 1, buffer, 1, 1, ePixelType, nBandCount, bandMap);
+					pDataset->Read(nImagePosX, nImagePosY, 1, 1, buffer, 1, 1, ePixelType, nBandCount, bandMap);
 
-					unsigned char* pDes = pOutData + (nWidth * RowIndex + ColIndex) * nDataPixelBytes;
+					unsigned char* pDes = pData + (nWidth * RowIndex + ColIndex) * nDataPixelBytes;
 					memcpy(pDes, buffer, nDataPixelBytes);
 					delete[] buffer;
 				}
 				else
 				{
 					void* pSrc = nullptr;
-					unsigned char* pDes = pOutData + (nWidth * RowIndex + ColIndex) * nDataPixelBytes;
+					unsigned char* pDes = pData + (nWidth * RowIndex + ColIndex) * nDataPixelBytes;
 
 					if (ePixelType < DT_CInt16 && resampType == BILINEAR_INTERPOLATION && nColPos + 1 < nDesWid && nRowPos + 1 < nDesHei)
 					{
@@ -682,117 +781,6 @@ bool TileProcessor::Process(Dataset* ptrDataset
 
 	delete[] pSrcData;
 	return true;
-}
-
-bool TileProcessor::SimpleProject(Dataset* pDataset, int nBandCount, int bandMap[], const Envelop& env, void* pData, int width, int height)
-{
-	double dImgLeft = 0.0;
-	double dImgTop = 0.0;
-
-	double dImgRight = 0.0;
-	double dImgBottom = 0.0;
-
-	pDataset->World2Pixel(env.GetXMin(), env.GetYMax(), dImgLeft, dImgTop);
-	pDataset->World2Pixel(env.GetXMax(), env.GetYMin(), dImgRight, dImgBottom);
-
-	int nRasterWidth = pDataset->GetRasterXSize();
-	int nRasterHeight = pDataset->GetRasterYSize();
-
-	DataType DataType = pDataset->GetDataType();
-
-	if (dImgLeft >= nRasterWidth || dImgRight < 0.0 || dImgTop >= nRasterHeight || dImgBottom < 0.0)
-	{
-		//memset(pData, 255, width * height * nBandCount * GetDataTypeBytes(DataType));
-		return false;
-	}
-
-	double dAdjustLeft = dImgLeft;
-	double dAdjustTop = dImgTop;
-	double dAdjustRight = dImgRight;
-	double dAdjustBottom = dImgBottom;
-
-	double dBufferWid = width;
-	double dBufferHei = height;
-
-	bool bNeedAdjust = false;
-	if (dImgLeft < 0.0 || dImgTop < 0.0 || dImgRight >= nRasterWidth || dImgBottom > nRasterHeight)
-	{
-		dAdjustLeft = dImgLeft < 0.0 ? 0.0 : dImgLeft;
-		dAdjustTop = dImgTop < 0.0 ? 0.0 : dImgTop;
-
-		dAdjustRight = dImgRight > nRasterWidth ? nRasterWidth : dImgRight;
-		dAdjustBottom = dImgBottom > nRasterHeight ? nRasterHeight : dImgBottom;
-
-		bNeedAdjust = true;
-	}
-
-	double srcWidth = dAdjustRight - dAdjustLeft;
-	double srcHeight = dAdjustBottom - dAdjustTop;
-
-	if (bNeedAdjust)
-	{
-		dBufferWid = srcWidth / (dImgRight - dImgLeft) * width;
-		dBufferHei = srcHeight / (dImgBottom - dImgTop) * height;
-	}
-
-	if (dBufferWid <= 0 || dBufferHei <= 0)
-	{
-		//memset(pData, 255, width * height * nBandCount * GetDataTypeBytes(DataType));
-		return false;
-	}
-
-	int nBufferWidth = dBufferWid;
-	int nBufferHeight = dBufferHei;
-
-	if (bNeedAdjust)
-	{
-		int nBufferSize = nBufferWidth * nBufferHeight * GetDataTypeBytes(DataType) * nBandCount;
-		char* pTempBuffer = new char[nBufferSize];
-		memset(pTempBuffer, 255, nBufferSize);
-
-		pDataset->Read(dAdjustLeft, dAdjustTop, srcWidth, srcHeight, pTempBuffer, dBufferWid, dBufferHei, DataType, nBandCount, bandMap, 3, 3 * nBufferWidth, 1);
-
-		double dx = (dImgLeft < 0.0 ? -dImgLeft : 0.0) / (dImgRight - dImgLeft) * width;
-		double dy = (dImgTop < 0.0 ? -dImgTop : 0.0) / (dImgBottom - dImgTop) * height;
-
-		//粗略修正一下缝隙问题。精确的接缝问题，需要双线性重采样
-		int nx = (int)(dx + dBufferWid + 0.5) - nBufferWidth;
-		int ny = (int)(dy + dBufferHei + 0.5) - nBufferHeight;
-
-		if (dImgLeft >= 0.0)
-			nx = 0;
-
-		if (dImgTop >= 0.0)
-			ny = 0;
-
-		char* pBuffer = (char*)pData;
-
-		int nPixelBytes = GetDataTypeBytes(DataType) * nBandCount;
-		int nSrcLineBytes = nBufferWidth * nPixelBytes;
-		for (int j = nBufferHeight - 1; j >= 0; j--)
-		{
-			char* pSrcLine = pTempBuffer + j * nSrcLineBytes;
-			char* pDstLine = pBuffer + ((j + ny) * width + nx) * nPixelBytes;
-
-			memcpy(pDstLine, pSrcLine, nSrcLineBytes);
-			//memset(pSrcLine, 0, nSrcLineBytes);
-		}
-
-		//memcpy(pData, pTempBuffer, width * height * GetPixelDataTypeSize(pixelType));
-		delete[] pTempBuffer;
-	}
-	else
-	{
-		pDataset->Read(dAdjustLeft, dAdjustTop, srcWidth, srcHeight, pData, nBufferWidth, nBufferHeight, DataType, nBandCount, bandMap, 3, 3 * nBufferWidth, 1);
-	}
-
-	return true;
-}
-
-bool TileProcessor::DynamicProject(OGRSpatialReference* pDstSpatialReference, Dataset* pDataset, int nBandCount, int bandMap[], const Envelop& env, unsigned char* pData, unsigned char* pMaskBuffer, int width, int height)
-{
-	bool bRes = Process(pDataset, env, pDstSpatialReference, width, height, nBandCount, bandMap, pData, pMaskBuffer);
-	return bRes;
 }
 
 BufferPtr TileProcessor::GetTileData(std::list<std::string> paths, const Envelop& env, int nTileSize, Style* style, const std::string& mimeType)

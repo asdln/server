@@ -35,14 +35,6 @@ protected:
 		, RasterResamplingType m_resampType
 		, bool bDynProjectToGeoCoord);
 
-	bool Process(Dataset* ptrDataset
-		, const Envelop& envelope
-		, OGRSpatialReference* ptrVisSRef
-		, int nWidth, int nHeight
-		, int nBandCount, int bandMap[]
-		, unsigned char* memDataOut
-		, unsigned char* dataMask);
-
 };
 
 #endif //HTTPSERVER_DATA_PROCESSOR_H_
