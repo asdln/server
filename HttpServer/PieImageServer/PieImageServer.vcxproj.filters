@@ -72,9 +72,6 @@
     <ClCompile Include="handler.cpp">
       <Filter>源文件\net</Filter>
     </ClCompile>
-    <ClCompile Include="http_handler.cpp">
-      <Filter>源文件\net</Filter>
-    </ClCompile>
     <ClCompile Include="handler_mapping.cpp">
       <Filter>源文件\net</Filter>
     </ClCompile>
@@ -174,9 +171,6 @@
       <Filter>头文件\net</Filter>
     </ClInclude>
     <ClInclude Include="listener.h">
-      <Filter>头文件\net</Filter>
-    </ClInclude>
-    <ClInclude Include="http_handler.h">
       <Filter>头文件\net</Filter>
     </ClInclude>
     <ClInclude Include="handler_mapping.h">
