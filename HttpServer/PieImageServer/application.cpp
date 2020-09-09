@@ -10,7 +10,12 @@
 #include <algorithm>
 #include <cstdlib>
 #include <functional>
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
+#include <boost/property_tree/ini_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include <iostream>
+#include "application.h"
 #include <memory>
 #include <string>
 #include <thread>
@@ -128,13 +133,6 @@ Application::Application(int argc, char* argv[])
 {
 	GDALAllRegister();
 
-	// Check command line arguments.
-
-	address_ = net::ip::make_address(argv[1]);
-	port_ = static_cast<unsigned short>(std::atoi(argv[2]));
-	doc_root_ = std::make_shared<std::string>(argv[3]);
-	threads_ = std::max<int>(1, std::atoi(argv[4]));
-
 	char _szPath[MAX_PATH + 1] = { 0 };
 
 	GetModuleFileName(NULL, _szPath, MAX_PATH);
@@ -144,16 +142,24 @@ Application::Application(int argc, char* argv[])
 	{
 		if (_szPath[n] != ('\\'))
 		{
-			service_data_folder_ += _szPath[n];
+			app_path_ += _szPath[n];
 		}
 		else
 		{
-			service_data_folder_ += '\\';
+			app_path_ += '\\';
 		}
 	}
 
-	service_data_folder_ += "../service_data";
-	get_filenames(service_data_folder_, service_files_);
+	get_filenames(app_path_ + "../service_data", service_files_);
+
+	address_ = net::ip::make_address("0.0.0.0");
+	doc_root_ = std::make_shared<std::string>("tile");
+
+	if (!LoadConfig())
+	{
+		threads_ = 12;
+		port_ = 8083;
+	}
 
 	InitBandMap();
 }
@@ -161,6 +167,31 @@ Application::Application(int argc, char* argv[])
 Application::~Application() 
 {
 
+}
+
+bool Application::LoadConfig()
+{
+	if (!boost::filesystem::exists(app_path_ + "config.ini")) {
+		std::cerr << "config.ini not exists." << std::endl;
+		return false;
+	}
+
+	boost::property_tree::ptree root_node, tag_system;
+	boost::property_tree::ini_parser::read_ini(app_path_ + "config.ini", root_node);
+	tag_system = root_node.get_child("Server");
+	if (tag_system.count("port") != 1) {
+		std::cerr << "port node not exists." << std::endl;
+		return false;
+	}
+	port_ = tag_system.get<int>("port");
+
+	if (tag_system.count("threads") != 1) {
+		std::cerr << "threads node not exists." << std::endl;
+		return false;
+	}
+	threads_ = std::max<int>(1, tag_system.get<int>("threads"));
+
+	return true;
 }
 
 void Application::InitBandMap()

@@ -1,6 +1,7 @@
 #ifndef HTTPSERVER_DATASET_INTERFACE_H_
 #define HTTPSERVER_DATASET_INTERFACE_H_
 
+#include <memory>
 #include "utility.h"
 class OGRSpatialReference;
 
@@ -37,5 +38,7 @@ public:
 
 	virtual ~Dataset() {};
 };
+
+typedef std::shared_ptr<Dataset> DatasetPtr;
 
 #endif //HTTPSERVER_DATASET_INTERFACE_H_

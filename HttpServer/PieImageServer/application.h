@@ -22,6 +22,8 @@ protected:
 
 	void InitBandMap();
 
+	bool LoadConfig();
+
 protected:
 
 	boost::asio::ip::address address_;
@@ -29,7 +31,7 @@ protected:
 	std::shared_ptr<std::string> doc_root_;
 	int threads_;
 
-	std::string service_data_folder_;
+	std::string app_path_;
 
 	std::list<std::string> service_files_;
 

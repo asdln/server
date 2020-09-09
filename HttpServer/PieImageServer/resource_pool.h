@@ -3,6 +3,8 @@
 
 #include <memory>
 #include <mutex>
+#include <map>
+#include <vector>
 #include "dataset.h"
 
 class ResourcePool
@@ -48,6 +50,10 @@ private:
 	static ResourcePool* instance_;
 
 	static std::mutex mutex_;
+
+	int dataset_pool_max_count_ = 8;
+	std::mutex mutex_dataset_;
+	std::map<std::string, std::vector<DatasetPtr>> dataset_pool_;
 };
 
 #endif //HTTPSERVER_RESOURCE_POOL_H_
