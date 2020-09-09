@@ -40,13 +40,16 @@ enum class Format
 }
 */
 
+extern Format default_format;
+extern std::string default_string_format;
+
 struct Style
 {
 	std::string uid_ = "";
 
 	size_t version_ = 0;
 
-	Format format_ = Format::WEBP;
+	Format format_ = default_format;
 
 	StyleType kind_ = StyleType::TRUE_COLOR;
 	int bandMap_[4] = {1, 2, 3, 4};

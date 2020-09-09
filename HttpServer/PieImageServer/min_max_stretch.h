@@ -18,18 +18,24 @@ protected:
     {
         //拉伸结果直接写回原缓存
         unsigned char* pRenderBuffer = (unsigned char*)pData;
-        for (int j = 0; j < nBandCount; j++)
+        for (int i = 0; i < nSize; i++)
         {
-            double dCoef = 255.0f / (max_value_[j] - min_value_[j]);
-            for (int i = 0; i < nSize; i++)
+            for (int j = 0; j < nBandCount; j++)
             {
+                double dCoef = 255.0f / (max_value_[j] - min_value_[j]);
+
                 int pixel_index = i * nBandCount + j;
-                if(pMaskBuffer[i] == 0)
+                if (pMaskBuffer[i] == 0)
+                {
+                    pRenderBuffer[pixel_index] = 255;
                     continue;
+                }
+                    
 
                 if (have_no_data[j] && no_data_value[j] == (double)(pData[pixel_index]))
                 {
                     pMaskBuffer[i] = 0;
+                    pRenderBuffer[pixel_index] = 255;
                     continue;
                 }
                 

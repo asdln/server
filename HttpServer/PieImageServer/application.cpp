@@ -106,7 +106,13 @@ int get_filenames(const std::string& dir, std::list<std::string>& filenames)
 	{
 		if (fs::is_regular_file(iter->status()))
 		{
-			filenames.push_back(iter->path().string());
+			std::string file_path = iter->path().string();
+			std::string suffix_str = file_path.substr(file_path.find_last_of('.') + 1);
+			if(suffix_str.compare("tiff") == 0|| suffix_str.compare("TIFF") == 0
+				|| suffix_str.compare("tif") == 0 || suffix_str.compare("TIF") == 0
+				|| suffix_str.compare("img") == 0 || suffix_str.compare("IMG") == 0)
+			
+			filenames.push_back(file_path);
 		}
 
 		if (fs::is_directory(iter->status()))

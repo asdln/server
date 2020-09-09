@@ -33,6 +33,8 @@ public:
 
 	virtual double GetNoDataValue(int band, int* pbSuccess = nullptr) = 0;
 
+	virtual int GetBandCount() = 0;
+
 	virtual ~Dataset() {};
 };
 

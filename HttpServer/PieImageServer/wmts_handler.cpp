@@ -57,6 +57,34 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, co
 	std::shared_ptr<TileProcessor> pRequestProcessor = std::make_shared<TileProcessor>();
 	BufferPtr buffer = pRequestProcessor->GetTileData(paths, env, 256, style.get(), mimeType);
 
+	//if(buffer != nullptr)
+	//{
+	//	//test code
+	//	FILE* pFile = nullptr;
+	//	std::string path = "d:/test/";
+
+	//	char string1[32];
+	//	_itoa(nx, string1, 10);
+	//	path += string1;
+	//	path += "_";
+
+	//	char string2[32];
+	//	_itoa(ny, string2, 10);
+	//	path += string2;
+	//	path += "_";
+
+	//	char string3[32];
+	//	_itoa(nz, string3, 10);
+	//	path += string3;
+
+	//	path += ".jpg";
+
+	//	fopen_s(&pFile, path.c_str(), "wb+");
+	//	fwrite(buffer->data(), 1, buffer->size(), pFile);
+	//	fclose(pFile);
+	//	pFile = nullptr;
+	//}
+
 	if (buffer != nullptr)
 	{
 		result->set_buffer(buffer);

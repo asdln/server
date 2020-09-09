@@ -35,9 +35,15 @@ public:
 
     virtual double GetNoDataValue(int band, int* pbSuccess = nullptr) override;
 
+    virtual int GetBandCount() override;
+
+    bool IsUseRPC() { return m_bUsePRC; }
+
     ~TiffDataset();
 
 protected:
+
+    void CalcExtent();
 
 
 private:
@@ -51,6 +57,10 @@ private:
     DataType enumDataType_;
 
     Envelop envelope_;
+
+	void* rpc_transform_arg;
+
+	bool m_bUsePRC;
 };
 
 #endif //HTTPSERVER_TIFF_DATASET_H_

@@ -796,8 +796,14 @@ BufferPtr TileProcessor::GetTileData(std::list<std::string> paths, const Envelop
 	std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(filePath));
 	int pixel_bytes = GetDataTypeBytes(tiffDataset->GetDataType());
 
+	int dataset_band_count = tiffDataset->GetBandCount();
+
 	int nBandCount = style->bandCount_;
-	int* bandMap = style->bandMap_;
+	int bandMap[4] = { style->bandMap_[0] <= dataset_band_count ? style->bandMap_[0] : dataset_band_count
+		, style->bandMap_[1] <= dataset_band_count ? style->bandMap_[1] : dataset_band_count
+		, style->bandMap_[2] <= dataset_band_count ? style->bandMap_[2] : dataset_band_count
+		, style->bandMap_[3] <= dataset_band_count ? style->bandMap_[3] : dataset_band_count };
+	
 
 	if (style->format_ == Format::JPG)
 		nBandCount = 3;
@@ -809,9 +815,13 @@ BufferPtr TileProcessor::GetTileData(std::list<std::string> paths, const Envelop
 
 	OGRSpatialReference* poSpatialReference = tiffDataset->GetSpatialReference();
 
-	bool bSimple = poSpatialReference == nullptr ||
-		std::string(pDefaultSpatialReference->GetAttrValue("DATUM")).compare(poSpatialReference->GetAttrValue("DATUM")) == 0 ||
-		poSpatialReference->IsSame(pDefaultSpatialReference);
+	bool bSimple = false;
+	if (!tiffDataset->IsUseRPC())
+	{
+		bSimple = poSpatialReference == nullptr ||
+			std::string(pDefaultSpatialReference->GetAttrValue("DATUM")).compare(poSpatialReference->GetAttrValue("DATUM")) == 0 ||
+			poSpatialReference->IsSame(pDefaultSpatialReference);
+	}
 
 	int nRenderBand = 3;
 	if (style->format_ == Format::PNG || style->format_ == Format::WEBP)
@@ -859,9 +869,6 @@ BufferPtr TileProcessor::GetTileData(std::list<std::string> paths, const Envelop
 
 	style->stretch_->DoStretch(buff, pMaskBuffer, nTileSize * nTileSize, nBandCount, tiffDataset->GetDataType(), no_data_value, hava_no_data);
 
-	void* pData = nullptr;
-	unsigned long nDataBytes = 0;
-
 	BufferPtr buffer = nullptr;
 	if (style->format_ == Format::JPG)
 	{
@@ -894,30 +901,6 @@ BufferPtr TileProcessor::GetTileData(std::list<std::string> paths, const Envelop
 			buffer = webpCompress.DoCompress(buff, 256, 256);
 		}
 	}
-
-	//test code
-	//FILE* pFile = nullptr;
-	//std::string path = "d:/test/";
-
-	//double dx = env.GetXMin();
-	//double dy = env.GetYMin();
-
-	//char string1[32];
-	//_itoa_s(dx, string1, 10);
-	//path += string1;
-	//path += "_";
-
-	//char string2[32];
-	//_itoa_s(dy, string2, 10);
-	//path += string2;
-	//path += "_";
-
-	//path += ".jpg";
-
-	//fopen_s(&pFile, path.c_str(), "wb+");
-	//fwrite(*pData, 1, nDataBytes, pFile);
-	//fclose(pFile);
-	//pFile = nullptr;
 	
 	delete[] buff;
 	buff = nullptr;

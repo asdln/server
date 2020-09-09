@@ -1,6 +1,8 @@
 #include "tiff_dataset.h"
 
 #include "gdal_priv.h"
+#include "ogr_spatialref.h"
+#include "gdal_alg.h"
 
 TiffDataset::~TiffDataset()
 {
@@ -11,11 +13,42 @@ void TiffDataset::Open(const std::string& path)
 {
 	poDataset_ = (GDALDataset*)GDALOpen(path.c_str(), GA_ReadOnly);
 
-	poSpatialReference_ = (OGRSpatialReference*)OSRNewSpatialReference(poDataset_->GetProjectionRef());
+	const char* strDes = poDataset_->GetDriver()->GetDescription();
+	bool bSearchRPC = false;
+	if (_stricmp(strDes, "GTiff") == 0 || _stricmp(strDes, "ENVI") == 0
+		|| _stricmp(strDes, "HFA") == 0 || _stricmp(strDes, "JP2ECW") == 0)
+	{
+		bSearchRPC = true;
+	}
 
-	poDataset_->GetGeoTransform(dGeoTransform_);
+	GDALRPCInfo sRPCInfo;
+	char** papszMD = NULL;
+	char** papszOptions = NULL;
+
 	enumDataType_ = (DataType)poDataset_->GetRasterBand(1)->GetRasterDataType();
 
+	if (bSearchRPC && (papszMD = GDALGetMetadata(poDataset_, "RPC")) != nullptr
+		&& GDALExtractRPCInfo(papszMD, &sRPCInfo))
+	{
+		rpc_transform_arg =
+			GDALCreateRPCTransformer(&sRPCInfo, FALSE, 0, papszOptions);
+
+		m_bUsePRC = true;
+
+		const char* strWKT = "GEOGCS[\"WGS 84\",DATUM[\"WGS_1984\",SPHEROID[\"WGS 84\",6378137,298.257223563,AUTHORITY[\"EPSG\",\"7030\"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY[\"EPSG\",\"6326\"]],PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\",\"8901\"]],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9108\"]],AUTHORITY[\"EPSG\",\"4326\"]]";
+		poSpatialReference_ = (OGRSpatialReference*)OSRNewSpatialReference(strWKT);
+	}
+	else
+	{
+		poSpatialReference_ = (OGRSpatialReference*)OSRNewSpatialReference(poDataset_->GetProjectionRef());
+		poDataset_->GetGeoTransform(dGeoTransform_);
+	}
+
+	CalcExtent();
+}
+
+void TiffDataset::CalcExtent()
+{
 	int nWid = GetRasterXSize();
 	int nHei = GetRasterYSize();
 
@@ -96,27 +129,111 @@ const Envelop& TiffDataset::GetExtent()
 
 bool TiffDataset::World2Pixel(double dProjX, double dProjY, double& dCol, double& dRow)
 {
-	try
+	if (m_bUsePRC)
 	{
-		double dTemp = dGeoTransform_[1] * dGeoTransform_[5] - dGeoTransform_[2] * dGeoTransform_[4];
+		double padfZ = 0.0;
+		int panSuccess = 0;
+		GDALRPCTransform(rpc_transform_arg, true,
+			1, &dProjX, &dProjY, &padfZ,
+			&panSuccess);
 
-		dCol = (dGeoTransform_[5] * (dProjX - dGeoTransform_[0]) -
-			dGeoTransform_[2] * (dProjY - dGeoTransform_[3])) / dTemp;
-		dRow = (dGeoTransform_[1] * (dProjY - dGeoTransform_[3]) -
-			dGeoTransform_[4] * (dProjX - dGeoTransform_[0])) / dTemp;
-
-		return true;
+		dCol = dProjX;
+		dRow = dProjY;
 	}
-	catch (...)
+	else
 	{
-		return false;
+		try
+		{
+			double dTemp = dGeoTransform_[1] * dGeoTransform_[5] - dGeoTransform_[2] * dGeoTransform_[4];
+
+			dCol = (dGeoTransform_[5] * (dProjX - dGeoTransform_[0]) -
+				dGeoTransform_[2] * (dProjY - dGeoTransform_[3])) / dTemp;
+			dRow = (dGeoTransform_[1] * (dProjY - dGeoTransform_[3]) -
+				dGeoTransform_[4] * (dProjX - dGeoTransform_[0])) / dTemp;
+		}
+		catch (...)
+		{
+			return false;
+		}
 	}
+
+	return true;
 }
+
+typedef enum
+{
+	/*! Nearest neighbour (select on one input pixel) */
+	DRA_NearestNeighbour = 0,
+	/*! Bilinear (2x2 kernel) */
+	DRA_Bilinear = 1,
+	/*! Cubic Convolution Approximation (4x4 kernel) */
+	DRA_Cubic = 2
+} DEMResampleAlg;
+
+typedef struct
+{
+	GDALTransformerInfo sTI;
+	GDALRPCInfo sRPC;
+	double      adfPLToLatLongGeoTransform[6];
+	double      dfRefZ;
+	int         bReversed;
+	double      dfPixErrThreshold;
+	double      dfHeightOffset;
+	double      dfHeightScale;
+	char* pszDEMPath;
+	DEMResampleAlg eResampleAlg;
+	int         bHasDEMMissingValue;
+	double      dfDEMMissingValue;
+	int         bApplyDEMVDatumShift;
+	int         bHasTriedOpeningDS;
+	GDALDataset* poDS;
+	OGRCoordinateTransformation* poCT;
+	int         nMaxIterations;
+	double      adfDEMGeoTransform[6];
+	double      adfDEMReverseGeoTransform[6];
+
+#ifdef USE_SSE2_OPTIM
+	double      adfDoubles[20 * 4 + 1];
+	double* padfCoeffs; // LINE_NUM_COEFF, LINE_DEN_COEFF, SAMP_NUM_COEFF and then SAMP_DEN_COEFF
+#endif
+
+	bool        bRPCInverseVerbose;
+	char* pszRPCInverseLog;
+} GDALRPCTransformInfo;
 
 bool TiffDataset::Pixel2World(double dCol, double dRow, double& dProjX, double& dProjY)
 {
-	dProjX = dGeoTransform_[0] + dCol * dGeoTransform_[1] + dRow * dGeoTransform_[2];
-	dProjY = dGeoTransform_[3] + dCol * dGeoTransform_[4] + dRow * dGeoTransform_[5];
+	if (m_bUsePRC)
+	{
+		double padfZ = 0.0;
+		int panSuccess = 0;
+		GDALRPCTransform(rpc_transform_arg, false,
+			1, &dCol, &dRow, &padfZ,
+			&panSuccess);
+
+		if (panSuccess != 1)
+		{
+			double dfResultX, dfResultY;
+			GDALRPCTransformInfo* psTransform = (GDALRPCTransformInfo*)rpc_transform_arg;
+			dProjX = psTransform->adfPLToLatLongGeoTransform[0]
+				+ psTransform->adfPLToLatLongGeoTransform[1] * dCol
+				+ psTransform->adfPLToLatLongGeoTransform[2] * dRow;
+
+			dProjY = psTransform->adfPLToLatLongGeoTransform[3]
+				+ psTransform->adfPLToLatLongGeoTransform[4] * dCol
+				+ psTransform->adfPLToLatLongGeoTransform[5] * dRow;
+
+			return true;
+		}
+
+		dProjX = dCol;
+		dProjY = dRow;
+	}
+	else
+	{
+		dProjX = dGeoTransform_[0] + dCol * dGeoTransform_[1] + dRow * dGeoTransform_[2];
+		dProjY = dGeoTransform_[3] + dCol * dGeoTransform_[4] + dRow * dGeoTransform_[5];
+	}
 
 	return true;
 }
@@ -144,4 +261,9 @@ bool TiffDataset::Read(int nx, int ny, int width, int height,
 double TiffDataset::GetNoDataValue(int band, int* pbSuccess)
 {
 	return poDataset_->GetRasterBand(band)->GetNoDataValue(pbSuccess);
+}
+
+int TiffDataset::GetBandCount()
+{
+	return poDataset_->GetRasterCount();
 }

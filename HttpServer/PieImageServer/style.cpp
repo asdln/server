@@ -1,5 +1,7 @@
 #include "style.h"
 
+Format default_format = Format::WEBP;
+std::string default_string_format = "webp";
 
 std::string StyleType2String(StyleType style_type)
 {
@@ -60,7 +62,7 @@ std::string Format2String(Format format)
 		string_fromat = "auto";
 		break;
 	default:
-		string_fromat = "png";
+		string_fromat = default_string_format;
 		break;
 	}
 
@@ -87,6 +89,6 @@ Format String2Format(const std::string& format_string)
 	}
 	else
 	{
-		return Format::PNG;
+		return default_format;
 	}
 }
