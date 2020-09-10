@@ -35,6 +35,8 @@ public:
 
     virtual double GetNoDataValue(int band, int* pbSuccess = nullptr) override;
 
+    virtual HistogramPtr GetHistogram(int band) override;
+
     virtual int GetBandCount() override;
 
     bool IsUseRPC() { return m_bUsePRC; }

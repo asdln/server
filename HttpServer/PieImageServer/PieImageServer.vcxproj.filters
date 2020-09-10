@@ -150,6 +150,9 @@
     <ClCompile Include="application.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="histogram.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="utility.h">
@@ -246,6 +249,9 @@
       <Filter>头文件\compress</Filter>
     </ClInclude>
     <ClInclude Include="application.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="histogram.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

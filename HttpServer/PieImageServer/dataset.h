@@ -3,6 +3,8 @@
 
 #include <memory>
 #include "utility.h"
+#include "histogram.h"
+
 class OGRSpatialReference;
 
 class Dataset
@@ -35,6 +37,8 @@ public:
 	virtual double GetNoDataValue(int band, int* pbSuccess = nullptr) = 0;
 
 	virtual int GetBandCount() = 0;
+
+	virtual HistogramPtr GetHistogram(int band) { return nullptr; }
 
 	virtual ~Dataset() {};
 };

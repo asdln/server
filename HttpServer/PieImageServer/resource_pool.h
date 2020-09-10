@@ -5,6 +5,7 @@
 #include <mutex>
 #include <map>
 #include <vector>
+#include <shared_mutex>
 #include "dataset.h"
 
 class ResourcePool
@@ -37,6 +38,8 @@ public:
 
 	OGRSpatialReference* GetSpatialReference(const std::string& wkt) { return nullptr; }
 
+	HistogramPtr GetHistogram(Dataset* tiff_dataset, const std::string& key, int band);
+
 private:
 
 	ResourcePool();
@@ -54,6 +57,9 @@ private:
 	int dataset_pool_max_count_ = 8;
 	std::mutex mutex_dataset_;
 	std::map<std::string, std::vector<DatasetPtr>> dataset_pool_;
+
+	std::shared_mutex shared_mutex_;
+	std::map<std::string, std::vector<HistogramPtr>> map_histogram_;
 };
 
 #endif //HTTPSERVER_RESOURCE_POOL_H_

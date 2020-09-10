@@ -98,7 +98,9 @@ protected:
 public:
 
     double min_value_[4] = {0.0, 0.0, 0.0, 0.0};
-    double max_value_[4] = {255.0, 255.0, 255.0, 255.0};
+    double max_value_[4] = {0.0, 0.0, 0.0, 0.0};
 };
+
+typedef std::shared_ptr<MinMaxStretch> MinMaxStretchPtr;
 
 #endif //HTTPSERVER_MIN_MAX_STRETCH_H_

@@ -1,6 +1,7 @@
 #ifndef HTTPSERVER_STRETCH_INTERFACE_H_
 #define HTTPSERVER_STRETCH_INTERFACE_H_
 
+#include <memory>
 #include "utility.h"
 
 enum class StretchType

@@ -159,6 +159,7 @@
     <ClCompile Include="handler.cpp" />
     <ClCompile Include="handler_mapping.cpp" />
     <ClCompile Include="handle_result.cpp" />
+    <ClCompile Include="histogram.cpp" />
     <ClCompile Include="jpg_buffer.cpp" />
     <ClCompile Include="listener.cpp" />
     <ClCompile Include="png_buffer.cpp" />
@@ -194,6 +195,7 @@
     <ClInclude Include="handler.h" />
     <ClInclude Include="handler_mapping.h" />
     <ClInclude Include="handle_result.h" />
+    <ClInclude Include="histogram.h" />
     <ClInclude Include="jpg_buffer.h" />
     <ClInclude Include="listener.h" />
     <ClInclude Include="png_buffer.h" />

@@ -263,6 +263,11 @@ double TiffDataset::GetNoDataValue(int band, int* pbSuccess)
 	return poDataset_->GetRasterBand(band)->GetNoDataValue(pbSuccess);
 }
 
+HistogramPtr TiffDataset::GetHistogram(int band)
+{
+	return nullptr;
+}
+
 int TiffDataset::GetBandCount()
 {
 	return poDataset_->GetRasterCount();

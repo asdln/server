@@ -73,3 +73,55 @@ std::shared_ptr<Dataset> ResourcePool::GetDataset(const std::string& path)
 		return p;
 	}
 }
+
+HistogramPtr ResourcePool::GetHistogram(Dataset* tiff_dataset, const std::string& key, int band)
+{
+	{
+		//先用读锁，看能不能获取到，如果获取不到，再用写锁
+		std::shared_lock<std::shared_mutex> lock(shared_mutex_);
+		HistogramPtr histogram;
+		std::map<std::string, std::vector<HistogramPtr>>::iterator itr = map_histogram_.find(key);
+		if (itr != map_histogram_.end() && itr->second.size() >= band && itr->second[band - 1] != nullptr)
+		{
+			histogram = itr->second[band - 1];
+			return histogram;
+		}
+	}
+
+	{
+		//没有获取到，使用写锁。
+		std::unique_lock<std::shared_mutex> lock(shared_mutex_);
+		HistogramPtr histogram;
+		std::map<std::string, std::vector<HistogramPtr>>::iterator itr = map_histogram_.find(key);
+		if (itr == map_histogram_.end())
+		{
+			std::vector<HistogramPtr> vec_histogram;
+			vec_histogram.resize(band);
+
+			histogram = ComputerHistogram(tiff_dataset, band);
+			vec_histogram[band - 1] = histogram;
+			map_histogram_.emplace(key, vec_histogram);
+		}
+		else
+		{
+			std::vector<HistogramPtr>& vec_histogram = itr->second;
+			if (vec_histogram.size() < band)
+			{
+				vec_histogram.resize(band);
+				histogram = ComputerHistogram(tiff_dataset, band);
+				vec_histogram[band - 1] = histogram;
+			}
+			else
+			{
+				histogram = vec_histogram[band - 1];
+				if (histogram == nullptr)
+				{
+					histogram = ComputerHistogram(tiff_dataset, band);
+					vec_histogram[band - 1] = histogram;
+				}
+			}
+		}
+
+		return histogram;
+	}
+}
