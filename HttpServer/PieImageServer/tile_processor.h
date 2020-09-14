@@ -17,7 +17,7 @@ public:
 	TileProcessor();
 	~TileProcessor();
 
-	BufferPtr GetTileData(std::list<std::string> paths, const Envelop& env, int nTileSize, Style* style, const std::string& mimeType);
+	BufferPtr GetTileData(std::list<std::string> paths, const Envelop& env, int tile_width, int tile_height, Style* style);
 
 protected:
 

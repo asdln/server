@@ -2,7 +2,7 @@
 #define HTTPSERVER_URL_H_
 
 #include <string>
-#include <map>
+#include <unordered_map>
 
 class Url
 {
@@ -22,6 +22,16 @@ public:
 
 	bool QueryValue(const std::string& key, std::string& value) const;
 
+protected:
+
+	std::string UrlDecode(std::string const& str);
+
+	std::string UrlEncode(std::string const& str);
+
+	std::string HexEncode(char const c);
+
+	char HexDecode(std::string const& s);
+
 private:
 
 	std::string protocol_ = "";
@@ -29,7 +39,7 @@ private:
 	std::string port_ = "";
 	std::string path_ = "";
 	std::string query_ = "";
-	std::map<std::string, std::string> queryKV_;
+	std::unordered_multimap<std::string, std::string> queryKV_;
 };
 
 #endif //HTTPSERVER_URL_H_

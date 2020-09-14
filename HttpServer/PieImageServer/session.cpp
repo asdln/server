@@ -46,7 +46,6 @@ void Session::handle_request(
 		return Send(bad_request("Unknown HTTP-method"));
 	}
 
-	std::string mimeType = "image/jpeg";
 	HandlerMapping* pHandlerMapping = HandlerMapping::GetInstance();
 	Url url(std::string(req.target()));
 	
@@ -57,7 +56,7 @@ void Session::handle_request(
 	
 	try
 	{
-		bool bRes = pHandler->Handle(doc_root, url, request_body, mimeType, result);
+		bool bRes = pHandler->Handle(doc_root, url, request_body, result);
 	}
 	catch (...)
 	{
@@ -82,7 +81,7 @@ void Session::handle_request(
 			return res;
 		};
 
-		Send(not_found(mimeType));
+		Send(not_found(""));
 	}
 	else
 	{

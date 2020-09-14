@@ -1,10 +1,9 @@
 #include "handler_mapping.h"
 #include "wmts_handler.h"
-
+#include "wms_handler.h"
 
 HandlerMapping* HandlerMapping::instance_ = nullptr;
 std::mutex HandlerMapping::mutex_;
-
 
 HandlerMapping::HandlerMapping()
 {
@@ -32,6 +31,11 @@ void HandlerMapping::RegisterAll()
 {
 	Handler* handler = new WMTSHandler;
 	handlerMap_.insert(std::make_pair("wmts", handler));
+	handlerMap_.insert(std::make_pair("WMTS", handler));
+
+	handler = new WMSHandler;
+	handlerMap_.insert(std::make_pair("wms", handler));
+	handlerMap_.insert(std::make_pair("WMS", handler));
 }
 
 Handler* HandlerMapping::GetHandler(Url& url)

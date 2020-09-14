@@ -180,6 +180,7 @@
     <ClCompile Include="url.cpp" />
     <ClCompile Include="utility.cpp" />
     <ClCompile Include="webp_compress.cpp" />
+    <ClCompile Include="wms_handler.cpp" />
     <ClCompile Include="wmts_handler.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -216,6 +217,7 @@
     <ClInclude Include="url.h" />
     <ClInclude Include="utility.h" />
     <ClInclude Include="webp_compress.h" />
+    <ClInclude Include="wms_handler.h" />
     <ClInclude Include="wmts_handler.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

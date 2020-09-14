@@ -55,6 +55,9 @@ struct Style
 	int bandMap_[4] = {1, 2, 3, 4};
 	int bandCount_ = 3;
 
+	//д╛хо web_mercator
+	int srs_epsg_code_ = 3857;
+
 	std::shared_ptr<Stretch> stretch_ = std::make_shared<PercentMinMaxStretch>();
 };
 

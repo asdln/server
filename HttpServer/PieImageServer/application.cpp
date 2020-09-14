@@ -132,6 +132,7 @@ int get_filenames(const std::string& dir, std::list<std::string>& filenames)
 Application::Application(int argc, char* argv[])
 {
 	GDALAllRegister();
+	CPLSetConfigOption("GDAL_DATA", "D:\\work\\htht_work\\HttpServer\\x64\\data");
 
 	char _szPath[MAX_PATH + 1] = { 0 };
 

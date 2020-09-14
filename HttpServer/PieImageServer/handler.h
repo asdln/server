@@ -9,11 +9,14 @@ class Handler
 {
 public:
 
-	virtual bool Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, const std::string& mimeType, std::shared_ptr<HandleResult> result) { return false; }
+	virtual bool Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result) { return false; }
 
 	virtual int QueryX(const Url& url);
 	virtual int QueryY(const Url& url);
 	virtual int QueryZ(const Url& url);
+
+	virtual int QueryTileWidth(const Url& url);
+	virtual int QueryTileHeight(const Url& url);
 
 	virtual void QueryDataPath(const Url& url, std::list<std::string>& paths);
 

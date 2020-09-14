@@ -3,22 +3,22 @@
 #include "style_manager.h"
 #include "utility.h"
 
-bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, const std::string& mimeType, std::shared_ptr<HandleResult> result)
+bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
 	std::string request;
 	if (url.QueryValue("request", request))
 	{
 		if (request.compare("GetTile") == 0)
 		{
-			return GetTile(doc_root, url, mimeType, result);
+			return GetTile(doc_root, url, result);
 		}
 		else if (request.compare("GetCapabilities") == 0)
 		{
-			return GetCapabilities(doc_root, url, mimeType, result);
+			return GetCapabilities(doc_root, url, result);
 		}
 		else if (request.compare("GetFeatureInfo") == 0)
 		{
-			return GetFeatureInfo(doc_root, url, mimeType, result);
+			return GetFeatureInfo(doc_root, url, result);
 		}
 		else if (request.compare("UpdateStyle") == 0)
 		{
@@ -26,10 +26,10 @@ bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, con
 		}
 	}
 
-	return GetTile(doc_root, url, mimeType, result);
+	return GetTile(doc_root, url, result);
 }
 
-bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, const std::string& mimeType, std::shared_ptr<HandleResult> result)
+bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, std::shared_ptr<HandleResult> result)
 {
 	std::list<std::string> paths;
 	QueryDataPath(url, paths);
@@ -54,73 +54,15 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, co
 	Envelop env;
 	GetEnvFromTileIndex(nx, ny, nz, env);
 
-	std::shared_ptr<TileProcessor> pRequestProcessor = std::make_shared<TileProcessor>();
-	BufferPtr buffer = pRequestProcessor->GetTileData(paths, env, 256, style.get(), mimeType);
-
-	//if(buffer != nullptr)
-	//{
-	//	//test code
-	//	FILE* pFile = nullptr;
-	//	std::string path = "d:/test/";
-
-	//	char string1[32];
-	//	_itoa(nx, string1, 10);
-	//	path += string1;
-	//	path += "_";
-
-	//	char string2[32];
-	//	_itoa(ny, string2, 10);
-	//	path += string2;
-	//	path += "_";
-
-	//	char string3[32];
-	//	_itoa(nz, string3, 10);
-	//	path += string3;
-
-	//	path += ".jpg";
-
-	//	fopen_s(&pFile, path.c_str(), "wb+");
-	//	fwrite(buffer->data(), 1, buffer->size(), pFile);
-	//	fclose(pFile);
-	//	pFile = nullptr;
-	//}
-
-	if (buffer != nullptr)
-	{
-		result->set_buffer(buffer);
-
-		http::buffer_body::value_type body;
-		body.data = result->buffer()->data();
-		body.size = result->buffer()->size();
-		body.more = false;
-
-		auto msg = std::make_shared<http::response<http::buffer_body>>(
-			std::piecewise_construct,
-			std::make_tuple(std::move(body)),
-			std::make_tuple(http::status::ok, result->version()));
-
-		msg->set(http::field::server, BOOST_BEAST_VERSION_STRING);
-		msg->set(http::field::content_type, mimeType/*mime_type(path)*/);
-
-		msg->set(http::field::access_control_allow_origin, "*");
-		msg->set(http::field::access_control_allow_methods, "POST, GET, OPTIONS, DELETE");
-		msg->set(http::field::access_control_allow_credentials, "true");
-
-		msg->content_length(result->buffer()->size());
-		msg->keep_alive(result->keep_alive());
-
-		result->set_buffer_body(msg);
-	}
-
-	return true;
+	return WMSHandler::GetTileData(paths, env, style.get(), 256, 256, result);
 }
 
-bool WMTSHandler::GetCapabilities(boost::beast::string_view doc_root, const Url& url, const std::string& mimeType, std::shared_ptr<HandleResult> result)
+bool WMTSHandler::GetCapabilities(boost::beast::string_view doc_root, const Url& url, std::shared_ptr<HandleResult> result)
 {
 	return true;
 }
 
-bool WMTSHandler::GetFeatureInfo(boost::beast::string_view doc_root, const Url& url, const std::string& mimeType, std::shared_ptr<HandleResult> result)
+bool WMTSHandler::GetFeatureInfo(boost::beast::string_view doc_root, const Url& url, std::shared_ptr<HandleResult> result)
 {
 	return true;
 }
