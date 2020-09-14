@@ -1,66 +1,100 @@
 #include "min_max_stretch.h"
+#include "dataset.h"
+#include "resource_pool.h"
 
-
-void MinMaxStretch::DoStretch(void* pData, unsigned char* pMaskBuffer, int nSize, int nBandCount, DataType dataType, double* no_data_value, int* have_no_data)
+MinMaxStretch::MinMaxStretch()
 {
-	auto pSrcData = nullptr;
-	double* dstBuffer = nullptr;
+	kind_ = StretchType::MINIMUM_MAXIMUM;
+}
 
-	switch (dataType)
+void MinMaxStretch::PrepareMinMax(int band_count, int* band_map, Dataset* dataset)
+{
+	if (need_refresh_ == false)
+		return;
+
+	std::lock_guard<std::mutex> guard(mutex_);
+	need_refresh_ = false;
+
+	for (int i = 0; i < band_count; i++)
+	{
+		if (min_value_[i] == 0.0 && max_value_[i] == 0.0)
+		{
+			HistogramPtr histogram = ResourcePool::GetInstance()->GetHistogram(dataset, band_map[i]);
+			double min, max, mean, std_dev;
+			histogram->QueryStats(min, max, mean, std_dev);
+			min_value_[i] = min;
+			max_value_[i] = max;
+		}
+	}
+}
+
+void MinMaxStretch::DoStretch(void* data, unsigned char* mask_buffer, int size, int band_count, int* band_map, Dataset* dataset)
+{
+	int have_no_data[4] = { 0, 0, 0, 0 };
+	double no_data_value[4] = { 0.0, 0.0, 0.0, 0.0 };
+
+	for (int i = 0; i < band_count; i++)
+	{
+		no_data_value[i] = dataset->GetNoDataValue(band_map[i], have_no_data + i);
+	}
+
+	PrepareMinMax(band_count, band_map, dataset);
+
+	switch (dataset->GetDataType())
 	{
 	case DT_Byte:
 	{
-		DoStretchImpl((unsigned char*)pData, pMaskBuffer, nSize, nBandCount, no_data_value, have_no_data);
+		DoStretchImpl((unsigned char*)data, mask_buffer, size, band_count, no_data_value, have_no_data);
 		break;
 	}
 	case DT_UInt16:
 	{
-		DoStretchImpl((unsigned short*)pData, pMaskBuffer, nSize, nBandCount, no_data_value, have_no_data);
+		DoStretchImpl((unsigned short*)data, mask_buffer, size, band_count, no_data_value, have_no_data);
 		break;
 	}
 	case DT_Int16:
 	{
-		DoStretchImpl((short*)pData, pMaskBuffer, nSize, nBandCount, no_data_value, have_no_data);
+		DoStretchImpl((short*)data, mask_buffer, size, band_count, no_data_value, have_no_data);
 		break;
 	}
 	case DT_UInt32:
 	{
-		DoStretchImpl((unsigned int*)pData, pMaskBuffer, nSize, nBandCount, no_data_value, have_no_data);
+		DoStretchImpl((unsigned int*)data, mask_buffer, size, band_count, no_data_value, have_no_data);
 		break;
 	}
 	case DT_Int32:
 	{
-		DoStretchImpl((int*)pData, pMaskBuffer, nSize, nBandCount, no_data_value, have_no_data);
+		DoStretchImpl((int*)data, mask_buffer, size, band_count, no_data_value, have_no_data);
 		break;
 	}
 	case DT_Float32:
 	{
-		DoStretchImpl((float*)pData, pMaskBuffer, nSize, nBandCount, no_data_value, have_no_data);
+		DoStretchImpl((float*)data, mask_buffer, size, band_count, no_data_value, have_no_data);
 		break;
 	}
 	case DT_Float64:
 	{
-		DoStretchImpl((double*)pData, pMaskBuffer, nSize, nBandCount, no_data_value, have_no_data);
+		DoStretchImpl((double*)data, mask_buffer, size, band_count, no_data_value, have_no_data);
 		break;
 	}
 	case DT_CInt16:
 	{
-		DoStretchImpl2((short*)pData, pMaskBuffer, nSize, nBandCount, no_data_value, have_no_data);
+		DoStretchImpl2((short*)data, mask_buffer, size, band_count, no_data_value, have_no_data);
 		break;
 	}
 	case DT_CInt32:
 	{
-		DoStretchImpl2((int*)pData, pMaskBuffer, nSize, nBandCount, no_data_value, have_no_data);
+		DoStretchImpl2((int*)data, mask_buffer, size, band_count, no_data_value, have_no_data);
 		break;
 	}
 	case DT_CFloat32:
 	{
-		DoStretchImpl2((float*)pData, pMaskBuffer, nSize, nBandCount, no_data_value, have_no_data);
+		DoStretchImpl2((float*)data, mask_buffer, size, band_count, no_data_value, have_no_data);
 		break;
 	}
 	case DT_CFloat64:
 	{
-		DoStretchImpl2((double*)pData, pMaskBuffer, nSize, nBandCount, no_data_value, have_no_data);
+		DoStretchImpl2((double*)data, mask_buffer, size, band_count, no_data_value, have_no_data);
 		break;
 	}
 	default:

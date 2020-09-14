@@ -162,6 +162,7 @@
     <ClCompile Include="histogram.cpp" />
     <ClCompile Include="jpg_buffer.cpp" />
     <ClCompile Include="listener.cpp" />
+    <ClCompile Include="percent_min_max_stretch.cpp" />
     <ClCompile Include="png_buffer.cpp" />
     <ClCompile Include="png_compress.cpp" />
     <ClCompile Include="registry.cpp" />
@@ -198,6 +199,7 @@
     <ClInclude Include="histogram.h" />
     <ClInclude Include="jpg_buffer.h" />
     <ClInclude Include="listener.h" />
+    <ClInclude Include="percent_min_max_stretch.h" />
     <ClInclude Include="png_buffer.h" />
     <ClInclude Include="png_compress.h" />
     <ClInclude Include="registry.h" />

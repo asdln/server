@@ -40,6 +40,8 @@ public:
 
 	virtual HistogramPtr GetHistogram(int band) { return nullptr; }
 
+	virtual const std::string& file_path() = 0;
+
 	virtual ~Dataset() {};
 };
 

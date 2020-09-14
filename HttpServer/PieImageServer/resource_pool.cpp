@@ -74,8 +74,9 @@ std::shared_ptr<Dataset> ResourcePool::GetDataset(const std::string& path)
 	}
 }
 
-HistogramPtr ResourcePool::GetHistogram(Dataset* tiff_dataset, const std::string& key, int band)
+HistogramPtr ResourcePool::GetHistogram(Dataset* tiff_dataset, int band)
 {
+	const std::string& key = tiff_dataset->file_path();
 	{
 		//先用读锁，看能不能获取到，如果获取不到，再用写锁
 		std::shared_lock<std::shared_mutex> lock(shared_mutex_);

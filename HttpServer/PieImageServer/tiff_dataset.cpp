@@ -11,6 +11,7 @@ TiffDataset::~TiffDataset()
 
 void TiffDataset::Open(const std::string& path)
 {
+	file_path_ = path;
 	poDataset_ = (GDALDataset*)GDALOpen(path.c_str(), GA_ReadOnly);
 
 	const char* strDes = poDataset_->GetDriver()->GetDescription();
@@ -271,4 +272,9 @@ HistogramPtr TiffDataset::GetHistogram(int band)
 int TiffDataset::GetBandCount()
 {
 	return poDataset_->GetRasterCount();
+}
+
+const std::string& TiffDataset::file_path()
+{
+	return file_path_;
 }

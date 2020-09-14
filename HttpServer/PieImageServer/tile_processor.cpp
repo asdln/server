@@ -859,31 +859,7 @@ BufferPtr TileProcessor::GetTileData(std::list<std::string> paths, const Envelop
 		return nullptr;
 	}
 
-	int hava_no_data[4] = { 0, 0, 0, 0 };
-	double no_data_value[4] = { 0.0, 0.0, 0.0, 0.0 };
-
-	for (int i = 0; i < nBandCount; i++)
-	{
-		no_data_value[i] = tiffDataset->GetNoDataValue(bandMap[i], hava_no_data + i);
-	}
-
-	if (style->stretch_->kind_ == StretchType::MINIMUM_MAXIMUM)
-	{
-		MinMaxStretchPtr stretch = std::dynamic_pointer_cast<MinMaxStretch>(style->stretch_);
-		for (int i = 0; i < nBandCount; i ++)
-		{
-			if (stretch->min_value_[i] == 0.0 && stretch->max_value_[i] == 0.0)
-			{
-				HistogramPtr histogram = ResourcePool::GetInstance()->GetHistogram(tiffDataset.get(), filePath, bandMap[i]);
-				double min, max, mean, std_dev;
-				histogram->QueryStats(min, max, mean, std_dev);
-				stretch->min_value_[i] = min;
-				stretch->max_value_[i] = max;
-			}
-		}
-	}
-
-	style->stretch_->DoStretch(buff, pMaskBuffer, nTileSize * nTileSize, nBandCount, tiffDataset->GetDataType(), no_data_value, hava_no_data);
+	style->stretch_->DoStretch(buff, pMaskBuffer, nTileSize * nTileSize, nBandCount, bandMap, tiffDataset.get());
 
 	BufferPtr buffer = nullptr;
 	if (style->format_ == Format::JPG)

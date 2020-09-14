@@ -4,7 +4,7 @@
 #include <string>
 #include <memory>
 #include "min_max_stretch.h"
-
+#include "percent_min_max_stretch.h"
 
 enum class StyleType
 {
@@ -55,7 +55,7 @@ struct Style
 	int bandMap_[4] = {1, 2, 3, 4};
 	int bandCount_ = 3;
 
-	std::shared_ptr<Stretch> stretch_ = std::make_shared<MinMaxStretch>();
+	std::shared_ptr<Stretch> stretch_ = std::make_shared<PercentMinMaxStretch>();
 };
 
 typedef std::shared_ptr<Style> StylePtr;

@@ -14,6 +14,8 @@ public:
 
     virtual void Close() override;
 
+    virtual const std::string& file_path() override;
+
 	virtual bool Read(int nx, int ny, int width, int height,
 		void* pData, int bufferWidth, int bufferHeight, DataType DataType,
 		int nBandCount, int* pBandMap, long long pixSpace = 0, long long lineSapce = 0, long long bandSpace = 0,
@@ -63,6 +65,8 @@ private:
 	void* rpc_transform_arg;
 
 	bool m_bUsePRC;
+
+    std::string file_path_;
 };
 
 #endif //HTTPSERVER_TIFF_DATASET_H_

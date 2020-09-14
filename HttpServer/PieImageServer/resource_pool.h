@@ -38,7 +38,7 @@ public:
 
 	OGRSpatialReference* GetSpatialReference(const std::string& wkt) { return nullptr; }
 
-	HistogramPtr GetHistogram(Dataset* tiff_dataset, const std::string& key, int band);
+	HistogramPtr GetHistogram(Dataset* tiff_dataset, int band);
 
 private:
 

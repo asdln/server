@@ -4,6 +4,7 @@
 #include "min_max_stretch.h"
 #include "etcd_storage.h"
 #include "registry.h"
+#include "percent_min_max_stretch.h"
 
 std::shared_mutex StyleManager::s_shared_mutex;
 std::map<std::string, StylePtr> StyleManager::s_style_map_;
@@ -122,7 +123,7 @@ StylePtr StyleManager::FromJson(const std::string& jsonStyle)
 	style->uid_ = oJson("uid");
 
 	std::string stretch_kind = oJson["stretch"]("kind");
-	if (stretch_kind.compare("minimumMaximum") == 0)
+	if (stretch_kind.compare(StretchType2String(StretchType::MINIMUM_MAXIMUM)) == 0)
 	{
 		double dMin = 0.0;
 		double dMax = 0.0;
@@ -135,6 +136,15 @@ StylePtr StyleManager::FromJson(const std::string& jsonStyle)
 			oJson["stretch"]["minimum"].Get(i, stretch->min_value_[i]);
 			oJson["stretch"]["maximum"].Get(i, stretch->max_value_[i]);
 		}
+	}
+	else if (stretch_kind.compare(StretchType2String(StretchType::PERCENT_MINMAX)) == 0)
+	{
+		auto stretch = std::make_shared<PercentMinMaxStretch>();
+		style->stretch_ = stretch;
+
+		double percent = 1.0;
+		oJson["stretch"].Get("percent", percent);
+		stretch->set_stretch_percent(percent);
 	}
 
 	return style;
@@ -156,11 +166,15 @@ std::string StyleManager::ToJson(StylePtr style)
 	}
 
 	oJson.AddEmptySubObject("stretch");
-	if (style->stretch_->kind_ == StretchType::MINIMUM_MAXIMUM)
+	if (style->stretch_->kind() == StretchType::MINIMUM_MAXIMUM)
 	{
-		oJson["stretch"].Add("kind", "maxMin");
+		oJson["stretch"].Add("kind", StretchType2String(StretchType::MINIMUM_MAXIMUM));
 		oJson["stretch"].Add("minimum", 0.0);
 		oJson["stretch"].Add("maximum", 255.0);
+	}
+	else if (style->stretch_->kind() == StretchType::PERCENT_MINMAX)
+	{
+		oJson["stretch"].Add("kind", StretchType2String(StretchType::PERCENT_MINMAX));
 	}
 
 	return oJson.ToString();

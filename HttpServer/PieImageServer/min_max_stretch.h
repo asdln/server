@@ -2,14 +2,18 @@
 #define HTTPSERVER_MIN_MAX_STRETCH_H_
 
 #include "stretch.h"
+class Dataset;
+
 class MinMaxStretch :
     public Stretch
 {
 public:
 
-    MinMaxStretch() = default;
+    MinMaxStretch();
 
-    void DoStretch(void* pData, unsigned char* pMaskBuffer, int nSize, int nBandCount, DataType dataType, double* no_data_value, int* have_no_data) override;
+    void DoStretch(void* data, unsigned char* mask_buffer, int size, int band_count, int* band_map, Dataset* dataset) override;
+
+    virtual void PrepareMinMax(int band_count, int* band_map, Dataset* dataset);
 
 protected:
 
@@ -31,7 +35,6 @@ protected:
                     continue;
                 }
                     
-
                 if (have_no_data[j] && no_data_value[j] == (double)(pData[pixel_index]))
                 {
                     pMaskBuffer[i] = 0;
