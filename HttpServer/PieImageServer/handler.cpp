@@ -13,11 +13,7 @@ void Handler::QueryDataPath(const Url& url, std::list<std::string>& paths)
 std::string Handler::QueryStyle(const Url& url)
 {
 	std::string style = "";
-	if (!url.QueryValue("style", style))
-	{
-		url.QueryValue("STYLE", style);
-	}
-
+	url.QueryValue("style", style);
 	return style;
 }
 
@@ -31,13 +27,7 @@ int Handler::QueryX(const Url& url)
 		return nx;
 	}
 
-	if (url.QueryValue("X", value_x))
-	{
-		nx = atoi(value_x.c_str());
-		return nx;
-	}
-
-	if (url.QueryValue("TILECOL", value_x))
+	if (url.QueryValue("tilecol", value_x))
 	{
 		nx = atoi(value_x.c_str());
 		return nx;
@@ -56,13 +46,7 @@ int Handler::QueryY(const Url& url)
 		return nx;
 	}
 
-	if (url.QueryValue("Y", value_x))
-	{
-		nx = atoi(value_x.c_str());
-		return nx;
-	}
-
-	if (url.QueryValue("TILEROW", value_x))
+	if (url.QueryValue("tilerow", value_x))
 	{
 		nx = atoi(value_x.c_str());
 		return nx;
@@ -81,13 +65,7 @@ int Handler::QueryZ(const Url& url)
 		return nx;
 	}
 
-	if (url.QueryValue("Z", value_x))
-	{
-		nx = atoi(value_x.c_str());
-		return nx;
-	}
-
-	if (url.QueryValue("TILEMATRIX", value_x))
+	if (url.QueryValue("tilematrix", value_x))
 	{
 		nx = atoi(value_x.c_str());
 		return nx;
@@ -107,12 +85,6 @@ int Handler::QueryTileWidth(const Url& url)
 		return width;
 	}
 
-	if (url.QueryValue("WIDTH", value))
-	{
-		width = atoi(value.c_str());
-		return width;
-	}
-
 	return width;
 }
 
@@ -122,12 +94,6 @@ int Handler::QueryTileHeight(const Url& url)
 	std::string value;
 
 	if (url.QueryValue("height", value))
-	{
-		height = atoi(value.c_str());
-		return height;
-	}
-
-	if (url.QueryValue("HEIGHT", value))
 	{
 		height = atoi(value.c_str());
 		return height;

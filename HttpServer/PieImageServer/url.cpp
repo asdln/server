@@ -3,6 +3,7 @@
 #include <string>
 #include <iostream>
 #include <boost/regex.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 #include "utility.h"
 
 
@@ -28,7 +29,7 @@ Url::Url(const std::string& url)
 				Split(param, keyValue, "=");
 				if (keyValue.size() == 2)
 				{
-					queryKV_.emplace(UrlDecode(keyValue[0]), UrlDecode(keyValue[1]));
+					queryKV_.emplace(boost::to_lower_copy(UrlDecode(keyValue[0])), UrlDecode(keyValue[1]));
 				}
 			}
 		}

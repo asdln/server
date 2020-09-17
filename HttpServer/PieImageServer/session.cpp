@@ -1,6 +1,10 @@
 #include "session.h"
 #include "handler.h"
 
+#define GOOGLE_GLOG_DLL_DECL 
+#define GLOG_NO_ABBREVIATED_SEVERITIES
+#include "glog/logging.h"
+
 // Report a failure
 void fail(beast::error_code ec, char const* what)
 {
@@ -58,9 +62,13 @@ void Session::handle_request(
 	{
 		bool bRes = pHandler->Handle(doc_root, url, request_body, result);
 	}
+	catch (std::exception e)
+	{
+		LOG(ERROR) << e.what();
+	}
 	catch (...)
 	{
-
+		LOG(ERROR) << "handle_request error";
 	}
 
 	if (result->IsEmpty())

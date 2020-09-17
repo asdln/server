@@ -114,15 +114,15 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;GOOGLE_GLOG_DLL_DECL;GLOG_NO_ABBREVIATED_SEVERITIES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>D:\work\boost_1_73_0;D:\work\libjpeg-turbo-master;D:\work\gdal-release-2.4\gdal\bld\include;D:\work\libpng-libpng16;D:\work\libwebp-master\src\webp</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\work\boost_1_73_0;D:\work\libjpeg-turbo-master;D:\work\gdal-release-2.4\gdal\bld\include;D:\work\libpng-libpng16;D:\work\libwebp-master\src\webp;D:\work\glog-master\src\windows</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>D:\work\boost_1_73_0\stage\lib;D:\work\libjpeg-turbo-master\Debug;D:\work\gdal-release-2.4\gdal\bld\lib;D:\work\libpng-libpng16\Release;D:\work\zlib-master\build\Release;D:\work\libwebp-master\Release</AdditionalLibraryDirectories>
-      <AdditionalDependencies>turbojpeg-static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;gdal_i.lib;libpng16_static.lib;zlibstatic.lib;webp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>D:\work\boost_1_73_0\stage\lib;D:\work\libjpeg-turbo-master\Debug;D:\work\gdal-release-2.4\gdal\bld\lib;D:\work\libpng-libpng16\Release;D:\work\zlib-master\build\Release;D:\work\libwebp-master\Release;D:\work\glog-master\Debug</AdditionalLibraryDirectories>
+      <AdditionalDependencies>turbojpeg-static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;gdal_i.lib;libpng16_static.lib;zlibstatic.lib;webp.lib;glogd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/NODEFAULTLIB:"libcmtd.lib"  /NODEFAULTLIB:"MSVCRT.lib" %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>

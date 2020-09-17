@@ -41,13 +41,7 @@ void HandlerMapping::RegisterAll()
 Handler* HandlerMapping::GetHandler(Url& url)
 {
 	std::string service = "";
-	if (!url.QueryValue("service", service))
-	{
-		if (!url.QueryValue("Service", service))
-		{
-			url.QueryValue("SERVICE", service);
-		}
-	}
+	url.QueryValue("service", service);
 
 	std::map<std::string, Handler*>::iterator iter = handlerMap_.find(service);
 	if (iter != handlerMap_.end())

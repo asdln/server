@@ -8,9 +8,14 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#include <exception>
 #include <sstream>
 #include "CJsonObject.hpp"
 #include "registry.h"
+
+#define GOOGLE_GLOG_DLL_DECL 
+#define GLOG_NO_ABBREVIATED_SEVERITIES
+#include "glog/logging.h"
 
 namespace beast = boost::beast;     // from <boost/beast.hpp>
 namespace http = beast::http;       // from <boost/beast/http.hpp>
@@ -36,9 +41,13 @@ void EtcdStorage::SetValue(const std::string& key, const std::string& value)
 		std::string value1;
 		HttpRequest(host_, port_, "/v2/keys" + key + "?value=" + value, http::verb::put, value1);
 	}
+	catch (std::exception e)
+	{
+		LOG(ERROR) << e.what();
+	}
 	catch (...)
 	{
-		
+		LOG(ERROR) << "Etcd SetValue failed";
 	}
 }
 
@@ -57,9 +66,13 @@ std::string EtcdStorage::GetValue(const std::string& key)
 		neb::CJsonObject oJson(value);
 		res = oJson["node"]("value");
 	}
+	catch (std::exception e)
+	{
+		LOG(ERROR) << e.what();
+	}
 	catch (...)
 	{
-		
+		LOG(ERROR) << "Etcd GetValue failed";
 	}
 
 	return res;
