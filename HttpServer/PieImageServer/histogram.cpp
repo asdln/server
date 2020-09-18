@@ -3,6 +3,7 @@
 #include<algorithm>
 #include <cmath>
 #include "dataset.h"
+#include "string.h"
 
 double ComputerHistogramStepByMinMax(DataType dataType, double dbMin, double dbMax)
 {
@@ -200,7 +201,7 @@ void CalFitHistogram(void* pData, DataType datatype, long lTempX, long lTempY, b
 				nSampleCount++;
 				if (datatype == DT_Byte)
 				{
-					usValue = unsigned char(dfValue);
+                    usValue = (unsigned char)(dfValue);
 					pdHistogram[usValue]++;
 				}
 			}

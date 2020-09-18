@@ -16,11 +16,26 @@ void TiffDataset::Open(const std::string& path)
 
 	const char* strDes = poDataset_->GetDriver()->GetDescription();
 	bool bSearchRPC = false;
-	if (_stricmp(strDes, "GTiff") == 0 || _stricmp(strDes, "ENVI") == 0
-		|| _stricmp(strDes, "HFA") == 0 || _stricmp(strDes, "JP2ECW") == 0)
-	{
-		bSearchRPC = true;
-	}
+
+#ifdef __GNUC__
+
+    if (strcasecmp(strDes, "GTiff") == 0 || strcasecmp(strDes, "ENVI") == 0
+        || strcasecmp(strDes, "HFA") == 0 || strcasecmp(strDes, "JP2ECW") == 0)
+    {
+        bSearchRPC = true;
+    }
+
+#else
+
+    if (_stricmp(strDes, "GTiff") == 0 || _stricmp(strDes, "ENVI") == 0
+        || _stricmp(strDes, "HFA") == 0 || _stricmp(strDes, "JP2ECW") == 0)
+    {
+        bSearchRPC = true;
+    }
+
+#endif
+
+
 
 	GDALRPCInfo sRPCInfo;
 	char** papszMD = NULL;

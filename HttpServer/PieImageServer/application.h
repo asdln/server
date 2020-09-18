@@ -33,6 +33,8 @@ protected:
 
 	std::string app_path_;
 
+	std::string service_data_path_ = "";
+
 	std::list<std::string> service_files_;
 
 	std::map<std::string, std::map<std::string, std::vector<int>>> band_map_description_;

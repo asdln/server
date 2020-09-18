@@ -20,12 +20,13 @@
 #include <string>
 #include <thread>
 #include <vector>
-
 #include "gdal_priv.h"
 #include "listener.h"
-
-#include <io.h>
 #include <fstream>
+
+#define GOOGLE_GLOG_DLL_DECL 
+#define GLOG_NO_ABBREVIATED_SEVERITIES
+#include "glog/logging.h"
 
 namespace fs = boost::filesystem;
 namespace beast = boost::beast;         // from <boost/beast.hpp>
@@ -129,14 +130,51 @@ int get_filenames(const std::string& dir, std::list<std::string>& filenames)
 	return filenames.size();
 }
 
+#define MAX_PATH_LEN   256
+
+#ifdef __GNUC__
+int get_process_path(char *process_path){
+
+    char *p = NULL;
+    int n = 0;
+
+    memset(process_path,0x00,MAX_PATH_LEN);
+
+    n = readlink("/proc/self/exe",process_path,MAX_PATH_LEN);
+
+    if (NULL != (p = strrchr(process_path,'/'))){
+
+        *p = '\0';
+    }else{
+
+        printf("wrong process path");
+        return -1;
+    }
+
+    return 0;
+}
+#endif
+
 Application::Application(int argc, char* argv[])
 {
 	GDALAllRegister();
-	CPLSetConfigOption("GDAL_DATA", "D:\\work\\htht_work\\HttpServer\\x64\\data");
 
-	char _szPath[MAX_PATH + 1] = { 0 };
+	if (argc == 2)
+	{
+		service_data_path_ = argv[1];
+	}
 
-	GetModuleFileName(NULL, _szPath, MAX_PATH);
+    const int max_path = MAX_PATH_LEN;
+    char _szPath[max_path + 1] = { 0 };
+
+#ifdef __GNUC__
+
+    get_process_path(_szPath);
+    app_path_ = _szPath + "/";
+
+#else
+
+    GetModuleFileName(NULL, _szPath, max_path);
 	(strrchr(_szPath, '\\'))[1] = 0;
 
 	for (int n = 0; _szPath[n]; n++)
@@ -151,9 +189,27 @@ Application::Application(int argc, char* argv[])
 		}
 	}
 
-	get_filenames(app_path_ + "../service_data", service_files_);
+#endif
 
-	address_ = net::ip::make_address("0.0.0.0");
+    std::string gdal_data_path = app_path_ + "data";
+    CPLSetConfigOption("GDAL_DATA", gdal_data_path.c_str());
+
+	LOG(INFO) << "GDAL_DATA : " << gdal_data_path;
+
+	if (service_data_path_.empty())
+	{
+		service_data_path_ = app_path_ + "../service_data";
+	}
+
+	LOG(INFO) << "service_data_path_ : " << service_data_path_;
+    get_filenames(service_data_path_, service_files_);
+
+	for (auto& file_name : service_files_)
+	{
+		LOG(INFO) << "data: " << file_name;
+	}
+
+    address_ = net::ip::make_address("0.0.0.0");
 	doc_root_ = std::make_shared<std::string>("tile");
 
 	if (!LoadConfig())
@@ -161,6 +217,8 @@ Application::Application(int argc, char* argv[])
 		threads_ = 12;
 		port_ = 8083;
 	}
+
+	LOG(INFO) << "threads : " << threads_ << "   port : " << port_;
 
 	InitBandMap();
 }
@@ -173,7 +231,7 @@ Application::~Application()
 bool Application::LoadConfig()
 {
 	if (!boost::filesystem::exists(app_path_ + "config.ini")) {
-		std::cerr << "config.ini not exists." << std::endl;
+		LOG(INFO) << "config.ini not exists : " << app_path_ + "config.ini";
 		return false;
 	}
 
@@ -181,13 +239,13 @@ bool Application::LoadConfig()
 	boost::property_tree::ini_parser::read_ini(app_path_ + "config.ini", root_node);
 	tag_system = root_node.get_child("Server");
 	if (tag_system.count("port") != 1) {
-		std::cerr << "port node not exists." << std::endl;
+		LOG(INFO) << "port node not exists." << std::endl;
 		return false;
 	}
 	port_ = tag_system.get<int>("port");
 
 	if (tag_system.count("threads") != 1) {
-		std::cerr << "threads node not exists." << std::endl;
+		LOG(INFO) << "threads node not exists." << std::endl;
 		return false;
 	}
 	threads_ = std::max<int>(1, tag_system.get<int>("threads"));

@@ -1,5 +1,6 @@
 ﻿
 #include "application.h"
+#include <iostream>
 
 #define GOOGLE_GLOG_DLL_DECL 
 #define GLOG_NO_ABBREVIATED_SEVERITIES
@@ -9,6 +10,8 @@
 
 int main(int argc, char* argv[])
 {
+    std::cout << "server starting" <<std::endl;
+
 	//if (argc != 5)
 	//{
 	//	std::cerr <<
@@ -20,12 +23,11 @@ int main(int argc, char* argv[])
 
 	FLAGS_log_dir = "./";
 	FLAGS_logbufsecs = 0;
+	FLAGS_alsologtostderr = 1;
 	google::InitGoogleLogging(argv[0]);
 	
 	global_app = std::make_shared<Application>(argc, argv);
 	global_app->Run();
-
-	LOG(INFO) << "PIEImageServer started";  //输出一个Info日志
 
 	google::ShutdownGoogleLogging();
 	return 0;

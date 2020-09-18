@@ -1,8 +1,6 @@
 #include "jpg_compress.h"
 
-#include "cdjpeg.h"             /* Common decls for cjpeg/djpeg applications */
-#include "jversion.h"           /* for version message */
-#include "jconfigint.h"
+#include "jpeglib.h"
 #include "jpg_buffer.h"
 
 void error_exit(j_common_ptr cinfo) {
