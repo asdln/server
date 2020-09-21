@@ -1,5 +1,6 @@
 #include "resource_pool.h"
 #include "dataset_factory.h"
+#include "gdal_priv.h"
 
 ResourcePool* ResourcePool::instance_ = nullptr;
 std::mutex ResourcePool::mutex_;
@@ -11,7 +12,9 @@ ResourcePool::ResourcePool()
 
 ResourcePool::~ResourcePool()
 {
-
+	map_SRS.clear();
+	map_histogram_.clear();
+	map_dataset_pool_.clear();
 }
 
 void ResourcePool::Init()
@@ -31,8 +34,8 @@ std::shared_ptr<Dataset> ResourcePool::GetDataset(const std::string& path)
 {
 	std::lock_guard<std::mutex> guard(mutex_dataset_);
 
-	std::map<std::string, std::vector<DatasetPtr>>::iterator itr = dataset_pool_.find(path);
-	if (itr != dataset_pool_.end())
+	std::map<std::string, std::vector<DatasetPtr>>::iterator itr = map_dataset_pool_.find(path);
+	if (itr != map_dataset_pool_.end())
 	{
 		std::vector<DatasetPtr>& datasets = itr->second;
 		if (datasets.size() < dataset_pool_max_count_)
@@ -69,9 +72,39 @@ std::shared_ptr<Dataset> ResourcePool::GetDataset(const std::string& path)
 		std::vector<DatasetPtr> datasets;
 		auto p = DatasetFactory::OpenDataset(path);
 		datasets.emplace_back(p);
-		dataset_pool_.emplace(path, datasets);
+		map_dataset_pool_.emplace(path, datasets);
 		return p;
 	}
+}
+
+OGRSpatialReference* ResourcePool::GetSpatialReference(int epsg_code)
+{
+	{
+		std::shared_lock<std::shared_mutex> lock(srs_shared_mutex_);
+
+		std::map<int, std::shared_ptr<OGRSpatialReference>>::iterator itr = map_SRS.find(epsg_code);
+		if (itr != map_SRS.end())
+		{
+			return itr->second.get();
+		}
+	}
+
+	{
+		std::unique_lock<std::shared_mutex> lock(srs_shared_mutex_);
+		std::map<int, std::shared_ptr<OGRSpatialReference>>::iterator itr = map_SRS.find(epsg_code);
+		if (itr != map_SRS.end())
+		{
+			return itr->second.get();
+		}
+		else
+		{
+			auto srs = std::make_shared<OGRSpatialReference>();
+			map_SRS.emplace(epsg_code, srs);
+			return srs.get();
+		}
+	}
+
+	return nullptr;
 }
 
 HistogramPtr ResourcePool::GetHistogram(Dataset* tiff_dataset, int band)

@@ -332,12 +332,10 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 	Envelop envelopeClone = envelope;
 	DataType ePixelType = pDataset->GetDataType();
 
-	CoordinateTransformation transformation1(ptrDSSRef, ptrVisSRef);
-	CoordinateTransformation transformation2(ptrVisSRef, ptrDSSRef);
-
 	bool bTransRes = false;
 	if (bDynPrjTrans)
 	{
+		CoordinateTransformation transformation2(ptrVisSRef, ptrDSSRef);
 		bTransRes = transformation2.Transform(envelope, envelopeClone);
 		//bTransRes = ((SysGeometry::GeometryPtr)envelopeClone)->Transform(ptrDSSRef);
 
@@ -793,8 +791,10 @@ BufferPtr TileProcessor::GetTileData(std::list<std::string> paths, const Envelop
 	int epsg_code = style->srs_epsg_code_;
 
 	//const char* pWKT = "PROJCS[\"WGS_1984_Web_Mercator\",GEOGCS[\"GCS_WGS_1984_Major_Auxiliary_Sphere\",DATUM[\"WGS_1984_Major_Auxiliary_Sphere\",SPHEROID[\"WGS_1984_Major_Auxiliary_Sphere\",6378137.0,0.0]],PRIMEM[\"Greenwich\",0.0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Mercator_1SP\"],PARAMETER[\"False_Easting\",0.0],PARAMETER[\"False_Northing\",0.0],PARAMETER[\"Central_Meridian\",0.0],PARAMETER[\"latitude_of_origin\",0.0],UNIT[\"Meter\",1.0]]";
-	OGRSpatialReference* pDefaultSpatialReference = (OGRSpatialReference*)OSRNewSpatialReference(0/*pWKT*/);
-	pDefaultSpatialReference->importFromEPSG(epsg_code);
+	//OGRSpatialReference* pDefaultSpatialReference = (OGRSpatialReference*)OSRNewSpatialReference(0/*pWKT*/);
+	//pDefaultSpatialReference->importFromEPSG(epsg_code);
+
+	OGRSpatialReference* pDefaultSpatialReference = ResourcePool::GetInstance()->GetSpatialReference(epsg_code);
 
 	std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(filePath));
 	int pixel_bytes = GetDataTypeBytes(tiffDataset->GetDataType());
@@ -858,7 +858,7 @@ BufferPtr TileProcessor::GetTileData(std::list<std::string> paths, const Envelop
 		if (pMaskBuffer != nullptr)
 			delete[] pMaskBuffer;
 
-		OSRDestroySpatialReference(pDefaultSpatialReference);
+		//OSRDestroySpatialReference(pDefaultSpatialReference);
 		return nullptr;
 	}
 
@@ -903,7 +903,7 @@ BufferPtr TileProcessor::GetTileData(std::list<std::string> paths, const Envelop
 	if (pMaskBuffer != nullptr)
 		delete[] pMaskBuffer;
 
-	OSRDestroySpatialReference(pDefaultSpatialReference);
+	//OSRDestroySpatialReference(pDefaultSpatialReference);
 	return buffer;
 }
 

@@ -36,7 +36,7 @@ public:
 
 	std::shared_ptr<Dataset> GetDataset(const std::string& path);
 
-	OGRSpatialReference* GetSpatialReference(const std::string& wkt) { return nullptr; }
+	OGRSpatialReference* GetSpatialReference(int epsg_code);
 
 	HistogramPtr GetHistogram(Dataset* tiff_dataset, int band);
 
@@ -56,7 +56,10 @@ private:
 
 	int dataset_pool_max_count_ = 8;
 	std::mutex mutex_dataset_;
-	std::map<std::string, std::vector<DatasetPtr>> dataset_pool_;
+	std::map<std::string, std::vector<DatasetPtr>> map_dataset_pool_;
+
+	std::shared_mutex srs_shared_mutex_;
+	std::map<int, std::shared_ptr<OGRSpatialReference>> map_SRS;
 
 	std::shared_mutex shared_mutex_;
 	std::map<std::string, std::vector<HistogramPtr>> map_histogram_;
