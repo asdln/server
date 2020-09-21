@@ -99,6 +99,7 @@ OGRSpatialReference* ResourcePool::GetSpatialReference(int epsg_code)
 		else
 		{
 			auto srs = std::make_shared<OGRSpatialReference>();
+			srs->importFromEPSG(epsg_code);
 			map_SRS.emplace(epsg_code, srs);
 			return srs.get();
 		}
