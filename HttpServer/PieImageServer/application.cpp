@@ -170,7 +170,7 @@ Application::Application(int argc, char* argv[])
 #ifdef __GNUC__
 
     get_process_path(_szPath);
-    app_path_ = _szPath + "/";
+    app_path_ = _szPath + std::string("/");
 
 #else
 
