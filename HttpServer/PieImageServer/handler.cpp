@@ -17,6 +17,19 @@ std::string Handler::QueryStyle(const Url& url)
 	return style;
 }
 
+int Handler::QuerySRS(const Url& url)
+{
+	int epsg = -1;
+
+	std::string str_epsg;
+	if (url.QueryValue("srs", str_epsg))
+	{
+		epsg = atoi(str_epsg.c_str());
+	}
+
+	return epsg;
+}
+
 int Handler::QueryX(const Url& url)
 {
 	int nx = 0;

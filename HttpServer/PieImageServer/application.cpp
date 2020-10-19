@@ -159,9 +159,9 @@ Application::Application(int argc, char* argv[])
 {
 	GDALAllRegister();
 
-	if (argc == 2)
+	for (int i = 1; i < argc; i++)
 	{
-		service_data_path_ = argv[1];
+		service_files_.push_back(argv[i]);
 	}
 
     const int max_path = MAX_PATH_LEN;
@@ -196,13 +196,13 @@ Application::Application(int argc, char* argv[])
 
 	LOG(INFO) << "GDAL_DATA : " << gdal_data_path;
 
-	if (service_data_path_.empty())
+	if (service_files_.empty())
 	{
 		service_data_path_ = app_path_ + "../service_data";
-	}
 
-	LOG(INFO) << "service_data_path_ : " << service_data_path_;
-    get_filenames(service_data_path_, service_files_);
+		LOG(INFO) << "service_data_path_ : " << service_data_path_;
+		get_filenames(service_data_path_, service_files_);
+	}
 
 	for (auto& file_name : service_files_)
 	{

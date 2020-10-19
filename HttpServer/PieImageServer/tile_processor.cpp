@@ -318,7 +318,6 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 		{
 			bDynPrjTrans = true;
 		}
-
 	}
 
 	bool bDynProjectToGeoCoord = false;

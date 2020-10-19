@@ -47,12 +47,19 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, st
 	if (style == nullptr)
 		style = std::make_shared<Style>();
 
+	//如果在url里显式的指定投影，则覆盖
+	int epsg_code = QuerySRS(url);
+	if (epsg_code != -1)
+	{
+		style->srs_epsg_code_ = epsg_code;
+	}
+
 	int nx = QueryX(url);
 	int ny = QueryY(url);
 	int nz = QueryZ(url);
 
 	Envelop env;
-	GetEnvFromTileIndex(nx, ny, nz, env);
+	GetEnvFromTileIndex(nx, ny, nz, env, style->srs_epsg_code_);
 
 	return WMSHandler::GetTileData(paths, env, style.get(), 256, 256, result);
 }

@@ -132,17 +132,17 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>D:\work\boost_1_73_0;D:\work\libjpeg-turbo-master;D:\work\libpng-libpng16;D:\work\libwebp-master\src\webp</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\work\boost_1_73_0;D:\work\libjpeg-turbo-master;D:\work\libpng-libpng16;D:\work\gdal-release-2.4\gdal\bld\include;D:\work\glog-master\src\windows;D:\work\libwebp-master\src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>D:\work\boost_1_73_0\stage\lib;D:\work\libjpeg-turbo-master\release;D:\work\libpng-libpng16\Release;D:\work\zlib-master\build\Release;D:\work\libwebp-master\Release</AdditionalLibraryDirectories>
-      <AdditionalDependencies>turbojpeg-static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;libpng16_static.lib;zlibstatic.lib;webp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>D:\work\boost_1_73_0\stage\lib;D:\work\libjpeg-turbo-master\release;D:\work\libpng-libpng16\Release;D:\work\zlib-master\build\Release;D:\work\libwebp-master\Release;D:\work\gdal-release-2.4\gdal\bld\lib;D:\work\glog-master\Release</AdditionalLibraryDirectories>
+      <AdditionalDependencies>turbojpeg-static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;libpng16_static.lib;zlibstatic.lib;webp.lib;gdal_i.lib;glog.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

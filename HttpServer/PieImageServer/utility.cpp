@@ -8,7 +8,7 @@
 #include "math.h"
 #include <vector>
 
-void GetEnvFromTileIndex(int nx, int ny, int nz, Envelop& env)
+void GetEnvFromTileIndex(int nx, int ny, int nz, Envelop& env, int epsg)
 {
 	size_t nTileCountX = pow(2.0, nz) + 0.5;
 	size_t nTileCountY = nTileCountX;
@@ -20,8 +20,7 @@ void GetEnvFromTileIndex(int nx, int ny, int nz, Envelop& env)
 
 	double dResoltion = 360.0 / (nTileCountX * 256.0);
 
-	bool bWebMercator = 1;
-	if (bWebMercator)
+	if (epsg == 3857)
 	{
 		dTotalLeft = -20037508.3427892;
 		dTotalBottom = -20037508.3427892;
@@ -55,18 +54,18 @@ bool LoadData(const std::string& path)
 	return true;
 }
 
-void ParseURL(const std::string& path, Envelop& env, std::string& filePath)
-{
-	int nx = 0;
-	int ny = 0;
-	int nz = 0;
-
-	GetTileIndex(path, nx, ny, nz);
-	GetEnvFromTileIndex(nx, ny, nz, env);
-	//filePath = "d:/work/world.tif";
-	//filePath = "D:\\work\\langfang_base - 2m\\langfang_mosaic.img";
-	filePath = "D:\\work\\data\\GF1_PMS2_E113.9_N34.4_20181125_L5A_0003622463.tiff";
-}
+//void ParseURL(const std::string& path, Envelop& env, std::string& filePath)
+//{
+//	int nx = 0;
+//	int ny = 0;
+//	int nz = 0;
+//
+//	GetTileIndex(path, nx, ny, nz);
+//	GetEnvFromTileIndex(nx, ny, nz, env);
+//	//filePath = "d:/work/world.tif";
+//	//filePath = "D:\\work\\langfang_base - 2m\\langfang_mosaic.img";
+//	filePath = "D:\\work\\data\\GF1_PMS2_E113.9_N34.4_20181125_L5A_0003622463.tiff";
+//}
 
 bool GetTileIndex(const std::string& path, int& nx, int& ny, int& nz)
 {

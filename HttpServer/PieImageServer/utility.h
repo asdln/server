@@ -124,13 +124,13 @@ private:
 	double dMaxY_ = 0.0;
 };
 
-void GetEnvFromTileIndex(int nx, int ny, int nz, Envelop& env);
+void GetEnvFromTileIndex(int nx, int ny, int nz, Envelop& env, int epsg);
 
 bool GetTileIndex(const std::string& path, int& nx, int& ny, int& nz);
 
 bool LoadData(const std::string& path);
 
-void ParseURL(const std::string& path, Envelop& env, std::string& filePath);
+//void ParseURL(const std::string& path, Envelop& env, std::string& filePath);
 
 void Split(const std::string& s, std::vector<std::string>& tokens, const std::string& delimiters = " ");
 
