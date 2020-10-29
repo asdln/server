@@ -11,7 +11,7 @@ class Dataset
 {
 public:
 
-	virtual void Open(const std::string& path) = 0;
+	virtual bool Open(const std::string& path) = 0;
 
 	virtual void Close() = 0;
 

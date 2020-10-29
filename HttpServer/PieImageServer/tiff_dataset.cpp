@@ -9,10 +9,13 @@ TiffDataset::~TiffDataset()
 	Close();
 }
 
-void TiffDataset::Open(const std::string& path)
+bool TiffDataset::Open(const std::string& path)
 {
 	file_path_ = path;
 	poDataset_ = (GDALDataset*)GDALOpen(path.c_str(), GA_ReadOnly);
+
+	if (poDataset_ == nullptr)
+		return false;
 
 	const char* strDes = poDataset_->GetDriver()->GetDescription();
 	bool bSearchRPC = false;
@@ -61,6 +64,8 @@ void TiffDataset::Open(const std::string& path)
 	}
 
 	CalcExtent();
+
+	return true;
 }
 
 void TiffDataset::CalcExtent()

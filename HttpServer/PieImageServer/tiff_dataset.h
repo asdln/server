@@ -10,7 +10,7 @@ class TiffDataset :
 {
 public:
 
-    virtual void Open(const std::string& path) override;
+    virtual bool Open(const std::string& path) override;
 
     virtual void Close() override;
 

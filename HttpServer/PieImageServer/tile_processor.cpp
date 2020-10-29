@@ -796,6 +796,9 @@ BufferPtr TileProcessor::GetTileData(std::list<std::string> paths, const Envelop
 	OGRSpatialReference* pDefaultSpatialReference = ResourcePool::GetInstance()->GetSpatialReference(epsg_code);
 
 	std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(filePath));
+	if (tiffDataset == nullptr)
+		return nullptr;
+
 	int pixel_bytes = GetDataTypeBytes(tiffDataset->GetDataType());
 
 	int dataset_band_count = tiffDataset->GetBandCount();
