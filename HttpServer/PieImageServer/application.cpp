@@ -23,6 +23,7 @@
 #include "gdal_priv.h"
 #include "listener.h"
 #include <fstream>
+#include "etcd_storage.h"
 
 #define GOOGLE_GLOG_DLL_DECL 
 #define GLOG_NO_ABBREVIATED_SEVERITIES
@@ -230,7 +231,8 @@ Application::~Application()
 
 bool Application::LoadConfig()
 {
-	if (!boost::filesystem::exists(app_path_ + "config.ini")) {
+	if (!boost::filesystem::exists(app_path_ + "config.ini")) 
+	{
 		LOG(INFO) << "config.ini not exists : " << app_path_ + "config.ini";
 		return false;
 	}
@@ -238,17 +240,38 @@ bool Application::LoadConfig()
 	boost::property_tree::ptree root_node, tag_system;
 	boost::property_tree::ini_parser::read_ini(app_path_ + "config.ini", root_node);
 	tag_system = root_node.get_child("Server");
-	if (tag_system.count("port") != 1) {
+	if (tag_system.count("port") != 1) 
+	{
 		LOG(INFO) << "port node not exists." << std::endl;
 		return false;
 	}
 	port_ = tag_system.get<int>("port");
 
-	if (tag_system.count("threads") != 1) {
+	if (tag_system.count("threads") != 1) 
+	{
 		LOG(INFO) << "threads node not exists." << std::endl;
 		return false;
 	}
 	threads_ = std::max<int>(1, tag_system.get<int>("threads"));
+
+	boost::property_tree::ptree tag_etcd = root_node.get_child("Etcd");
+	if (tag_etcd.count("port") == 1) 
+	{
+		EtcdStorage::port_ = tag_etcd.get<std::string>("port");
+	}
+	else
+	{
+		EtcdStorage::port_ = "2379";
+	}
+
+	if (tag_etcd.count("host") == 1) 
+	{
+		EtcdStorage::host_ = tag_etcd.get<std::string>("host");
+	}
+	else
+	{
+		EtcdStorage::host_ = "0.0.0.0";
+	}
 
 	return true;
 }

@@ -11,7 +11,6 @@
 #include <exception>
 #include <sstream>
 #include "CJsonObject.hpp"
-#include "registry.h"
 
 #define GOOGLE_GLOG_DLL_DECL 
 #define GLOG_NO_ABBREVIATED_SEVERITIES
@@ -22,10 +21,13 @@ namespace http = beast::http;       // from <boost/beast/http.hpp>
 namespace net = boost::asio;        // from <boost/asio.hpp>
 using tcp = net::ip::tcp;           // from <boost/asio/ip/tcp.hpp>
 
+std::string EtcdStorage::host_;
+
+std::string EtcdStorage::port_;
+
 EtcdStorage::EtcdStorage()
 {
-	host_ = Registry::etcd_host_;
-	port_ = Registry::etcd_port_;
+
 }
 
 EtcdStorage::EtcdStorage(const std::string& host, const std::string& port)

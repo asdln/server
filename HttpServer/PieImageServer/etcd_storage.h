@@ -6,6 +6,8 @@
 
 class EtcdStorage
 {
+	friend class Application;
+
 public:
 
 	EtcdStorage();
@@ -24,9 +26,9 @@ protected:
 
 protected:
 
-	std::string host_;
+	static std::string host_;
 
-	std::string port_;
+	static std::string port_;
 };
 
 #endif  //HTTPSERVER_ETCD_STORAGE_H_

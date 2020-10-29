@@ -123,9 +123,6 @@
     <ClCompile Include="handle_result.cpp">
       <Filter>源文件\net</Filter>
     </ClCompile>
-    <ClCompile Include="registry.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="dataset.cpp">
       <Filter>源文件\dataset</Filter>
     </ClCompile>
@@ -229,9 +226,6 @@
     </ClInclude>
     <ClInclude Include="handle_result.h">
       <Filter>头文件\net</Filter>
-    </ClInclude>
-    <ClInclude Include="registry.h">
-      <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="dataset.h">
       <Filter>头文件\dataset</Filter>

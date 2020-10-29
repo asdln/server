@@ -3,7 +3,6 @@
 #include "CJsonObject.hpp"
 #include "min_max_stretch.h"
 #include "etcd_storage.h"
-#include "registry.h"
 #include "percent_min_max_stretch.h"
 
 std::shared_mutex StyleManager::s_shared_mutex;

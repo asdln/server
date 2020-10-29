@@ -165,7 +165,6 @@
     <ClCompile Include="percent_min_max_stretch.cpp" />
     <ClCompile Include="png_buffer.cpp" />
     <ClCompile Include="png_compress.cpp" />
-    <ClCompile Include="registry.cpp" />
     <ClCompile Include="resource_pool.cpp" />
     <ClCompile Include="session.cpp" />
     <ClCompile Include="style.cpp" />
@@ -203,7 +202,6 @@
     <ClInclude Include="percent_min_max_stretch.h" />
     <ClInclude Include="png_buffer.h" />
     <ClInclude Include="png_compress.h" />
-    <ClInclude Include="registry.h" />
     <ClInclude Include="resource_pool.h" />
     <ClInclude Include="session.h" />
     <ClInclude Include="style.h" />
