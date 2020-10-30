@@ -30,6 +30,11 @@ void ResourcePool::DestroyInstance()
 	instance_ = nullptr;
 }
 
+void ResourcePool::SetDatasetPoolMaxCount(int count)
+{
+	dataset_pool_max_count_ = count;
+}
+
 std::shared_ptr<Dataset> ResourcePool::GetDataset(const std::string& path)
 {
 	std::lock_guard<std::mutex> guard(mutex_dataset_);

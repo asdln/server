@@ -24,6 +24,7 @@
 #include "listener.h"
 #include <fstream>
 #include "etcd_storage.h"
+#include "resource_pool.h"
 
 #define GOOGLE_GLOG_DLL_DECL 
 #define GLOG_NO_ABBREVIATED_SEVERITIES
@@ -213,11 +214,9 @@ Application::Application(int argc, char* argv[])
     address_ = net::ip::make_address("0.0.0.0");
 	doc_root_ = std::make_shared<std::string>("tile");
 
-	if (!LoadConfig())
-	{
-		threads_ = 12;
-		port_ = 8083;
-	}
+	LoadConfig();
+
+	ResourcePool::GetInstance()->SetDatasetPoolMaxCount(threads_ + 1);
 
 	LOG(INFO) << "threads : " << threads_ << "   port : " << port_;
 
@@ -231,6 +230,11 @@ Application::~Application()
 
 bool Application::LoadConfig()
 {
+	threads_ = 12;
+	port_ = 8083;
+	EtcdStorage::port_ = "2379";
+	EtcdStorage::host_ = "0.0.0.0";
+
 	if (!boost::filesystem::exists(app_path_ + "config.ini")) 
 	{
 		LOG(INFO) << "config.ini not exists : " << app_path_ + "config.ini";
@@ -240,37 +244,25 @@ bool Application::LoadConfig()
 	boost::property_tree::ptree root_node, tag_system;
 	boost::property_tree::ini_parser::read_ini(app_path_ + "config.ini", root_node);
 	tag_system = root_node.get_child("Server");
-	if (tag_system.count("port") != 1) 
+	if (tag_system.count("port") == 1) 
 	{
-		LOG(INFO) << "port node not exists." << std::endl;
-		return false;
+		port_ = tag_system.get<int>("port");
 	}
-	port_ = tag_system.get<int>("port");
-
-	if (tag_system.count("threads") != 1) 
+	
+	if (tag_system.count("threads") == 1) 
 	{
-		LOG(INFO) << "threads node not exists." << std::endl;
-		return false;
+		threads_ = std::max<int>(1, tag_system.get<int>("threads"));
 	}
-	threads_ = std::max<int>(1, tag_system.get<int>("threads"));
 
 	boost::property_tree::ptree tag_etcd = root_node.get_child("Etcd");
 	if (tag_etcd.count("port") == 1) 
 	{
 		EtcdStorage::port_ = tag_etcd.get<std::string>("port");
 	}
-	else
-	{
-		EtcdStorage::port_ = "2379";
-	}
 
 	if (tag_etcd.count("host") == 1) 
 	{
 		EtcdStorage::host_ = tag_etcd.get<std::string>("host");
-	}
-	else
-	{
-		EtcdStorage::host_ = "0.0.0.0";
 	}
 
 	return true;

@@ -40,6 +40,8 @@ public:
 
 	HistogramPtr GetHistogram(Dataset* tiff_dataset, int band);
 
+	void SetDatasetPoolMaxCount(int count);
+
 private:
 
 	ResourcePool();
