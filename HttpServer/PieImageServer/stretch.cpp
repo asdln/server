@@ -34,3 +34,23 @@ StretchType String2StretchType(std::string type_string)
 
 	return type;
 }
+
+void Stretch::SetUseExternalNoDataValue(bool useExternal)
+{
+	use_external_nodata_value_ = useExternal;
+}
+
+bool Stretch::GetUseExternalNoDataValue()
+{
+	return use_external_nodata_value_;
+}
+
+void Stretch::SetExternalNoDataValue(double external_value)
+{
+	external_nodata_value_ = external_value;
+}
+
+double Stretch::GetExternalNoDataValue()
+{
+	return external_nodata_value_;
+}

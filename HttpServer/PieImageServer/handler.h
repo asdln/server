@@ -20,6 +20,8 @@ public:
 
 	virtual void QueryDataPath(const Url& url, std::list<std::string>& paths);
 
+	virtual bool QueryNoDataValue(const Url& url, double& value);
+
 	virtual std::string QueryStyle(const Url& url);
 
 	virtual int QuerySRS(const Url& url);

@@ -25,6 +25,20 @@ std::string Handler::QueryStyle(const Url& url)
 	return style;
 }
 
+bool Handler::QueryNoDataValue(const Url& url, double& value)
+{
+	std::string no_data_value;
+	if (url.QueryValue("nodatavalue", no_data_value))
+	{
+		value = atoi(no_data_value.c_str());
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
 int Handler::QuerySRS(const Url& url)
 {
 	int epsg = -1;

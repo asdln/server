@@ -21,6 +21,15 @@ public:
 
 	virtual void Refresh() { need_refresh_ = true; }
 
+	//使用外部传入的无效值
+	virtual void SetUseExternalNoDataValue(bool useExternal);
+
+	virtual bool GetUseExternalNoDataValue();
+
+	virtual void SetExternalNoDataValue(double useExternal);
+
+	virtual double GetExternalNoDataValue();
+
 protected:
 
 	bool need_refresh_ = true;
@@ -28,6 +37,10 @@ protected:
 	StretchType kind_;
 
 	std::mutex mutex_;
+
+	bool use_external_nodata_value_ = false;
+
+	double external_nodata_value_ = 0.0;
 };
 
 std::string StretchType2String(StretchType type);

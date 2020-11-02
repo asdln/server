@@ -95,6 +95,9 @@ bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, std:
 	std::list<std::string> paths;
 	QueryDataPath(url, paths);
 
+	double no_data_value = 0.;
+	bool have_no_data = QueryNoDataValue(url, no_data_value);
+
 	std::vector<std::string> tokens;
 	std::string style_str = QueryStyle(url);
 	Split(style_str, tokens, ":");
@@ -145,6 +148,12 @@ bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, std:
 				style_clone.srs_epsg_code_ = epsg;
 			}
 		}
+	}
+
+	if (have_no_data)
+	{
+		style_clone.stretch_->SetUseExternalNoDataValue(have_no_data);
+		style_clone.stretch_->SetExternalNoDataValue(no_data_value);
 	}
 
 	return GetTileData(paths, env, &style_clone, tile_width, tile_height, result);

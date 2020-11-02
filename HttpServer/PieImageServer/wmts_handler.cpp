@@ -34,6 +34,9 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, st
 	std::list<std::string> paths;
 	QueryDataPath(url, paths);
 
+	double no_data_value = 0.;
+	bool have_no_data = QueryNoDataValue(url, no_data_value);
+
 	std::vector<std::string> tokens;
 	std::string style_str = QueryStyle(url);
 	Split(style_str, tokens, ":");
@@ -47,11 +50,14 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, st
 	if (style == nullptr)
 		style = std::make_shared<Style>();
 
+	//clone一份，防止后面修改srs_epsg_code_时多线程产生冲突
+	Style style_clone = *style;
+
 	//如果在url里显式的指定投影，则覆盖
 	int epsg_code = QuerySRS(url);
 	if (epsg_code != -1)
 	{
-		style->srs_epsg_code_ = epsg_code;
+		style_clone.srs_epsg_code_ = epsg_code;
 	}
 
 	int nx = QueryX(url);
@@ -59,9 +65,15 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, st
 	int nz = QueryZ(url);
 
 	Envelop env;
-	GetEnvFromTileIndex(nx, ny, nz, env, style->srs_epsg_code_);
+	GetEnvFromTileIndex(nx, ny, nz, env, style_clone.srs_epsg_code_);
 
-	return WMSHandler::GetTileData(paths, env, style.get(), 256, 256, result);
+	if (have_no_data)
+	{
+		style_clone.stretch_->SetUseExternalNoDataValue(have_no_data);
+		style_clone.stretch_->SetExternalNoDataValue(no_data_value);
+	}
+
+	return WMSHandler::GetTileData(paths, env, &style_clone, 256, 256, result);
 }
 
 bool WMTSHandler::GetCapabilities(boost::beast::string_view doc_root, const Url& url, std::shared_ptr<HandleResult> result)

@@ -33,10 +33,22 @@ void MinMaxStretch::DoStretch(void* data, unsigned char* mask_buffer, int size, 
 	int have_no_data[4] = { 0, 0, 0, 0 };
 	double no_data_value[4] = { 0.0, 0.0, 0.0, 0.0 };
 
-	for (int i = 0; i < band_count; i++)
+	if (use_external_nodata_value_)
 	{
-		no_data_value[i] = dataset->GetNoDataValue(band_map[i], have_no_data + i);
+		for (int i = 0; i < band_count; i++)
+		{
+			have_no_data[i] = 1;
+			no_data_value[i] = external_nodata_value_;
+		}
 	}
+	else
+	{
+		for (int i = 0; i < band_count; i++)
+		{
+			no_data_value[i] = dataset->GetNoDataValue(band_map[i], have_no_data + i);
+		}
+	}
+
 
 	PrepareMinMax(band_count, band_map, dataset);
 
