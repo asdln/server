@@ -10,7 +10,7 @@ bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, con
 	{
 		if (request.compare("GetTile") == 0)
 		{
-			return GetTile(doc_root, url, result);
+			return GetTile(doc_root, url, request_body, result);
 		}
 		else if (request.compare("GetCapabilities") == 0)
 		{
@@ -26,10 +26,10 @@ bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, con
 		}
 	}
 
-	return GetTile(doc_root, url, result);
+	return GetTile(doc_root, url, request_body, result);
 }
 
-bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, std::shared_ptr<HandleResult> result)
+bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
 	std::list<std::string> paths;
 	QueryDataPath(url, paths);
@@ -37,27 +37,13 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, st
 	double no_data_value = 0.;
 	bool have_no_data = QueryNoDataValue(url, no_data_value);
 
-	std::vector<std::string> tokens;
-	std::string style_str = QueryStyle(url);
-	Split(style_str, tokens, ":");
-
-	StylePtr style;
-	if (tokens.size() == 3)
-	{
-		style = StyleManager::GetStyle(tokens[0] + ":" + tokens[1], atoi(tokens[2].c_str()));
-	}
-
-	if (style == nullptr)
-		style = std::make_shared<Style>();
-
-	//clone一份，防止后面修改srs_epsg_code_时多线程产生冲突
-	Style style_clone = *style;
+	StylePtr style_clone = GetStyle(url, request_body);
 
 	//如果在url里显式的指定投影，则覆盖
 	int epsg_code = QuerySRS(url);
 	if (epsg_code != -1)
 	{
-		style_clone.srs_epsg_code_ = epsg_code;
+		style_clone->srs_epsg_code_ = epsg_code;
 	}
 
 	int nx = QueryX(url);
@@ -65,15 +51,15 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, st
 	int nz = QueryZ(url);
 
 	Envelop env;
-	GetEnvFromTileIndex(nx, ny, nz, env, style_clone.srs_epsg_code_);
+	GetEnvFromTileIndex(nx, ny, nz, env, style_clone->srs_epsg_code_);
 
 	if (have_no_data)
 	{
-		style_clone.stretch_->SetUseExternalNoDataValue(have_no_data);
-		style_clone.stretch_->SetExternalNoDataValue(no_data_value);
+		style_clone->stretch_->SetUseExternalNoDataValue(have_no_data);
+		style_clone->stretch_->SetExternalNoDataValue(no_data_value);
 	}
 
-	return WMSHandler::GetTileData(paths, env, &style_clone, 256, 256, result);
+	return WMSHandler::GetTileData(paths, env, style_clone.get(), 256, 256, result);
 }
 
 bool WMTSHandler::GetCapabilities(boost::beast::string_view doc_root, const Url& url, std::shared_ptr<HandleResult> result)

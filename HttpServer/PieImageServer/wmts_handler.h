@@ -10,7 +10,7 @@ public:
 
 	virtual bool Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result) override;
 
-	bool GetTile(boost::beast::string_view doc_root, const Url& url, std::shared_ptr<HandleResult> result);
+	bool GetTile(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result);
 	
 	bool GetCapabilities(boost::beast::string_view doc_root, const Url& url, std::shared_ptr<HandleResult> result);
 	

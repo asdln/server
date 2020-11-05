@@ -8,7 +8,7 @@ bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, cons
 	{
 		if (request.compare("GetMap") == 0)
 		{
-			return GetMap(doc_root, url, result);
+			return GetMap(doc_root, url, request_body, result);
 		}
 		else if (request.compare("GetCapabilities") == 0)
 		{
@@ -24,7 +24,7 @@ bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, cons
 		}
 	}
 
-	return GetMap(doc_root, url, result);
+	return GetMap(doc_root, url, request_body, result);
 }
 
 bool WMSHandler::GetTileData(std::list<std::string> paths, const Envelop& env, Style* style, int tile_width, int tile_height, std::shared_ptr<HandleResult> result)
@@ -90,7 +90,7 @@ bool WMSHandler::GetTileData(std::list<std::string> paths, const Envelop& env, S
 	return true;
 }
 
-bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, std::shared_ptr<HandleResult> result)
+bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
 	std::list<std::string> paths;
 	QueryDataPath(url, paths);
@@ -98,21 +98,7 @@ bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, std:
 	double no_data_value = 0.;
 	bool have_no_data = QueryNoDataValue(url, no_data_value);
 
-	std::vector<std::string> tokens;
-	std::string style_str = QueryStyle(url);
-	Split(style_str, tokens, ":");
-
-	StylePtr style;
-	if (tokens.size() == 3)
-	{
-		style = StyleManager::GetStyle(tokens[0] + ":" + tokens[1], atoi(tokens[2].c_str()));
-	}
-
-	if (style == nullptr)
-		style = std::make_shared<Style>();
-
-	//clone一份，防止后面修改srs_epsg_code_时多线程产生冲突
-	Style style_clone = *style;
+	StylePtr style_clone = GetStyle(url, request_body);
 
 	Envelop env;
 	std::string env_string;
@@ -145,18 +131,18 @@ bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, std:
 			if (tokens[0].compare("epsg") == 0 || tokens[0].compare("EPSG") == 0)
 			{
 				int epsg = atoi(tokens[1].c_str());
-				style_clone.srs_epsg_code_ = epsg;
+				style_clone->srs_epsg_code_ = epsg;
 			}
 		}
 	}
 
 	if (have_no_data)
 	{
-		style_clone.stretch_->SetUseExternalNoDataValue(have_no_data);
-		style_clone.stretch_->SetExternalNoDataValue(no_data_value);
+		style_clone->stretch_->SetUseExternalNoDataValue(have_no_data);
+		style_clone->stretch_->SetExternalNoDataValue(no_data_value);
 	}
 
-	return GetTileData(paths, env, &style_clone, tile_width, tile_height, result);
+	return GetTileData(paths, env, style_clone.get(), tile_width, tile_height, result);
 }
 
 bool WMSHandler::GetCapabilities(boost::beast::string_view doc_root, const Url& url, std::shared_ptr<HandleResult> result)

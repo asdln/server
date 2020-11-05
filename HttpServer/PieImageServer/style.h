@@ -43,6 +43,9 @@ enum class Format
 extern Format default_format;
 extern std::string default_string_format;
 
+class Style;
+typedef std::shared_ptr<Style> StylePtr;
+
 struct Style
 {
 	std::string uid_ = "";
@@ -59,9 +62,18 @@ struct Style
 	int srs_epsg_code_ = 3857; //4326 wgs84 
 
 	std::shared_ptr<Stretch> stretch_ = std::make_shared<PercentMinMaxStretch>();
-};
 
-typedef std::shared_ptr<Style> StylePtr;
+	StylePtr Clone() {
+		StylePtr pClone = std::make_shared<Style>();
+		pClone->uid_ = uid_;
+		pClone->version_ = version_;
+		pClone->format_ = format_;
+		pClone->kind_ = kind_;
+		memcpy(pClone->bandMap_, bandMap_, sizeof(bandMap_));
+
+		return pClone;
+	}
+};
 
 std::string StyleType2String(StyleType style_type);
 

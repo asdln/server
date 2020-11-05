@@ -16,14 +16,14 @@ public:
 
 	static StylePtr GetStyle(const std::string& styleKey, size_t version);
 
+	static StylePtr FromJson(const std::string& jsonStyle);
+
+	static std::string ToJson(StylePtr style);
+
 	 
 protected:
 
 	static std::string GetStyleKey(Style* pStyle);
-
-	static StylePtr FromJson(const std::string& jsonStyle);
-
-	static std::string ToJson(StylePtr style);
 
 	static StylePtr GetFromStyleMap(const std::string& key);
 

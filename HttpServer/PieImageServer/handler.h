@@ -4,6 +4,8 @@
 #include <boost/beast/http.hpp>
 #include "session.h"
 #include "handle_result.h"
+#include "style.h"
+
 
 class Handler
 {
@@ -23,6 +25,8 @@ public:
 	virtual bool QueryNoDataValue(const Url& url, double& value);
 
 	virtual std::string QueryStyle(const Url& url);
+
+	virtual StylePtr GetStyle(const Url& url, const std::string& request_body);
 
 	virtual int QuerySRS(const Url& url);
 };

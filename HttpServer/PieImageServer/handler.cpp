@@ -1,6 +1,8 @@
 #include "handler.h"
 #include <string>
 #include "application.h"
+#include "style.h"
+#include "style_manager.h"
 
 void Handler::QueryDataPath(const Url& url, std::list<std::string>& paths)
 {
@@ -22,6 +24,28 @@ std::string Handler::QueryStyle(const Url& url)
 {
 	std::string style = "";
 	url.QueryValue("style", style);
+	return style;
+}
+
+StylePtr Handler::GetStyle(const Url& url, const std::string& request_body)
+{
+	//如果从body里获取到了style信息，则优先body创建
+	StylePtr style = StyleManager::FromJson(request_body);
+	if (style == nullptr)
+	{
+		std::vector<std::string> tokens;
+		std::string style_str = QueryStyle(url);
+		Split(style_str, tokens, ":");
+
+		if (tokens.size() == 3)
+		{
+			style = StyleManager::GetStyle(tokens[0] + ":" + tokens[1], atoi(tokens[2].c_str()));
+		}
+
+		if (style == nullptr)
+			style = std::make_shared<Style>();
+	}
+
 	return style;
 }
 
