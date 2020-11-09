@@ -7,7 +7,14 @@ MinMaxStretch::MinMaxStretch()
 	kind_ = StretchType::MINIMUM_MAXIMUM;
 }
 
-void MinMaxStretch::PrepareMinMax(int band_count, int* band_map, Dataset* dataset)
+StretchPtr MinMaxStretch::Clone()
+{
+	MinMaxStretchPtr pClone = std::make_shared<MinMaxStretch>();
+	Copy(pClone.get());
+	return pClone;
+}
+
+void MinMaxStretch::Prepare(int band_count, int* band_map, Dataset* dataset)
 {
 	if (need_refresh_ == false)
 		return;
@@ -50,7 +57,7 @@ void MinMaxStretch::DoStretch(void* data, unsigned char* mask_buffer, int size, 
 	}
 
 
-	PrepareMinMax(band_count, band_map, dataset);
+	Prepare(band_count, band_map, dataset);
 
 	switch (dataset->GetDataType())
 	{
@@ -111,5 +118,16 @@ void MinMaxStretch::DoStretch(void* data, unsigned char* mask_buffer, int size, 
 	}
 	default:
 		break;
+	}
+}
+
+void MinMaxStretch::Copy(MinMaxStretch* p)
+{
+	Stretch::Copy(p);
+
+	for (int i = 0; i < 4; i++)
+	{
+		p->min_value_[i] = min_value_[i];
+		p->max_value_[i] = max_value_[i];
 	}
 }

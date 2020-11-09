@@ -15,7 +15,9 @@ public:
 
     void DoStretch(void* data, unsigned char* mask_buffer, int size, int band_count, int* band_map, Dataset* dataset) override;
 
-    virtual void PrepareMinMax(int band_count, int* band_map, Dataset* dataset);
+    virtual void Prepare(int band_count, int* band_map, Dataset* dataset) override;
+
+    StretchPtr Clone() override;
 
 protected:
 
@@ -99,6 +101,8 @@ protected:
             }
         }
     }
+
+    void Copy(MinMaxStretch*);
 
 public:
 

@@ -12,10 +12,16 @@ enum class StretchType
 	PERCENT_MINMAX
 };
 
+class Stretch;
+typedef std::shared_ptr<Stretch> StretchPtr;
+
 class Stretch
 {
+	friend class Style;
 public: 
 	virtual void DoStretch(void* data, unsigned char* mask_buffer, int size, int band_count, int* band_map, Dataset* dataset) {};
+
+	virtual void Prepare(int band_count, int* band_map, Dataset* dataset) = 0;
 
 	virtual StretchType kind() { return kind_; }
 
@@ -30,6 +36,12 @@ public:
 
 	virtual double GetExternalNoDataValue();
 
+	virtual StretchPtr Clone() = 0;
+
+protected:
+
+	void Copy(Stretch*);
+
 protected:
 
 	bool need_refresh_ = true;
@@ -42,6 +54,8 @@ protected:
 
 	double external_nodata_value_ = 0.0;
 };
+
+
 
 std::string StretchType2String(StretchType type);
 StretchType String2StretchType(std::string type_string);

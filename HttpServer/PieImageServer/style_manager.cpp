@@ -4,18 +4,39 @@
 #include "min_max_stretch.h"
 #include "etcd_storage.h"
 #include "percent_min_max_stretch.h"
+#include <boost/algorithm/hex.hpp>
+#include <boost/uuid/detail/md5.hpp>
 
 #define GOOGLE_GLOG_DLL_DECL 
 #define GLOG_NO_ABBREVIATED_SEVERITIES
 #include "glog/logging.h"
 
 std::shared_mutex StyleManager::s_shared_mutex;
-std::map<std::string, StylePtr> StyleManager::s_style_map_;
+std::map<std::string, StylePtr> StyleManager::s_style_map;
+
+std::map<std::string, StylePtr> StyleManager::s_map_style_container;
+std::shared_mutex StyleManager::s_shared_mutex_style_container;
 
 //示例：
 //{"style":{"kind":"trueColor", "bandMap" : [3, 2, 1] , "bandCount" : 3, "stretch" : {"kind":"percentMinimumMaximum", "percent" : 3.0}}}
 //{"style":{"kind":"trueColor", "bandMap" : [3, 2, 1] , "bandCount" : 3, "stretch" : {"kind": "minimumMaximum", "minimum" : [0.0, 0.0, 0.0] , "maximum" : [255.0, 255.0, 255.0] }}}
 
+
+bool GetMd5(std::string& str_md5, const char* const buffer, size_t buffer_size)
+{
+	if (buffer == nullptr)
+	{
+		return false;
+	}
+	boost::uuids::detail::md5 boost_md5;
+	boost_md5.process_bytes(buffer, buffer_size);
+	boost::uuids::detail::md5::digest_type digest;
+	boost_md5.get_digest(digest);
+	const auto char_digest = reinterpret_cast<const char*>(&digest);
+	str_md5.clear();
+	boost::algorithm::hex(char_digest, char_digest + sizeof(boost::uuids::detail::md5::digest_type), std::back_inserter(str_md5));
+	return true;
+}
 
 bool StyleManager::UpdateStyle(const std::string& json_style, std::string& style_key)
 {
@@ -75,6 +96,84 @@ bool StyleManager::UpdateStyle(const std::string& json_style, std::string& style
 	return true;
 }
 
+StylePtr StyleManager::GetStyle(const Url& url, const std::string& request_body, DatasetPtr dataset)
+{
+	std::string file_path = dataset->file_path();
+	
+	neb::CJsonObject oJson(request_body);
+	neb::CJsonObject oJson_style;
+	if (oJson.Get("style", oJson_style))
+	{
+		std::string string_style = oJson_style.ToString();
+		file_path += string_style;
+		std::string md5;
+		GetMd5(md5, file_path.c_str(), file_path.size());
+
+		{
+			std::shared_lock<std::shared_mutex> lock(s_shared_mutex_style_container);
+			std::map<std::string, StylePtr>::iterator itr;
+
+			itr = s_map_style_container.find(md5);
+			if (itr != s_map_style_container.end())
+			{
+				StylePtr style = itr->second->CompletelyClone();
+				return style;
+			}
+		}
+
+		{
+			std::unique_lock<std::shared_mutex> lock(s_shared_mutex_style_container);
+			std::map<std::string, StylePtr>::iterator itr;
+
+			itr = s_map_style_container.find(md5);
+			if (itr != s_map_style_container.end())
+			{
+				StylePtr style = itr->second->CompletelyClone();
+				return style;
+			}
+			else
+			{
+				//如果从body里获取到了style信息，则优先body创建
+				StylePtr style = FromJson(request_body);
+				if (style == nullptr)
+				{
+					LOG(ERROR) << "FromJson(request_body) error";
+				}
+
+				if (s_map_style_container.size() > 10000)
+				{
+					LOG(INFO) << "s_map_style_container cleared";
+					s_map_style_container.clear();
+				}
+
+				style->Prepare(dataset);
+				s_map_style_container[md5] = style;
+				return style->CompletelyClone();
+			}
+		}
+	}
+	else
+	{
+		std::vector<std::string> tokens;
+		std::string style_str = "";
+		url.QueryValue("style", style_str);
+		Split(style_str, tokens, ":");
+
+		StylePtr style;
+		if (tokens.size() == 3)
+		{
+			style = GetStyle(tokens[0] + ":" + tokens[1], atoi(tokens[2].c_str()))->Clone();
+		}
+
+		if (style == nullptr)
+		{
+			style = std::make_shared<Style>();
+		}
+
+		return style;
+	}
+}
+
 std::string StyleManager::GetStyleKey(Style* pStyle)
 {
 	return StyleType2String(pStyle->kind_) + ':' + pStyle->uid_;
@@ -107,8 +206,7 @@ StylePtr StyleManager::GetStyle(const std::string& styleKey, size_t version)
 		return nullptr;
 	}
 
-	//复制一份
-	return style->Clone();
+	return style;
 }
 
 StylePtr StyleManager::FromJson(const std::string& jsonStyle)
@@ -206,10 +304,11 @@ std::string StyleManager::ToJson(StylePtr style)
 
 StylePtr StyleManager::GetFromStyleMap(const std::string& key)
 {	
-	std::map<std::string, StylePtr>::iterator itr;
 	std::shared_lock<std::shared_mutex> lock(s_shared_mutex);
-	itr = s_style_map_.find(key);
-	if (itr != s_style_map_.end())
+	std::map<std::string, StylePtr>::iterator itr;
+	
+	itr = s_style_map.find(key);
+	if (itr != s_style_map.end())
 	{
 		return itr->second;
 	}
@@ -220,7 +319,15 @@ StylePtr StyleManager::GetFromStyleMap(const std::string& key)
 bool StyleManager::AddOrUpdateStyleMap(const std::string& key, StylePtr style)
 {
 	std::unique_lock<std::shared_mutex> lock(s_shared_mutex);
-	s_style_map_[key] = style;
-	
+
+	//添加之前先查一下。有的话直接返回。
+	std::map<std::string, StylePtr>::iterator itr;
+	itr = s_style_map.find(key);
+	if (itr != s_style_map.end())
+	{
+		return true;
+	}
+
+	s_style_map[key] = style;
 	return true;
 }

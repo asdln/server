@@ -1,4 +1,5 @@
 #include "style.h"
+#include "tiff_dataset.h"
 
 Format default_format = Format::WEBP;
 std::string default_string_format = "webp";
@@ -91,4 +92,67 @@ Format String2Format(const std::string& format_string)
 	{
 		return default_format;
 	}
+}
+
+StylePtr Style::Clone() 
+{
+	StylePtr pClone = std::make_shared<Style>();
+	pClone->uid_ = uid_;
+	pClone->version_ = version_;
+	pClone->format_ = format_;
+	pClone->kind_ = kind_;
+	for (int i = 0; i < 4; i++)
+	{
+		pClone->bandMap_[i] = bandMap_[i];
+	}
+	pClone->bandCount_ = bandCount_;
+	pClone->srs_epsg_code_ = srs_epsg_code_;
+	pClone->stretch_ = stretch_->Clone();
+	return pClone;
+}
+
+StylePtr Style::CompletelyClone()
+{
+	StylePtr pClone = std::make_shared<Style>();
+	pClone->uid_ = uid_;
+	pClone->version_ = version_;
+	pClone->format_ = format_;
+	pClone->kind_ = kind_;
+	for (int i = 0; i < 4; i++)
+	{
+		pClone->bandMap_[i] = bandMap_[i];
+	}
+	pClone->bandCount_ = bandCount_;
+	pClone->srs_epsg_code_ = srs_epsg_code_;
+	pClone->stretch_ = stretch_->Clone();
+	pClone->stretch_->need_refresh_ = stretch_->need_refresh_; //完全拷贝，"刷新标记"也拷贝
+	return pClone;
+}
+
+void Style::Prepare(DatasetPtr dataset)
+{
+	std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(dataset);
+	int dataset_band_count = tiffDataset->GetBandCount();
+	int nBandCount = bandCount_;
+	int bandMap[4] = { bandMap_[0] <= dataset_band_count ? bandMap_[0] : dataset_band_count
+		, bandMap_[1] <= dataset_band_count ? bandMap_[1] : dataset_band_count
+		, bandMap_[2] <= dataset_band_count ? bandMap_[2] : dataset_band_count
+		, bandMap_[3] <= dataset_band_count ? bandMap_[3] : dataset_band_count };
+
+
+	if (format_ == Format::JPG)
+		nBandCount = 3;
+
+	if (nBandCount != 3 && nBandCount != 4)
+	{
+		nBandCount = 3;
+	}
+
+	bandCount_ = nBandCount;
+	for (int i = 0; i < bandCount_; i++)
+	{
+		bandMap_[i] = bandMap[i];
+	}
+
+	stretch_->Prepare(bandCount_, bandMap_, dataset.get());
 }

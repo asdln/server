@@ -9,16 +9,24 @@ public:
 
 	PercentMinMaxStretch();
 
-	virtual void PrepareMinMax(int band_count, int* band_map, Dataset* dataset) override;
+	virtual void Prepare(int band_count, int* band_map, Dataset* dataset) override;
 
 	void set_stretch_percent(double stretch_percent) { stretch_percent_ = stretch_percent; }
 
 	double stretch_percent() { return stretch_percent_; }
 
+	StretchPtr Clone() override;
+
+protected:
+
+	void Copy(PercentMinMaxStretch*);
+
 protected:
 
 	double stretch_percent_ = 1.0;
 };
+
+typedef std::shared_ptr<PercentMinMaxStretch> PercentMinMaxStretchPtr;
 
 
 #endif //HTTPSERVER_PERCENT_MIN_MAX_STRETCH_H_

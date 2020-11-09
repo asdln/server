@@ -5,6 +5,7 @@
 #include <memory>
 #include "min_max_stretch.h"
 #include "percent_min_max_stretch.h"
+#include "dataset.h"
 
 enum class StyleType
 {
@@ -46,8 +47,38 @@ extern std::string default_string_format;
 class Style;
 typedef std::shared_ptr<Style> StylePtr;
 
-struct Style
+class Style
 {
+	friend class StyleManager;
+
+public:
+
+	void Prepare(DatasetPtr dataset);
+
+	StylePtr Clone();
+
+	StylePtr CompletelyClone();
+
+	StretchPtr GetStretch() { return stretch_; }
+
+	int code() { return srs_epsg_code_; }
+
+	void set_code(int code) { srs_epsg_code_ = code; }
+
+	void QueryInfo(int band_count, int* band_map, Format& format, StyleType& style_type, int& epsg_code) 
+	{ 
+		band_count = bandCount_;  
+		format = format_; 
+		style_type = kind_; 
+		epsg_code = srs_epsg_code_; 
+		band_map[0] = bandMap_[0];
+		band_map[1] = bandMap_[1];
+		band_map[2] = bandMap_[2];
+		band_map[3] = bandMap_[3];
+	}
+
+protected:
+
 	std::string uid_ = "";
 
 	size_t version_ = 0;
@@ -55,24 +86,13 @@ struct Style
 	Format format_ = default_format;
 
 	StyleType kind_ = StyleType::TRUE_COLOR;
-	int bandMap_[4] = {1, 2, 3, 4};
+	int bandMap_[4] = { 1, 2, 3, 4 };
 	int bandCount_ = 3;
 
 	//д╛хо web_mercator
 	int srs_epsg_code_ = 3857; //4326 wgs84 
 
 	std::shared_ptr<Stretch> stretch_ = std::make_shared<PercentMinMaxStretch>();
-
-	StylePtr Clone() {
-		StylePtr pClone = std::make_shared<Style>();
-		pClone->uid_ = uid_;
-		pClone->version_ = version_;
-		pClone->format_ = format_;
-		pClone->kind_ = kind_;
-		memcpy(pClone->bandMap_, bandMap_, sizeof(bandMap_));
-
-		return pClone;
-	}
 };
 
 std::string StyleType2String(StyleType style_type);

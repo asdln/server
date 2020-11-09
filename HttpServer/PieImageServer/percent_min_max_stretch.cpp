@@ -80,7 +80,7 @@ PercentMinMaxStretch::PercentMinMaxStretch()
 	kind_ = StretchType::PERCENT_MINMAX;
 }
 
-void PercentMinMaxStretch::PrepareMinMax(int band_count, int* band_map, Dataset* dataset)
+void PercentMinMaxStretch::Prepare(int band_count, int* band_map, Dataset* dataset)
 {
 	if (need_refresh_ == false)
 		return;
@@ -96,4 +96,17 @@ void PercentMinMaxStretch::PrepareMinMax(int band_count, int* band_map, Dataset*
 
 		CaliStretchLinearMinMax_Func(dataset->GetDataType(), histogram->GetHistogram(), stretch_percent_, histogram->GetStep(), min, max, min_value_[i], max_value_[i]);
 	}
+}
+
+void PercentMinMaxStretch::Copy(PercentMinMaxStretch*p)
+{
+	MinMaxStretch::Copy(p);
+	p->stretch_percent_ = stretch_percent_;
+}
+
+StretchPtr PercentMinMaxStretch::Clone()
+{
+	PercentMinMaxStretchPtr pClone = std::make_shared<PercentMinMaxStretch>();
+	Copy(pClone.get());
+	return pClone;
 }

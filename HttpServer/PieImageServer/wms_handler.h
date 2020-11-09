@@ -9,7 +9,7 @@ public:
 
 	virtual bool Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result) override;
 
-	bool GetTileData(std::list<std::string> paths, const Envelop& env, Style* style, int tile_width, int tile_height, std::shared_ptr<HandleResult> result);
+	bool GetTileData(std::list<DatasetPtr> datasets, const Envelop& env, Style* style, int tile_width, int tile_height, std::shared_ptr<HandleResult> result);
 
 	bool GetMap(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result);
 

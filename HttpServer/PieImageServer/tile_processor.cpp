@@ -780,43 +780,31 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 	return true;
 }
 
-BufferPtr TileProcessor::GetTileData(std::list<std::string> paths, const Envelop& env, int tile_width, int tile_height, Style* style)
+BufferPtr TileProcessor::GetTileData(std::list<DatasetPtr> datasets, const Envelop& env, int tile_width, int tile_height, Style* style)
 {
 	//暂时只获取第一个数据集
-	std::string filePath = paths.front();
+	std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(datasets.front());
+	if (tiffDataset == nullptr)
+		return nullptr;
+
 	//OGRSpatialReference* pDefaultSpatialReference = (OGRSpatialReference*)OSRNewSpatialReference(
 	//	"GEOGCS[\"GCS_WGS_1984\",DATUM[\"D_WGS_1984\",SPHEROID[\"WGS_1984\",6378137,298.257223563]],PRIMEM[\"Greenwich\",0],UNIT[\"Degree\",0.017453292519943295]]");
 
-	int epsg_code = style->srs_epsg_code_;
+	int band_count = 3;
+	Format format;
+	int band_map[4];
+	StyleType style_type;
+	int epsg_code;
+
+	style->Prepare(tiffDataset);
+	style->QueryInfo(band_count, band_map, format, style_type, epsg_code);
 
 	//const char* pWKT = "PROJCS[\"WGS_1984_Web_Mercator\",GEOGCS[\"GCS_WGS_1984_Major_Auxiliary_Sphere\",DATUM[\"WGS_1984_Major_Auxiliary_Sphere\",SPHEROID[\"WGS_1984_Major_Auxiliary_Sphere\",6378137.0,0.0]],PRIMEM[\"Greenwich\",0.0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Mercator_1SP\"],PARAMETER[\"False_Easting\",0.0],PARAMETER[\"False_Northing\",0.0],PARAMETER[\"Central_Meridian\",0.0],PARAMETER[\"latitude_of_origin\",0.0],UNIT[\"Meter\",1.0]]";
 	//OGRSpatialReference* pDefaultSpatialReference = (OGRSpatialReference*)OSRNewSpatialReference(0/*pWKT*/);
 	//pDefaultSpatialReference->importFromEPSG(epsg_code);
 
 	OGRSpatialReference* pDefaultSpatialReference = ResourcePool::GetInstance()->GetSpatialReference(epsg_code);
-
-	std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(filePath));
-	if (tiffDataset == nullptr)
-		return nullptr;
-
 	int pixel_bytes = GetDataTypeBytes(tiffDataset->GetDataType());
-
-	int dataset_band_count = tiffDataset->GetBandCount();
-
-	int nBandCount = style->bandCount_;
-	int bandMap[4] = { style->bandMap_[0] <= dataset_band_count ? style->bandMap_[0] : dataset_band_count
-		, style->bandMap_[1] <= dataset_band_count ? style->bandMap_[1] : dataset_band_count
-		, style->bandMap_[2] <= dataset_band_count ? style->bandMap_[2] : dataset_band_count
-		, style->bandMap_[3] <= dataset_band_count ? style->bandMap_[3] : dataset_band_count };
-	
-
-	if (style->format_ == Format::JPG)
-		nBandCount = 3;
-
-	if (nBandCount != 3 && nBandCount != 4)
-	{
-		nBandCount = 3;
-	}
 
 	OGRSpatialReference* poSpatialReference = tiffDataset->GetSpatialReference();
 
@@ -829,7 +817,7 @@ BufferPtr TileProcessor::GetTileData(std::list<std::string> paths, const Envelop
 	//}
 
 	int nRenderBand = 3;
-	if (style->format_ == Format::PNG || style->format_ == Format::WEBP)
+	if (format == Format::PNG || format == Format::WEBP)
 		nRenderBand = 4;
 
 	bool bRes = true;
@@ -842,14 +830,14 @@ BufferPtr TileProcessor::GetTileData(std::list<std::string> paths, const Envelop
 
 	if (bSimple)
 	{
-		bRes = SimpleProject(tiffDataset.get(), nBandCount, bandMap, env, buff, tile_width, tile_height);
+		bRes = SimpleProject(tiffDataset.get(), band_count, band_map, env, buff, tile_width, tile_height);
 	}
 	else
 	{
 		//env 必须是 pDefaultSpatialReference 的空间参考
 		pMaskBuffer = new unsigned char[(size_t)tile_width * tile_height];
 		memset(pMaskBuffer, 255, (size_t)tile_width * tile_height);
-		bRes = DynamicProject(pDefaultSpatialReference, tiffDataset.get(), nBandCount, bandMap, env, buff, pMaskBuffer, tile_width, tile_height);
+		bRes = DynamicProject(pDefaultSpatialReference, tiffDataset.get(), band_count, band_map, env, buff, pMaskBuffer, tile_width, tile_height);
 	}
 
 	if (!bRes)
@@ -864,10 +852,10 @@ BufferPtr TileProcessor::GetTileData(std::list<std::string> paths, const Envelop
 		return nullptr;
 	}
 
-	style->stretch_->DoStretch(buff, pMaskBuffer, tile_width * tile_height, nBandCount, bandMap, tiffDataset.get());
+	style->GetStretch()->DoStretch(buff, pMaskBuffer, tile_width * tile_height, band_count, band_map, tiffDataset.get());
 
 	BufferPtr buffer = nullptr;
-	if (style->format_ == Format::JPG)
+	if (format == Format::JPG)
 	{
 		JpgCompress jpgCompress;
 		buffer = jpgCompress.DoCompress(buff, 256, 256);
@@ -875,7 +863,7 @@ BufferPtr TileProcessor::GetTileData(std::list<std::string> paths, const Envelop
 	else
 	{
 		//根据mask的值，添加透明通道的值。
-		if (nBandCount == 3)
+		if (band_count == 3)
 		{
 			for (int j = (tile_width * tile_height) - 1; j >= 0; j--)
 			{
@@ -887,12 +875,12 @@ BufferPtr TileProcessor::GetTileData(std::list<std::string> paths, const Envelop
 			}
 		}
 
-		if (style->format_ == Format::PNG)
+		if (format == Format::PNG)
 		{
 			PngCompress pngCompress;
 			buffer = pngCompress.DoCompress(buff, 256, 256);
 		}
-		else if (style->format_ == Format::WEBP)
+		else if (format == Format::WEBP)
 		{
 			WebpCompress webpCompress;
 			buffer = webpCompress.DoCompress(buff, 256, 256);

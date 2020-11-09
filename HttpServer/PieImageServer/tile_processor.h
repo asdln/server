@@ -5,6 +5,7 @@
 #include <list>
 #include "utility.h"
 #include "buffer.h"
+#include "dataset.h"
 
 class Dataset;
 class OGRSpatialReference;
@@ -17,7 +18,7 @@ public:
 	TileProcessor();
 	~TileProcessor();
 
-	BufferPtr GetTileData(std::list<std::string> paths, const Envelop& env, int tile_width, int tile_height, Style* style);
+	BufferPtr GetTileData(std::list<DatasetPtr> datasets, const Envelop& env, int tile_width, int tile_height, Style* style);
 
 protected:
 

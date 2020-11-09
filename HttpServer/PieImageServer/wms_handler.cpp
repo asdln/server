@@ -1,5 +1,7 @@
 #include "wms_handler.h"
 #include "style_manager.h"
+#include "tiff_dataset.h"
+#include "resource_pool.h"
 
 bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
@@ -27,10 +29,10 @@ bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, cons
 	return GetMap(doc_root, url, request_body, result);
 }
 
-bool WMSHandler::GetTileData(std::list<std::string> paths, const Envelop& env, Style* style, int tile_width, int tile_height, std::shared_ptr<HandleResult> result)
+bool WMSHandler::GetTileData(std::list<DatasetPtr> datasets, const Envelop& env, Style* style, int tile_width, int tile_height, std::shared_ptr<HandleResult> result)
 {
 	std::shared_ptr<TileProcessor> pRequestProcessor = std::make_shared<TileProcessor>();
-	BufferPtr buffer = pRequestProcessor->GetTileData(paths, env, tile_width, tile_height, style);
+	BufferPtr buffer = pRequestProcessor->GetTileData(datasets, env, tile_width, tile_height, style);
 
 	//if(buffer != nullptr)
 	//{
@@ -95,10 +97,16 @@ bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, cons
 	std::list<std::string> paths;
 	QueryDataPath(url, paths);
 
-	double no_data_value = 0.;
-	bool have_no_data = QueryNoDataValue(url, no_data_value);
+	//暂时只获取第一个数据集
+	std::list<DatasetPtr> datasets;
+	std::string filePath = paths.front();
+	std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(filePath));
+	if (tiffDataset == nullptr)
+		return false;
 
-	StylePtr style_clone = GetStyle(url, request_body);
+	datasets.emplace_back(tiffDataset);
+
+	StylePtr style_clone = GetStyle(url, request_body, tiffDataset);
 
 	Envelop env;
 	std::string env_string;
@@ -121,28 +129,23 @@ bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, cons
 	int tile_width = QueryTileWidth(url);
 	int tile_height = QueryTileHeight(url);
 
-	std::string string_epsg;
-	if (url.QueryValue("srs", string_epsg))
+	//如果在url里显式的指定投影，则覆盖
+	int epsg_code = QuerySRS(url);
+	if (epsg_code != -1)
 	{
-		std::vector<std::string> tokens;
-		Split(string_epsg, tokens, ":");
-		if (tokens.size() == 2)
-		{
-			if (tokens[0].compare("epsg") == 0 || tokens[0].compare("EPSG") == 0)
-			{
-				int epsg = atoi(tokens[1].c_str());
-				style_clone->srs_epsg_code_ = epsg;
-			}
-		}
+		style_clone->set_code(epsg_code);
 	}
+
+	double no_data_value = 0.;
+	bool have_no_data = QueryNoDataValue(url, no_data_value);
 
 	if (have_no_data)
 	{
-		style_clone->stretch_->SetUseExternalNoDataValue(have_no_data);
-		style_clone->stretch_->SetExternalNoDataValue(no_data_value);
+		style_clone->GetStretch()->SetUseExternalNoDataValue(have_no_data);
+		style_clone->GetStretch()->SetExternalNoDataValue(no_data_value);
 	}
 
-	return GetTileData(paths, env, style_clone.get(), tile_width, tile_height, result);
+	return GetTileData(datasets, env, style_clone.get(), tile_width, tile_height, result);
 }
 
 bool WMSHandler::GetCapabilities(boost::beast::string_view doc_root, const Url& url, std::shared_ptr<HandleResult> result)

@@ -54,3 +54,11 @@ double Stretch::GetExternalNoDataValue()
 {
 	return external_nodata_value_;
 }
+
+void Stretch::Copy(Stretch* p)
+{
+	p->need_refresh_ = /*need_refresh_*/true; //克隆对象，默认需要更新。因为不知道关联到哪个数据集
+	p->kind_ = kind_;
+	p->use_external_nodata_value_ = use_external_nodata_value_;
+	p->external_nodata_value_ = external_nodata_value_;
+}

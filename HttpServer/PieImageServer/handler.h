@@ -24,9 +24,7 @@ public:
 
 	virtual bool QueryNoDataValue(const Url& url, double& value);
 
-	virtual std::string QueryStyle(const Url& url);
-
-	virtual StylePtr GetStyle(const Url& url, const std::string& request_body);
+	virtual StylePtr GetStyle(const Url& url, const std::string& request_body, DatasetPtr dataset);
 
 	virtual int QuerySRS(const Url& url);
 };
