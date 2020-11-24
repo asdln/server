@@ -99,12 +99,25 @@ bool StyleManager::UpdateStyle(const std::string& json_style, std::string& style
 StylePtr StyleManager::GetStyle(const Url& url, const std::string& request_body, DatasetPtr dataset)
 {
 	std::string file_path = dataset->file_path();
-	
-	neb::CJsonObject oJson(request_body);
+	std::string string_style;
 	neb::CJsonObject oJson_style;
-	if (oJson.Get("style", oJson_style))
+
+	//style获取顺序：获取body，如果没有，获取url的style2，如果没有，获取url的style
+	if (!request_body.empty())
 	{
-		std::string string_style = oJson_style.ToString();
+		neb::CJsonObject oJson(request_body);
+		if (oJson.Get("style", oJson_style))
+		{
+			string_style = oJson_style.ToString();
+		}
+	}
+	else
+	{
+		url.QueryValue("style2", string_style);
+	}
+	
+	if (!string_style.empty())
+	{
 		file_path += string_style;
 		std::string md5;
 		GetMd5(md5, file_path.c_str(), file_path.size());
@@ -133,8 +146,7 @@ StylePtr StyleManager::GetStyle(const Url& url, const std::string& request_body,
 			}
 			else
 			{
-				//如果从body里获取到了style信息，则优先body创建
-				StylePtr style = FromJson(request_body);
+				StylePtr style = FromJson(string_style);
 				if (style == nullptr)
 				{
 					LOG(ERROR) << "FromJson(request_body) error";
