@@ -162,7 +162,9 @@ StylePtr StyleManager::GetStyle(const Url& url, const std::string& request_body,
 		StylePtr style;
 		if (tokens.size() == 3)
 		{
-			style = GetStyle(tokens[0] + ":" + tokens[1], atoi(tokens[2].c_str()))->Clone();
+			StylePtr style1 = GetStyle(tokens[0] + ":" + tokens[1], atoi(tokens[2].c_str()));
+			if(style1 != nullptr)
+				style = style1->Clone();
 		}
 
 		if (style == nullptr)
@@ -321,12 +323,12 @@ bool StyleManager::AddOrUpdateStyleMap(const std::string& key, StylePtr style)
 	std::unique_lock<std::shared_mutex> lock(s_shared_mutex);
 
 	//添加之前先查一下。有的话直接返回。
-	std::map<std::string, StylePtr>::iterator itr;
-	itr = s_style_map.find(key);
-	if (itr != s_style_map.end())
-	{
-		return true;
-	}
+	//std::map<std::string, StylePtr>::iterator itr;
+	//itr = s_style_map.find(key);
+	//if (itr != s_style_map.end())
+	//{
+	//	return true;
+	//}
 
 	s_style_map[key] = style;
 	return true;
