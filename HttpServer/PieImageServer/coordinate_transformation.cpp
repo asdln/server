@@ -11,12 +11,18 @@ CoordinateTransformation::CoordinateTransformation(OGRSpatialReference* pSrc, OG
 
 bool CoordinateTransformation::Transform(int count, double* pX, double* pY, double* pZ)
 {
+	if (pOGRCoordinateTransformation_ == nullptr)
+		return false;
+
 	int nRes = pOGRCoordinateTransformation_->Transform(count, pX, pY, pZ);
 	return nRes;
 }
 
 bool CoordinateTransformation::Transform(const Envelop& srcEnv, Envelop& dstEnv)
 {
+	if (pOGRCoordinateTransformation_ == nullptr)
+		return false;
+
 	double dx1 = srcEnv.GetXMin();
 	double dy1 = srcEnv.GetYMax();
 
@@ -47,6 +53,9 @@ bool CoordinateTransformation::Transform(const Envelop& srcEnv, Envelop& dstEnv)
 
 CoordinateTransformation::~CoordinateTransformation()
 {
-	OGRCoordinateTransformation::DestroyCT(pOGRCoordinateTransformation_);
-	pOGRCoordinateTransformation_ = nullptr;
+	if (pOGRCoordinateTransformation_ != nullptr)
+	{
+		OGRCoordinateTransformation::DestroyCT(pOGRCoordinateTransformation_);
+		pOGRCoordinateTransformation_ = nullptr;
+	}
 }
