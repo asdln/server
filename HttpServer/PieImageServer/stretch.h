@@ -9,7 +9,8 @@
 enum class StretchType
 {
 	MINIMUM_MAXIMUM,
-	PERCENT_MINMAX
+	PERCENT_MINMAX,
+	HISTOGRAMEQUALIZE
 };
 
 class Stretch;
@@ -48,7 +49,7 @@ protected:
 
 	StretchType kind_;
 
-	std::mutex mutex_;
+	//std::mutex mutex_;
 
 	bool use_external_nodata_value_ = false;
 

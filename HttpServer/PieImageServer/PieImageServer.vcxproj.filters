@@ -156,6 +156,9 @@
     <ClCompile Include="wms_handler.cpp">
       <Filter>源文件\net</Filter>
     </ClCompile>
+    <ClCompile Include="histogram_equalize_stretch.cpp">
+      <Filter>源文件\stretch</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="utility.h">
@@ -259,6 +262,9 @@
     </ClInclude>
     <ClInclude Include="wms_handler.h">
       <Filter>头文件\net</Filter>
+    </ClInclude>
+    <ClInclude Include="histogram_equalize_stretch.h">
+      <Filter>头文件\stretch</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

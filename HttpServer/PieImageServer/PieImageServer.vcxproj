@@ -160,6 +160,7 @@
     <ClCompile Include="handler_mapping.cpp" />
     <ClCompile Include="handle_result.cpp" />
     <ClCompile Include="histogram.cpp" />
+    <ClCompile Include="histogram_equalize_stretch.cpp" />
     <ClCompile Include="jpg_buffer.cpp" />
     <ClCompile Include="listener.cpp" />
     <ClCompile Include="percent_min_max_stretch.cpp" />
@@ -197,6 +198,7 @@
     <ClInclude Include="handler_mapping.h" />
     <ClInclude Include="handle_result.h" />
     <ClInclude Include="histogram.h" />
+    <ClInclude Include="histogram_equalize_stretch.h" />
     <ClInclude Include="jpg_buffer.h" />
     <ClInclude Include="listener.h" />
     <ClInclude Include="percent_min_max_stretch.h" />

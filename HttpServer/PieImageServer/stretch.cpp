@@ -12,6 +12,9 @@ std::string StretchType2String(StretchType type)
 	case StretchType::PERCENT_MINMAX:
 		type_string = "percentMinimumMaximum";
 		break;
+	case StretchType::HISTOGRAMEQUALIZE:
+		type_string = "histogramEqualize";
+		break;
 	default:
 		type_string = "minimumMaximum";
 		break;

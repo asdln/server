@@ -2,6 +2,7 @@
 #include "true_color_style.h"
 #include "CJsonObject.hpp"
 #include "min_max_stretch.h"
+#include "histogram_equalize_stretch.h"
 #include "etcd_storage.h"
 #include "percent_min_max_stretch.h"
 #include <boost/algorithm/hex.hpp>
@@ -18,8 +19,9 @@ std::map<std::string, StylePtr> StyleManager::s_map_style_container;
 std::shared_mutex StyleManager::s_shared_mutex_style_container;
 
 //示例：
-//{"style":{"kind":"trueColor", "bandMap" : [3, 2, 1] , "bandCount" : 3, "stretch" : {"kind":"percentMinimumMaximum", "percent" : 3.0}}}
-//{"style":{"kind":"trueColor", "bandMap" : [3, 2, 1] , "bandCount" : 3, "stretch" : {"kind": "minimumMaximum", "minimum" : [0.0, 0.0, 0.0] , "maximum" : [255.0, 255.0, 255.0] }}}
+//{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind":"percentMinimumMaximum", "percent" : 3.0}}}
+//{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind": "minimumMaximum", "minimum" : [0.0, 0.0, 0.0] , "maximum" : [255.0, 255.0, 255.0] }}}
+//{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind": "histogramEqualize", "percent" : 0.0}}}
 
 
 bool GetMd5(std::string& str_md5, const char* const buffer, size_t buffer_size)
@@ -273,6 +275,15 @@ StylePtr StyleManager::FromJson(const std::string& jsonStyle)
 				oJson_style["stretch"].Get("percent", percent);
 				stretch->set_stretch_percent(percent);
 			}
+			else if (stretch_kind.compare(StretchType2String(StretchType::HISTOGRAMEQUALIZE)) == 0)
+			{
+				auto stretch = std::make_shared<HistogramEqualizeStretch>();
+				style->stretch_ = stretch;
+
+				double percent = 0.0;
+				oJson_style["stretch"].Get("percent", percent);
+				stretch->set_stretch_percent(percent);
+			}
 		}
 	}
 	catch (...)
@@ -283,32 +294,38 @@ StylePtr StyleManager::FromJson(const std::string& jsonStyle)
 	return style;
 }
 
+//目前部署没用到etcd所以暂时不写
 std::string StyleManager::ToJson(StylePtr style)
 {
 	neb::CJsonObject oJson;
-	oJson.Add("uid", style->uid_.c_str());
-	oJson.Add("version", style->version_);
-	oJson.Add("kind", StyleType2String(style->kind_));
-	oJson.Add("format", Format2String(style->format_));
-	oJson.Add("bandCount", style->bandCount_);
-	oJson.AddEmptySubArray("bandMap");
+	//oJson.Add("uid", style->uid_.c_str());
+	//oJson.Add("version", style->version_);
+	//oJson.Add("kind", StyleType2String(style->kind_));
+	//oJson.Add("format", Format2String(style->format_));
+	//oJson.Add("bandCount", style->bandCount_);
+	//oJson.AddEmptySubArray("bandMap");
 
-	for (int i = 0; i < style->bandCount_; i ++)
-	{
-		oJson["bandMap"].Add(style->bandMap_[i]);
-	}
+	//for (int i = 0; i < style->bandCount_; i ++)
+	//{
+	//	oJson["bandMap"].Add(style->bandMap_[i]);
+	//}
 
-	oJson.AddEmptySubObject("stretch");
-	if (style->stretch_->kind() == StretchType::MINIMUM_MAXIMUM)
-	{
-		oJson["stretch"].Add("kind", StretchType2String(StretchType::MINIMUM_MAXIMUM));
-		oJson["stretch"].Add("minimum", 0.0);
-		oJson["stretch"].Add("maximum", 255.0);
-	}
-	else if (style->stretch_->kind() == StretchType::PERCENT_MINMAX)
-	{
-		oJson["stretch"].Add("kind", StretchType2String(StretchType::PERCENT_MINMAX));
-	}
+	//oJson.AddEmptySubObject("stretch");
+	//if (style->stretch_->kind() == StretchType::MINIMUM_MAXIMUM)
+	//{
+	//	oJson["stretch"].Add("kind", StretchType2String(StretchType::MINIMUM_MAXIMUM));
+	//	oJson["stretch"].Add("minimum", 0.0);
+	//	oJson["stretch"].Add("maximum", 255.0);
+	//}
+	//else if (style->stretch_->kind() == StretchType::PERCENT_MINMAX)
+	//{
+	//	PercentMinMaxStretchPtr percent_min_max_stretch = std::dynamic_pointer_cast<PercentMinMaxStretch>(style);
+	//	oJson["stretch"].Add("kind", StretchType2String(StretchType::PERCENT_MINMAX));
+	//	oJson["stretch"].Add("percent", percent_min_max_stretch->stretch_percent());
+	//}
+	//else if (style->stretch_->kind() == StretchType::HISTOGRAMEQUALIZE)
+	//{
+	//}
 
 	neb::CJsonObject oJson1;
 	oJson1.Add("style", oJson);
@@ -333,15 +350,6 @@ StylePtr StyleManager::GetFromStyleMap(const std::string& key)
 bool StyleManager::AddOrUpdateStyleMap(const std::string& key, StylePtr style)
 {
 	std::unique_lock<std::shared_mutex> lock(s_shared_mutex);
-
-	//添加之前先查一下。有的话直接返回。
-	//std::map<std::string, StylePtr>::iterator itr;
-	//itr = s_style_map.find(key);
-	//if (itr != s_style_map.end())
-	//{
-	//	return true;
-	//}
-
 	s_style_map[key] = style;
 	return true;
 }

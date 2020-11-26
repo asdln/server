@@ -19,7 +19,7 @@ void MinMaxStretch::Prepare(int band_count, int* band_map, Dataset* dataset)
 	if (need_refresh_ == false)
 		return;
 
-	std::lock_guard<std::mutex> guard(mutex_);
+	//std::lock_guard<std::mutex> guard(mutex_);
 	need_refresh_ = false;
 
 	for (int i = 0; i < band_count; i++)
