@@ -26,7 +26,7 @@ void MinMaxStretch::Prepare(int band_count, int* band_map, Dataset* dataset)
 	{
 		if (min_value_[i] == 0.0 && max_value_[i] == 0.0)
 		{
-			HistogramPtr histogram = ResourcePool::GetInstance()->GetHistogram(dataset, band_map[i]);
+			HistogramPtr histogram = ResourcePool::GetInstance()->GetHistogram(dataset, band_map[i], use_external_nodata_value_, external_nodata_value_);
 			double min, max, mean, std_dev;
 			histogram->QueryStats(min, max, mean, std_dev);
 			min_value_[i] = min;

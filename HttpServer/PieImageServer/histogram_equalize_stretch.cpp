@@ -17,7 +17,7 @@ void CalFitHistogram(void* pData, DataType datatype, long lTempX, long lTempY, b
 	bool bFitMin = false, bool bFitMax = false, double dFitMin = 0.0, double dFitMax = 0.0);
 
 #define HIST_SIZE 256
-double* GetCustomHistogram(Dataset* tiff_dataset, int band, double dFitMin, double dFitMax)
+double* GetCustomHistogram(Dataset* tiff_dataset, int band, double dFitMin, double dFitMax, bool use_external_no_data, double external_no_data_value)
 {
 	int nSizeX = tiff_dataset->GetRasterXSize();
 	int nSizeY = tiff_dataset->GetRasterYSize();
@@ -25,6 +25,12 @@ double* GetCustomHistogram(Dataset* tiff_dataset, int band, double dFitMin, doub
 	int have_no_data = 0;
 	double dNodataValue = tiff_dataset->GetNoDataValue(band, &have_no_data);
 	bool bHaveNoDataValue = have_no_data;
+
+	if (use_external_no_data)
+	{
+		bHaveNoDataValue = true;
+		dNodataValue = external_no_data_value;
+	}
 
 	double dXFactor = HIST_SIZE / (float)nSizeX;
 	double dYFactor = HIST_SIZE / (float)nSizeY;
@@ -105,7 +111,7 @@ void HistogramEqualizeStretch::Prepare(int band_count, int* band_map, Dataset* d
 	{
 		for (int i = 0; i < band_count; i++)
 		{
-			HistogramPtr histogram = ResourcePool::GetInstance()->GetHistogram(dataset, band_map[i]);
+			HistogramPtr histogram = ResourcePool::GetInstance()->GetHistogram(dataset, band_map[i], use_external_nodata_value_, external_nodata_value_);
 			double min, max, mean, std_dev;
 			histogram->QueryStats(min, max, mean, std_dev);
 
@@ -119,7 +125,7 @@ void HistogramEqualizeStretch::Prepare(int band_count, int* band_map, Dataset* d
 	{
 		for (int i = 0; i < band_count; i++)
 		{
-			HistogramPtr histogram = ResourcePool::GetInstance()->GetHistogram(dataset, band_map[i]);
+			HistogramPtr histogram = ResourcePool::GetInstance()->GetHistogram(dataset, band_map[i], use_external_nodata_value_, external_nodata_value_);
 			double min, max, mean, std_dev;
 			histogram->QueryStats(min, max, mean, std_dev);
 
@@ -133,7 +139,7 @@ void HistogramEqualizeStretch::Prepare(int band_count, int* band_map, Dataset* d
 			min_value_[i] = percent_min;
 			max_value_[i] = percent_max;
 
-			double* pHistogram = GetCustomHistogram(dataset, band_map[i], percent_min, percent_max);
+			double* pHistogram = GetCustomHistogram(dataset, band_map[i], percent_min, percent_max, use_external_nodata_value_, external_nodata_value_);
 
 			HistogramEqualize(pHistogram, i);
 
@@ -212,5 +218,4 @@ void HistogramEqualizeStretch::Copy(HistogramEqualizeStretch* p)
 			p->lut_[j][i] = lut_[j][i];
 		}
 	}
-
 }

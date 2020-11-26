@@ -1,6 +1,7 @@
 #include "resource_pool.h"
 #include "dataset_factory.h"
 #include "gdal_priv.h"
+#include <boost/lexical_cast.hpp>
 
 ResourcePool* ResourcePool::instance_ = nullptr;
 std::mutex ResourcePool::mutex_;
@@ -113,9 +114,16 @@ OGRSpatialReference* ResourcePool::GetSpatialReference(int epsg_code)
 	return nullptr;
 }
 
-HistogramPtr ResourcePool::GetHistogram(Dataset* tiff_dataset, int band)
+HistogramPtr ResourcePool::GetHistogram(Dataset* tiff_dataset, int band, bool use_external_no_data, double external_no_data_value)
 {
-	const std::string& key = tiff_dataset->file_path();
+	std::string key = tiff_dataset->file_path();
+
+	if (use_external_no_data)
+	{
+		std::string no_data_str = boost::lexical_cast<std::string>(external_no_data_value);
+		key += no_data_str;
+	}
+	
 	{
 		//先用读锁，看能不能获取到，如果获取不到，再用写锁
 		std::shared_lock<std::shared_mutex> lock(shared_mutex_);
@@ -138,7 +146,7 @@ HistogramPtr ResourcePool::GetHistogram(Dataset* tiff_dataset, int band)
 			std::vector<HistogramPtr> vec_histogram;
 			vec_histogram.resize(band);
 
-			histogram = ComputerHistogram(tiff_dataset, band);
+			histogram = ComputerHistogram(tiff_dataset, band, false, use_external_no_data, external_no_data_value);
 			vec_histogram[band - 1] = histogram;
 			map_histogram_.emplace(key, vec_histogram);
 		}
@@ -148,7 +156,7 @@ HistogramPtr ResourcePool::GetHistogram(Dataset* tiff_dataset, int band)
 			if (vec_histogram.size() < band)
 			{
 				vec_histogram.resize(band);
-				histogram = ComputerHistogram(tiff_dataset, band);
+				histogram = ComputerHistogram(tiff_dataset, band, false, use_external_no_data, external_no_data_value);
 				vec_histogram[band - 1] = histogram;
 			}
 			else
@@ -156,7 +164,7 @@ HistogramPtr ResourcePool::GetHistogram(Dataset* tiff_dataset, int band)
 				histogram = vec_histogram[band - 1];
 				if (histogram == nullptr)
 				{
-					histogram = ComputerHistogram(tiff_dataset, band);
+					histogram = ComputerHistogram(tiff_dataset, band, false, use_external_no_data, external_no_data_value);
 					vec_histogram[band - 1] = histogram;
 				}
 			}

@@ -45,6 +45,7 @@ protected:
 
 protected:
 
+	//style从styleManager里的缓存获取，缓存加了锁，获取到的是已经更新了内容的，完全clone的，不需要再refresh。
 	bool need_refresh_ = true;
 
 	StretchType kind_;

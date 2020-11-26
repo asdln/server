@@ -7,6 +7,7 @@
 #include "percent_min_max_stretch.h"
 #include <boost/algorithm/hex.hpp>
 #include <boost/uuid/detail/md5.hpp>
+#include <boost/lexical_cast.hpp>
 
 #define GOOGLE_GLOG_DLL_DECL 
 #define GLOG_NO_ABBREVIATED_SEVERITIES
@@ -102,6 +103,7 @@ StylePtr StyleManager::GetStyle(const Url& url, const std::string& request_body,
 {
 	std::string file_path = dataset->file_path();
 	std::string string_style;
+	std::string nodata_value;
 	neb::CJsonObject oJson_style;
 
 	//style获取顺序：获取body，如果没有，获取url的style2，如果没有，获取url的style
@@ -116,11 +118,13 @@ StylePtr StyleManager::GetStyle(const Url& url, const std::string& request_body,
 	else
 	{
 		url.QueryValue("style2", string_style);
+		url.QueryValue("nodatavalue", nodata_value);
 	}
 	
 	if (!string_style.empty())
 	{
 		file_path += string_style;
+		file_path += nodata_value;
 		std::string md5;
 		GetMd5(md5, file_path.c_str(), file_path.size());
 
@@ -158,6 +162,13 @@ StylePtr StyleManager::GetStyle(const Url& url, const std::string& request_body,
 				{
 					LOG(INFO) << "s_map_style_container cleared";
 					s_map_style_container.clear();
+				}
+
+				if (!nodata_value.empty())
+				{
+					double external_no_data_value = boost::lexical_cast<double>(nodata_value);
+					style->GetStretch()->SetUseExternalNoDataValue(true);
+					style->GetStretch()->SetExternalNoDataValue(external_no_data_value);
 				}
 
 				style->Prepare(dataset);

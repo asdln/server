@@ -90,7 +90,7 @@ void PercentMinMaxStretch::Prepare(int band_count, int* band_map, Dataset* datas
 
 	for (int i = 0; i < band_count; i++)
 	{		
-		HistogramPtr histogram = ResourcePool::GetInstance()->GetHistogram(dataset, band_map[i]);
+		HistogramPtr histogram = ResourcePool::GetInstance()->GetHistogram(dataset, band_map[i], use_external_nodata_value_, external_nodata_value_);
 		double min, max, mean, std_dev;
 		histogram->QueryStats(min, max, mean, std_dev);
 

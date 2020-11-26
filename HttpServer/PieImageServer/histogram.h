@@ -59,6 +59,6 @@ protected:
 
 typedef std::shared_ptr<Histogram> HistogramPtr;
 
-HistogramPtr ComputerHistogram(Dataset* dataset, int band, bool complete_statistic = false);
+HistogramPtr ComputerHistogram(Dataset* dataset, int band, bool complete_statistic = false, bool use_external_no_data = false, double external_no_data_value = 0.0);
 
 #endif //PIEIMAGESERVER_HISTOGRAM_H_

@@ -321,7 +321,7 @@ void CalFitHistogram(void* pData, DataType datatype, long lTempX, long lTempY, b
 
 const int hist_size = 256;
 
-HistogramPtr ComputerHistogram(Dataset* dataset, int band, bool complete_statistic)
+HistogramPtr ComputerHistogram(Dataset* dataset, int band, bool complete_statistic, bool use_external_no_data, double external_no_data_value)
 {
 	int m_nSizeX = dataset->GetRasterXSize();
 	int m_nSizeY = dataset->GetRasterYSize();
@@ -370,6 +370,12 @@ HistogramPtr ComputerHistogram(Dataset* dataset, int band, bool complete_statist
 	int have_no_data = 0;
 	double no_data_value = dataset->GetNoDataValue(band, &have_no_data);
 	DataType data_type = dataset->GetDataType();
+
+	if (use_external_no_data)
+	{
+		have_no_data = true;
+		no_data_value = external_no_data_value;
+	}
 
 	pData = new char[GetDataTypeBytes(data_type) * lSize];
 
