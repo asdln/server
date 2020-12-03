@@ -102,7 +102,7 @@ double* GetCustomHistogram(Dataset* tiff_dataset, int band, bool complete_statis
 		dfNoDataValue = 0.0;
 	}
 
-	pData = new char[GetDataTypeBytes(data_type) * lSize];
+	pData = new char[GetDataTypeBytes(data_type) * (long)lSize];
 
 	tiff_dataset->Read(0, 0, dReadWidth, dReadHeight, pData, lTempX, lTempY, data_type, 1, &band);
 
@@ -128,25 +128,20 @@ void HistogramEqualizeStretch::Prepare(int band_count, int* band_map, Dataset* d
 			HistogramPtr histogram = ResourcePool::GetInstance()->GetHistogram(dataset, band_map[i], use_external_nodata_value_, external_nodata_value_);
 			double min, max, mean, std_dev;
 			histogram->QueryStats(min, max, mean, std_dev);
+			step_reciprocal_[i] = 1.0 / histogram->GetStep();
 
-			if (dataset->GetDataType() == DT_Byte)
+			if (dataset->GetDataType() == DT_Byte || dataset->GetDataType() == DT_UInt16)
 			{
-				min = 0.0;
-				max = 255.0;
-			}
-			else if(dataset->GetDataType() == DT_UInt16)
-			{
-				min = 0.0;
-				max = 65535.0;
+				hist_min_[i] = 0.0;
 			}
 			else if (dataset->GetDataType() == DT_Int16)
 			{
-				min = -32767.0;
-				max = 32768.0;
+				hist_min_[i] = -32767.0;
 			}
-
-			min_value_[i] = min;
-			max_value_[i] = max;
+			else
+			{
+				hist_min_[i] = min;
+			}
 
 			HistogramEqualize(histogram->GetHistogram(), histogram->GetClassCount(), i);
 		}
@@ -159,25 +154,20 @@ void HistogramEqualizeStretch::Prepare(int band_count, int* band_map, Dataset* d
 			HistogramPtr histogram = ResourcePool::GetInstance()->GetHistogram(dataset, band_map[i], use_external_nodata_value_, external_nodata_value_);
 			double min, max, mean, std_dev;
 			histogram->QueryStats(min, max, mean, std_dev);
+			step_reciprocal_[i] = 1.0 / histogram->GetStep();
 
-			if (dataset->GetDataType() == DT_Byte)
+			if (dataset->GetDataType() == DT_Byte || dataset->GetDataType() == DT_UInt16)
 			{
-				min = 0.0;
-				max = 255.0;
-			}
-			else if (dataset->GetDataType() == DT_UInt16)
-			{
-				min = 0.0;
-				max = 65535.0;
+				hist_min_[i] = 0.0;
 			}
 			else if (dataset->GetDataType() == DT_Int16)
 			{
-				min = -32767.0;
-				max = 32768.0;
+				hist_min_[i] = -32767.0;
 			}
-
-			min_value_[i] = min;
-			max_value_[i] = max;
+			else
+			{
+				hist_min_[i] = min;
+			}
 
 			double percent_min = 0.0;
 			double percent_max = 0.0;
@@ -323,7 +313,7 @@ void HistogramEqualizeStretch::DoStretch(void* data, unsigned char* mask_buffer,
 
 void HistogramEqualizeStretch::Copy(HistogramEqualizeStretch* p)
 {
-	MinMaxStretch::Copy(p);
+	Stretch::Copy(p);
 
 	p->stretch_percent_ = stretch_percent_;
 	for (int j = 0; j < 4; j ++)
@@ -332,5 +322,8 @@ void HistogramEqualizeStretch::Copy(HistogramEqualizeStretch* p)
 		{
 			p->lut_[j][i] = lut_[j][i];
 		}
+
+		p->step_reciprocal_[j] = step_reciprocal_[j];
+		p->hist_min_[j] = hist_min_[j];
 	}
 }

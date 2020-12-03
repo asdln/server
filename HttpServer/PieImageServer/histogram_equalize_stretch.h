@@ -1,14 +1,14 @@
 #ifndef HTTPSERVER_HISTOGRAM_EQUALIZE_STRETCH_H_
 #define HTTPSERVER_HISTOGRAM_EQUALIZE_STRETCH_H_
 
-#include "min_max_stretch.h"
+#include "stretch.h"
 
 #define lut_size 65536 //256
 
 class Dataset;
 
 class HistogramEqualizeStretch :
-	public MinMaxStretch
+	public Stretch
 {
 public:
 
@@ -40,8 +40,6 @@ protected:
 		{
 			for (int j = 0; j < nBandCount; j++)
 			{
-				double dCoef = (hist_class - 1.0) / (max_value_[j] - min_value_[j]);
-
 				int pixel_index = i * nBandCount + j;
 				if (pMaskBuffer[i] == 0)
 				{
@@ -56,19 +54,8 @@ protected:
 					continue;
 				}
 
-				if (pData[pixel_index] < min_value_[j])
-				{
-					pRenderBuffer[pixel_index] = 0;
-				}
-				else if (pData[pixel_index] > max_value_[j])
-				{
-					pRenderBuffer[pixel_index] = 255;
-				}
-				else
-				{
-					unsigned short value_temp = (pData[pixel_index] - min_value_[j]) * dCoef;
-					pRenderBuffer[pixel_index] = lut_[j][value_temp];
-				}
+				unsigned short value_temp = (pData[pixel_index] - hist_min_[j]) * step_reciprocal_[j];
+				pRenderBuffer[pixel_index] = lut_[j][value_temp];
 			}
 		}
 	}
@@ -80,7 +67,6 @@ protected:
 		unsigned char* pRenderBuffer = (unsigned char*)pData;
 		for (int j = 0; j < nBandCount; j++)
 		{
-			double dCoef = 255.0f / (max_value_[j] - min_value_[j]);
 			for (int i = 0; i < nSize; i++)
 			{
 				int pixel_index = i * nBandCount + j;
@@ -90,25 +76,15 @@ protected:
 				if (pMaskBuffer[i] == 0)
 					continue;
 
-				double dValue = sqrt(pData[pixel_index1] * pData[pixel_index1] + pData[pixel_index2] * pData[pixel_index2]);
+				double dValue = sqrt(pData[pixel_index1] * (double)pData[pixel_index1] + pData[pixel_index2] * (double)pData[pixel_index2]);
 				if (have_no_data[j] && no_data_value[j] == dValue)
 				{
 					pMaskBuffer[i] = 0;
 					continue;
 				}
 
-				if (dValue < min_value_[j])
-				{
-					pRenderBuffer[pixel_index] = 0;
-				}
-				else if (dValue > max_value_[j])
-				{
-					pRenderBuffer[pixel_index] = 255;
-				}
-				else
-				{
-					pRenderBuffer[pixel_index] = (dValue - min_value_[j]) * dCoef;
-				}
+				unsigned short value_temp = (dValue - hist_min_[j]) * step_reciprocal_[j];
+				pRenderBuffer[pixel_index] = lut_[j][value_temp];
 			}
 		}
 	}
@@ -116,6 +92,10 @@ protected:
 protected:
 
 	double stretch_percent_ = 0.0;
+
+	double step_reciprocal_[4];
+
+	double hist_min_[4];
 
 	//unsigned short lut_[4][lut_size];
 	unsigned short* lut_[4] = { 0, 0, 0, 0 };
