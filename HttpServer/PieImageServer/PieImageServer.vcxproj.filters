@@ -84,9 +84,6 @@
     <ClCompile Include="wmts_handler.cpp">
       <Filter>源文件\net</Filter>
     </ClCompile>
-    <ClCompile Include="buffer_pool.cpp">
-      <Filter>源文件\pool</Filter>
-    </ClCompile>
     <ClCompile Include="resource_pool.cpp">
       <Filter>源文件\pool</Filter>
     </ClCompile>
@@ -195,9 +192,6 @@
       <Filter>头文件\net</Filter>
     </ClInclude>
     <ClInclude Include="resource_pool.h">
-      <Filter>头文件\pool</Filter>
-    </ClInclude>
-    <ClInclude Include="buffer_pool.h">
       <Filter>头文件\pool</Filter>
     </ClInclude>
     <ClInclude Include="cJSON.h">

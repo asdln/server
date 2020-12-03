@@ -148,7 +148,6 @@
   <ItemGroup>
     <ClCompile Include="application.cpp" />
     <ClCompile Include="buffer.cpp" />
-    <ClCompile Include="buffer_pool.cpp" />
     <ClCompile Include="cJSON.c" />
     <ClCompile Include="CJsonObject.cpp" />
     <ClCompile Include="compress.cpp" />
@@ -187,7 +186,6 @@
   <ItemGroup>
     <ClInclude Include="application.h" />
     <ClInclude Include="buffer.h" />
-    <ClInclude Include="buffer_pool.h" />
     <ClInclude Include="cJSON.h" />
     <ClInclude Include="CJsonObject.hpp" />
     <ClInclude Include="compress.h" />
