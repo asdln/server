@@ -1,9 +1,27 @@
 #include "histogram_equalize_stretch.h"
 #include "dataset.h"
 #include "resource_pool.h"
+#include <string.h>
 
-void CaliStretchLinearMinMax_Func(DataType dt, double* ppdHistogram
-	, double dParam, double dStep, double dRawMin, double dRawMax, double& dMinValue, double& dMaxValue);
+HistogramEqualizeStretch::HistogramEqualizeStretch()
+{
+	kind_ = StretchType::PERCENT_MINMAX;
+
+	for (int i = 0; i < 4; i++)
+	{
+		lut_[i] = new unsigned short[lut_size];
+	}
+}
+
+HistogramEqualizeStretch::~HistogramEqualizeStretch()
+{
+	for (int i = 0; i < 4; i++)
+	{
+		unsigned short* p = lut_[i];
+		delete[] p;
+		p = nullptr;
+	}
+}
 
 StretchPtr HistogramEqualizeStretch::Clone()
 {
@@ -12,12 +30,7 @@ StretchPtr HistogramEqualizeStretch::Clone()
 	return pClone;
 }
 
-void CalFitHistogram(void* pData, DataType datatype, long lTempX, long lTempY, bool bHaveNoData, double dfNoDataValue,
-	double& dStep, double& dfMin, double& dfMax, double& dfMean, double& dfStdDev, double* pdHistogram,
-	bool bFitMin = false, bool bFitMax = false, double dFitMin = 0.0, double dFitMax = 0.0);
-
-#define HIST_SIZE 256
-double* GetCustomHistogram(Dataset* tiff_dataset, int band, double dFitMin, double dFitMax, bool use_external_no_data, double external_no_data_value)
+double* GetCustomHistogram(Dataset* tiff_dataset, int band, bool complete_statistic, double dFitMin, double dFitMax, bool use_external_no_data, double external_no_data_value)
 {
 	int nSizeX = tiff_dataset->GetRasterXSize();
 	int nSizeY = tiff_dataset->GetRasterYSize();
@@ -32,8 +45,8 @@ double* GetCustomHistogram(Dataset* tiff_dataset, int band, double dFitMin, doub
 		dNodataValue = external_no_data_value;
 	}
 
-	double dXFactor = HIST_SIZE / (float)nSizeX;
-	double dYFactor = HIST_SIZE / (float)nSizeY;
+	double dXFactor = hist_window_size / (float)nSizeX;
+	double dYFactor = hist_window_size / (float)nSizeY;
 	double dFactor = dXFactor < dYFactor ? dXFactor : dYFactor;
 	if (dFactor >= 1.0)
 	{
@@ -47,7 +60,7 @@ double* GetCustomHistogram(Dataset* tiff_dataset, int band, double dFitMin, doub
 	long lTempX = (long)(nSizeX * dFactor + 0.5);
 	long lTempY = (long)(nSizeY * dFactor + 0.5);
 
-	if (/*m_bCompleteHistogram*/0)
+	if (complete_statistic)
 	{
 		lTempX = dReadWidth;
 		lTempY = dReadHeight;
@@ -70,9 +83,12 @@ double* GetCustomHistogram(Dataset* tiff_dataset, int band, double dFitMin, doub
 	double dStep = 0.0;
 
 	double* pdHistogram = nullptr;
+	DataType data_type = tiff_dataset->GetDataType();
+
+	int hist_class = CalcClassCount(data_type);
 	//创建直方图
-	pdHistogram = new double[256];
-	for (int i = 0; i < 256; i++)
+	pdHistogram = new double[hist_class];
+	for (int i = 0; i < hist_class; i++)
 	{
 		pdHistogram[i] = 0.0;
 	}
@@ -85,8 +101,6 @@ double* GetCustomHistogram(Dataset* tiff_dataset, int band, double dFitMin, doub
 	{
 		dfNoDataValue = 0.0;
 	}
-
-	DataType data_type = tiff_dataset->GetDataType();
 
 	pData = new char[GetDataTypeBytes(data_type) * lSize];
 
@@ -115,34 +129,74 @@ void HistogramEqualizeStretch::Prepare(int band_count, int* band_map, Dataset* d
 			double min, max, mean, std_dev;
 			histogram->QueryStats(min, max, mean, std_dev);
 
+			if (dataset->GetDataType() == DT_Byte)
+			{
+				min = 0.0;
+				max = 255.0;
+			}
+			else if(dataset->GetDataType() == DT_UInt16)
+			{
+				min = 0.0;
+				max = 65535.0;
+			}
+			else if (dataset->GetDataType() == DT_Int16)
+			{
+				min = -32767.0;
+				max = 32768.0;
+			}
+
 			min_value_[i] = min;
 			max_value_[i] = max;
 
-			HistogramEqualize(histogram->GetHistogram(), i);
+			HistogramEqualize(histogram->GetHistogram(), histogram->GetClassCount(), i);
 		}
 	}
 	else
 	{
+		std::map<int, double*> map_temp;
 		for (int i = 0; i < band_count; i++)
 		{
 			HistogramPtr histogram = ResourcePool::GetInstance()->GetHistogram(dataset, band_map[i], use_external_nodata_value_, external_nodata_value_);
 			double min, max, mean, std_dev;
 			histogram->QueryStats(min, max, mean, std_dev);
 
+			if (dataset->GetDataType() == DT_Byte)
+			{
+				min = 0.0;
+				max = 255.0;
+			}
+			else if (dataset->GetDataType() == DT_UInt16)
+			{
+				min = 0.0;
+				max = 65535.0;
+			}
+			else if (dataset->GetDataType() == DT_Int16)
+			{
+				min = -32767.0;
+				max = 32768.0;
+			}
+
+			min_value_[i] = min;
+			max_value_[i] = max;
+
 			double percent_min = 0.0;
 			double percent_max = 0.0;
 
 			double dStep = histogram->GetStep();
 
-			CaliStretchLinearMinMax_Func(dataset->GetDataType(), histogram->GetHistogram(), stretch_percent_, dStep, min, max, percent_min, percent_max);
+			double* pHistogramCopy = new double[histogram->GetClassCount()];
+			memcpy(pHistogramCopy, histogram->GetHistogram(), sizeof(double) * histogram->GetClassCount());
 
-			min_value_[i] = percent_min;
-			max_value_[i] = percent_max;
+			CalcPercentMinMax_SetHistogram(dataset->GetDataType(), pHistogramCopy, histogram->GetClassCount(), stretch_percent_, dStep, min, percent_min, percent_max);
+			HistogramEqualize(pHistogramCopy, histogram->GetClassCount(), i);
 
-			double* pHistogram = GetCustomHistogram(dataset, band_map[i], percent_min, percent_max, use_external_nodata_value_, external_nodata_value_);
+			delete[] pHistogramCopy;
+			pHistogramCopy = nullptr;
+		}
 
-			HistogramEqualize(pHistogram, i);
-
+		for (std::map<int, double*>::iterator itr = map_temp.begin(); itr != map_temp.end(); itr ++)
+		{
+			double* pHistogram = itr->second;
 			if (pHistogram != nullptr)
 			{
 				delete[] pHistogram;
@@ -152,11 +206,11 @@ void HistogramEqualizeStretch::Prepare(int band_count, int* band_map, Dataset* d
 	}
 }
 
-void HistogramEqualizeStretch::HistogramEqualize(double* pdHistogram, int nBandIndex)
+void HistogramEqualizeStretch::HistogramEqualize(const double* pdHistogram, int hist_size, int nBandIndex)
 {
 	//统计总数
 	long double dbTotal = 0;
-	for (int i = 0; i < 256; ++i)
+	for (int i = 0; i < hist_size; ++i)
 	{
 		if (pdHistogram[i] > 0)
 		{
@@ -165,45 +219,106 @@ void HistogramEqualizeStretch::HistogramEqualize(double* pdHistogram, int nBandI
 	}
 
 	//计算LUT表
-	for (int i = 0; i < 256; ++i)
+	for (int i = 0; i < lut_size; ++i)
 	{
 		lut_[nBandIndex][i] = 0;
 	}
 
-	double dbHist = 0;
-	for (int i = 0; i < 256; ++i)
+	//double scale = lut_size / (double)hist_class;
+
+	long double dbHist = 0;
+	for (int i = 0; i < hist_size; ++i)
 	{
 		dbHist += pdHistogram[i];
-		lut_[nBandIndex][i] = (unsigned char)((dbHist * 255.0) / dbTotal);
+		lut_[nBandIndex][i] = (unsigned short)((dbHist * 255.0) / dbTotal);
 	}
 }
 
 void HistogramEqualizeStretch::DoStretch(void* data, unsigned char* mask_buffer, int size, int band_count, int* band_map, Dataset* dataset)
 {
-	MinMaxStretch::DoStretch(data, mask_buffer, size, band_count, band_map, dataset);
+	int have_no_data[4] = { 0, 0, 0, 0 };
+	double no_data_value[4] = { 0.0, 0.0, 0.0, 0.0 };
 
-	//test code
-
-	//for (int i = 0; i < 256; i++)
-	//{
-	//	lut_[0][i] = i;
-	//	lut_[1][i] = i;
-	//	lut_[2][i] = i;
-	//	lut_[3][i] = i;
-	//}
-
-	//test code end
-
-	unsigned char* render_buffer = (unsigned char*)data;
-	for (int j = 0; j < band_count; j++)
+	if (use_external_nodata_value_)
 	{
-		for (int i = 0; i < size; i++)
+		for (int i = 0; i < band_count; i++)
 		{
-			render_buffer[i * band_count + j] = lut_[j][render_buffer[i * band_count + j]];
+			have_no_data[i] = 1;
+			no_data_value[i] = external_nodata_value_;
+		}
+	}
+	else
+	{
+		for (int i = 0; i < band_count; i++)
+		{
+			no_data_value[i] = dataset->GetNoDataValue(band_map[i], have_no_data + i);
 		}
 	}
 
-	//memset(render_buffer, 0, size * band_count);
+	Prepare(band_count, band_map, dataset);
+	DataType dt = dataset->GetDataType();
+	int hist_class = CalcClassCount(dt);
+
+	switch (dt)
+	{
+	case DT_Byte:
+	{
+		DoStretchImpl_EQL((unsigned char*)data, hist_class, mask_buffer, size, band_count, no_data_value, have_no_data);
+		break;
+	}
+	case DT_UInt16:
+	{
+		DoStretchImpl_EQL((unsigned short*)data, hist_class, mask_buffer, size, band_count, no_data_value, have_no_data);
+		break;
+	}
+	case DT_Int16:
+	{
+		DoStretchImpl_EQL((short*)data, hist_class, mask_buffer, size, band_count, no_data_value, have_no_data);
+		break;
+	}
+	case DT_UInt32:
+	{
+		DoStretchImpl_EQL((unsigned int*)data, hist_class, mask_buffer, size, band_count, no_data_value, have_no_data);
+		break;
+	}
+	case DT_Int32:
+	{
+		DoStretchImpl_EQL((int*)data, hist_class, mask_buffer, size, band_count, no_data_value, have_no_data);
+		break;
+	}
+	case DT_Float32:
+	{
+		DoStretchImpl_EQL((float*)data, hist_class, mask_buffer, size, band_count, no_data_value, have_no_data);
+		break;
+	}
+	case DT_Float64:
+	{
+		DoStretchImpl_EQL((double*)data, hist_class, mask_buffer, size, band_count, no_data_value, have_no_data);
+		break;
+	}
+	case DT_CInt16:
+	{
+		DoStretchImpl2_EQL((short*)data, hist_class, mask_buffer, size, band_count, no_data_value, have_no_data);
+		break;
+	}
+	case DT_CInt32:
+	{
+		DoStretchImpl2_EQL((int*)data, hist_class, mask_buffer, size, band_count, no_data_value, have_no_data);
+		break;
+	}
+	case DT_CFloat32:
+	{
+		DoStretchImpl2_EQL((float*)data, hist_class, mask_buffer, size, band_count, no_data_value, have_no_data);
+		break;
+	}
+	case DT_CFloat64:
+	{
+		DoStretchImpl2_EQL((double*)data, hist_class, mask_buffer, size, band_count, no_data_value, have_no_data);
+		break;
+	}
+	default:
+		break;
+	}
 }
 
 void HistogramEqualizeStretch::Copy(HistogramEqualizeStretch* p)
@@ -213,7 +328,7 @@ void HistogramEqualizeStretch::Copy(HistogramEqualizeStretch* p)
 	p->stretch_percent_ = stretch_percent_;
 	for (int j = 0; j < 4; j ++)
 	{
-		for (int i = 0; i < 256; i++)
+		for (int i = 0; i < lut_size; i++)
 		{
 			p->lut_[j][i] = lut_[j][i];
 		}

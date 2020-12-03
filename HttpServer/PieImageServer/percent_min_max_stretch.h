@@ -23,7 +23,7 @@ protected:
 
 protected:
 
-	double stretch_percent_ = 1.0;
+	double stretch_percent_ = 0.0;
 };
 
 typedef std::shared_ptr<PercentMinMaxStretch> PercentMinMaxStretchPtr;

@@ -2,7 +2,11 @@
 #define PIEIMAGESERVER_HISTOGRAM_H_
 
 #include <memory>
+#include "utility.h"
+
 class Dataset;
+
+#define hist_window_size 256
 
 class Histogram
 {
@@ -17,11 +21,15 @@ public:
 
 	void SetHistogram(double* ppdHistogram);
 
-	double* GetHistogram();
+	const double* GetHistogram();
 
 	void SetStep(double dStep) { step_ = dStep; };
 
 	double GetStep() { return step_; };
+
+	void SetClassCount(int count) { class_count_ = count; }
+
+	int GetClassCount() { return class_count_; }
 
 protected:
 
@@ -55,10 +63,24 @@ protected:
 	*/
 	double step_ = 1.0;				//Ã›∂»
 
+	int class_count_ = 256;  //ªÚ’ﬂ65536
+
 };
 
 typedef std::shared_ptr<Histogram> HistogramPtr;
 
 HistogramPtr ComputerHistogram(Dataset* dataset, int band, bool complete_statistic = false, bool use_external_no_data = false, double external_no_data_value = 0.0);
+
+void CalcPercentMinMax_SetHistogram(DataType dt, double* pdHistogram, int hist_class
+	, double dParam, double dStep, double dRawMin, double& dMinValue, double& dMaxValue);
+
+void CalcPercentMinMax(DataType dt, const double* ppdHistogram, int hist_class
+	, double dParam, double dStep, double dRawMin, double& dMinValue, double& dMaxValue, int& nMin, int& nMax);
+
+void CalFitHistogram(void* pData, DataType datatype, long lTempX, long lTempY, bool bHaveNoData, double dfNoDataValue,
+	double& dStep, double& dfMin, double& dfMax, double& dfMean, double& dfStdDev, double* pdHistogram, int hist_class,
+	bool bFitMin = false, bool bFitMax = false, double dFitMin = 0.0, double dFitMax = 0.0);
+
+int CalcClassCount(DataType dt);
 
 #endif //PIEIMAGESERVER_HISTOGRAM_H_

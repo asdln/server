@@ -5,6 +5,7 @@
 
 ResourcePool* ResourcePool::instance_ = nullptr;
 std::mutex ResourcePool::mutex_;
+extern bool g_complete_statistic;
 
 ResourcePool::ResourcePool()
 {
@@ -146,7 +147,7 @@ HistogramPtr ResourcePool::GetHistogram(Dataset* tiff_dataset, int band, bool us
 			std::vector<HistogramPtr> vec_histogram;
 			vec_histogram.resize(band);
 
-			histogram = ComputerHistogram(tiff_dataset, band, false, use_external_no_data, external_no_data_value);
+			histogram = ComputerHistogram(tiff_dataset, band, g_complete_statistic, use_external_no_data, external_no_data_value);
 			vec_histogram[band - 1] = histogram;
 			map_histogram_.emplace(key, vec_histogram);
 		}
@@ -156,7 +157,7 @@ HistogramPtr ResourcePool::GetHistogram(Dataset* tiff_dataset, int band, bool us
 			if (vec_histogram.size() < band)
 			{
 				vec_histogram.resize(band);
-				histogram = ComputerHistogram(tiff_dataset, band, false, use_external_no_data, external_no_data_value);
+				histogram = ComputerHistogram(tiff_dataset, band, g_complete_statistic, use_external_no_data, external_no_data_value);
 				vec_histogram[band - 1] = histogram;
 			}
 			else
@@ -164,7 +165,7 @@ HistogramPtr ResourcePool::GetHistogram(Dataset* tiff_dataset, int band, bool us
 				histogram = vec_histogram[band - 1];
 				if (histogram == nullptr)
 				{
-					histogram = ComputerHistogram(tiff_dataset, band, false, use_external_no_data, external_no_data_value);
+					histogram = ComputerHistogram(tiff_dataset, band, g_complete_statistic, use_external_no_data, external_no_data_value);
 					vec_histogram[band - 1] = histogram;
 				}
 			}

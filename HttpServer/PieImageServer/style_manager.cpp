@@ -3,6 +3,7 @@
 #include "CJsonObject.hpp"
 #include "min_max_stretch.h"
 #include "histogram_equalize_stretch.h"
+#include "standard_deviation_stretch.h"
 #include "etcd_storage.h"
 #include "percent_min_max_stretch.h"
 #include <boost/algorithm/hex.hpp>
@@ -23,6 +24,7 @@ std::shared_mutex StyleManager::s_shared_mutex_style_container;
 //{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind":"percentMinimumMaximum", "percent" : 3.0}}}
 //{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind": "minimumMaximum", "minimum" : [0.0, 0.0, 0.0] , "maximum" : [255.0, 255.0, 255.0] }}}
 //{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind": "histogramEqualize", "percent" : 0.0}}}
+//{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind": "standardDeviation", "scale" : 2.5}}}
 
 
 bool GetMd5(std::string& str_md5, const char* const buffer, size_t buffer_size)
@@ -294,6 +296,15 @@ StylePtr StyleManager::FromJson(const std::string& jsonStyle)
 				double percent = 0.0;
 				oJson_style["stretch"].Get("percent", percent);
 				stretch->set_stretch_percent(percent);
+			}
+			else if (stretch_kind.compare(StretchType2String(StretchType::STANDARD_DEVIATION)) == 0)
+			{
+				auto stretch = std::make_shared<StandardDeviationStretch>();
+				style->stretch_ = stretch;
+
+				double scale = 2.5;
+				oJson_style["stretch"].Get("scale", scale);
+				stretch->set_dev_scale(scale);
 			}
 		}
 	}

@@ -15,6 +15,9 @@ std::string StretchType2String(StretchType type)
 	case StretchType::HISTOGRAMEQUALIZE:
 		type_string = "histogramEqualize";
 		break;
+	case StretchType::STANDARD_DEVIATION:
+		type_string = "standardDeviation";
+		break;
 	default:
 		type_string = "minimumMaximum";
 		break;
@@ -34,7 +37,14 @@ StretchType String2StretchType(std::string type_string)
 	{
 		type = StretchType::PERCENT_MINMAX;
 	}
-
+	else if (type_string.compare("histogramEqualize") == 0)
+	{
+		type = StretchType::HISTOGRAMEQUALIZE;
+	}
+	else if (type_string.compare("standardDeviation") == 0)
+	{
+		type = StretchType::STANDARD_DEVIATION;
+	}
 	return type;
 }
 
