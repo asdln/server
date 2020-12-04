@@ -24,7 +24,7 @@ std::shared_mutex StyleManager::s_shared_mutex_style_container;
 //{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind":"percentMinimumMaximum", "percent" : 3.0}}}
 //{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind": "minimumMaximum", "minimum" : [0.0, 0.0, 0.0] , "maximum" : [255.0, 255.0, 255.0] }}}
 //{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind": "histogramEqualize", "percent" : 0.0}}}
-//{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind": "standardDeviation", "scale" : 0.5}}}
+//{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind": "standardDeviation", "scale" : 2.05}}}
 
 
 bool GetMd5(std::string& str_md5, const char* const buffer, size_t buffer_size)
