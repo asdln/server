@@ -7,6 +7,9 @@
 #include "glog/logging.h"
 
 #include <iostream>
+#include <boost/pool/pool.hpp>     
+
+using namespace boost;
 
 int main(int argc, char* argv[])
 {
@@ -19,6 +22,17 @@ int main(int argc, char* argv[])
 	//		"Example:\n" <<
 	//		"    http-server-async 0.0.0.0 8080 . 1\n";
 	//	return -1;
+	//}
+
+	//boost::pool<> pl(sizeof(char) * 1024 * 1024 * 1);             //一个可分配int的内存池          
+
+	//for (int i = 0; i < 100; i ++)
+	//{
+	//	int* p = (int*)pl.malloc();        //必须把void*转换成需要的类型         
+
+	//	assert(pl.is_from(p));
+
+	//	pl.free(p);
 	//}
 
 	FLAGS_log_dir = "./";

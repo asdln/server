@@ -14,9 +14,17 @@ void PercentMinMaxStretch::Prepare(int band_count, int* band_map, Dataset* datas
 	//std::lock_guard<std::mutex> guard(mutex_);
 	need_refresh_ = false;
 
+	bool use_external_nodata_value = use_external_nodata_value_;
+	double external_nodata_value = external_nodata_value_;
+
+	if (!nodata_value_statistic)
+	{
+		use_external_nodata_value = false;
+	}
+
 	for (int i = 0; i < band_count; i++)
 	{		
-		HistogramPtr histogram = ResourcePool::GetInstance()->GetHistogram(dataset, band_map[i], use_external_nodata_value_, external_nodata_value_);
+		HistogramPtr histogram = ResourcePool::GetInstance()->GetHistogram(dataset, band_map[i], use_external_nodata_value, external_nodata_value);
 		double min, max, mean, std_dev;
 		histogram->QueryStats(min, max, mean, std_dev);
 

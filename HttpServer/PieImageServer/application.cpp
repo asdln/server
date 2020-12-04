@@ -218,7 +218,7 @@ Application::Application(int argc, char* argv[])
 
 	ResourcePool::GetInstance()->SetDatasetPoolMaxCount(threads_ + 1);
 
-	LOG(INFO) << "threads : " << threads_ << "   port : " << port_;
+	LOG(INFO) << "threads : " << threads_ << "   port : " << port_ << "    statistic_size: " << statistic_window_size_ << std::endl;
 
 	InitBandMap();
 }
@@ -232,6 +232,7 @@ bool Application::LoadConfig()
 {
 	threads_ = 12;
 	port_ = 8083;
+	statistic_window_size_ = 1024;
 	EtcdStorage::port_ = "2379";
 	EtcdStorage::host_ = "0.0.0.0";
 
@@ -252,6 +253,11 @@ bool Application::LoadConfig()
 	if (tag_system.count("threads") == 1) 
 	{
 		threads_ = std::max<int>(1, tag_system.get<int>("threads"));
+	}
+
+	if (tag_system.count("statistic_size") == 1)
+	{
+		statistic_window_size_ = std::max<int>(1, tag_system.get<int>("statistic_size"));
 	}
 
 	boost::property_tree::ptree tag_etcd = root_node.get_child("Etcd");

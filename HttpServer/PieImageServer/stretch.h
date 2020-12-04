@@ -38,6 +38,8 @@ public:
 
 	virtual double GetExternalNoDataValue();
 
+	virtual void SetStatisticExternalNoDataValue(bool statistic) { nodata_value_statistic = statistic; }
+
 	virtual StretchPtr Clone() = 0;
 
 protected:
@@ -56,6 +58,9 @@ protected:
 	bool use_external_nodata_value_ = false;
 
 	double external_nodata_value_ = 0.0;
+
+	//拉伸时，是否统计外部传入的直方图。默认不统计
+	bool nodata_value_statistic;
 };
 
 

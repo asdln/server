@@ -2,6 +2,7 @@
 #define HTTPSERVER_HISTOGRAM_EQUALIZE_STRETCH_H_
 
 #include "stretch.h"
+#include "math.h"
 
 #define lut_size 65536 //256
 

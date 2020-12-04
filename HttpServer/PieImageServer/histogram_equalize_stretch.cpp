@@ -2,6 +2,7 @@
 #include "dataset.h"
 #include "resource_pool.h"
 #include <string.h>
+#include "application.h"
 
 HistogramEqualizeStretch::HistogramEqualizeStretch()
 {
@@ -45,6 +46,7 @@ double* GetCustomHistogram(Dataset* tiff_dataset, int band, bool complete_statis
 		dNodataValue = external_no_data_value;
 	}
 
+	int hist_window_size = global_app->StatisticSize();
 	double dXFactor = hist_window_size / (float)nSizeX;
 	double dYFactor = hist_window_size / (float)nSizeY;
 	double dFactor = dXFactor < dYFactor ? dXFactor : dYFactor;
@@ -102,7 +104,7 @@ double* GetCustomHistogram(Dataset* tiff_dataset, int band, bool complete_statis
 		dfNoDataValue = 0.0;
 	}
 
-	pData = new char[GetDataTypeBytes(data_type) * (long)lSize];
+	pData = new char[GetDataTypeBytes(data_type) * (size_t)lSize];
 
 	tiff_dataset->Read(0, 0, dReadWidth, dReadHeight, pData, lTempX, lTempY, data_type, 1, &band);
 
@@ -121,11 +123,19 @@ void HistogramEqualizeStretch::Prepare(int band_count, int* band_map, Dataset* d
 	//std::lock_guard<std::mutex> guard(mutex_);
 	need_refresh_ = false;
 
+	bool use_external_nodata_value = use_external_nodata_value_;
+	double external_nodata_value = external_nodata_value_;
+
+	if (!nodata_value_statistic)
+	{
+		use_external_nodata_value = false;
+	}
+
 	if (stretch_percent_ == 0.0)
 	{
 		for (int i = 0; i < band_count; i++)
 		{
-			HistogramPtr histogram = ResourcePool::GetInstance()->GetHistogram(dataset, band_map[i], use_external_nodata_value_, external_nodata_value_);
+			HistogramPtr histogram = ResourcePool::GetInstance()->GetHistogram(dataset, band_map[i], use_external_nodata_value, external_nodata_value);
 			double min, max, mean, std_dev;
 			histogram->QueryStats(min, max, mean, std_dev);
 			step_reciprocal_[i] = 1.0 / histogram->GetStep();

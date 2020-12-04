@@ -18,6 +18,8 @@ public:
 
 	std::list<std::string>& service_files() { return service_files_; }
 
+	int StatisticSize() { return statistic_window_size_; }
+
 protected:
 
 	void InitBandMap();
@@ -30,6 +32,8 @@ protected:
 	unsigned short port_;
 	std::shared_ptr<std::string> doc_root_;
 	int threads_;
+
+	int statistic_window_size_;
 
 	std::string app_path_;
 

@@ -6,8 +6,6 @@
 
 class Dataset;
 
-#define hist_window_size 256
-
 class Histogram
 {
 public:

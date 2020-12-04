@@ -24,7 +24,7 @@ std::shared_mutex StyleManager::s_shared_mutex_style_container;
 //{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind":"percentMinimumMaximum", "percent" : 3.0}}}
 //{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind": "minimumMaximum", "minimum" : [0.0, 0.0, 0.0] , "maximum" : [255.0, 255.0, 255.0] }}}
 //{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind": "histogramEqualize", "percent" : 0.0}}}
-//{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind": "standardDeviation", "scale" : 2.5}}}
+//{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind": "standardDeviation", "scale" : 0.5}}}
 
 
 bool GetMd5(std::string& str_md5, const char* const buffer, size_t buffer_size)
@@ -106,7 +106,21 @@ StylePtr StyleManager::GetStyle(const Url& url, const std::string& request_body,
 	std::string file_path = dataset->file_path();
 	std::string string_style;
 	std::string nodata_value;
+	std::string nodata_value_statistic;
 	neb::CJsonObject oJson_style;
+
+	url.QueryValue("nodatavalue", nodata_value);
+	url.QueryValue("nodatavaluestatistic", nodata_value_statistic);
+
+	bool is_nodata_value_statistic = false;
+	if (nodata_value_statistic.compare("true") == 0)
+	{
+		is_nodata_value_statistic = true;
+	}
+	else
+	{
+		nodata_value_statistic = "false";
+	}
 
 	//style获取顺序：获取body，如果没有，获取url的style2，如果没有，获取url的style
 	if (!request_body.empty())
@@ -120,13 +134,13 @@ StylePtr StyleManager::GetStyle(const Url& url, const std::string& request_body,
 	else
 	{
 		url.QueryValue("style2", string_style);
-		url.QueryValue("nodatavalue", nodata_value);
 	}
 	
 	if (!string_style.empty())
 	{
 		file_path += string_style;
 		file_path += nodata_value;
+		file_path += nodata_value_statistic;
 		std::string md5;
 		GetMd5(md5, file_path.c_str(), file_path.size());
 
@@ -171,6 +185,7 @@ StylePtr StyleManager::GetStyle(const Url& url, const std::string& request_body,
 					double external_no_data_value = boost::lexical_cast<double>(nodata_value);
 					style->GetStretch()->SetUseExternalNoDataValue(true);
 					style->GetStretch()->SetExternalNoDataValue(external_no_data_value);
+					style->GetStretch()->SetStatisticExternalNoDataValue(is_nodata_value_statistic);
 				}
 
 				style->Prepare(dataset);

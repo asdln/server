@@ -4,6 +4,7 @@
 #include <cmath>
 #include "dataset.h"
 #include "string.h"
+#include "application.h"
 
 bool g_complete_statistic = false;
 
@@ -387,6 +388,8 @@ HistogramPtr ComputerHistogram(Dataset* dataset, int band, bool complete_statist
 {
 	int m_nSizeX = dataset->GetRasterXSize();
 	int m_nSizeY = dataset->GetRasterYSize();
+
+	int hist_window_size = global_app->StatisticSize();
 
 	double dXFactor = hist_window_size / (float)m_nSizeX;
 	double dYFactor = hist_window_size / (float)m_nSizeY;
