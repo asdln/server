@@ -59,7 +59,7 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, co
 		std::string filePath = path;
 		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(filePath));
 		if (tiffDataset == nullptr)
-			return false;
+			continue;
 
 		StylePtr style_clone = GetStyle(url, request_body, tiffDataset);
 		style_clone->set_code(epsg_code);
