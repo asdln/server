@@ -34,24 +34,13 @@ bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, con
 bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
 	std::list<std::string> paths;
-	QueryDataPath(url, paths);
+	QueryDataPath(url, request_body, paths);
 
-	//暂时只获取第一个数据集
-	std::list<DatasetPtr> datasets;
-	std::string filePath = paths.front();
-	std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(filePath));
-	if (tiffDataset == nullptr)
-		return false;
-
-	datasets.emplace_back(tiffDataset);
-
-	StylePtr style_clone = GetStyle(url, request_body, tiffDataset);
-
-	//如果在url里显式的指定投影，则覆盖
 	int epsg_code = QuerySRS(url);
-	if (epsg_code != -1)
+	if (epsg_code == -1)
 	{
-		style_clone->set_code(epsg_code);
+		//默认 web_mercator
+		epsg_code = 3857;
 	}
 
 	int nx = QueryX(url);
@@ -59,18 +48,32 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, co
 	int nz = QueryZ(url);
 
 	Envelop env;
-	GetEnvFromTileIndex(nx, ny, nz, env, style_clone->code());
+	GetEnvFromTileIndex(nx, ny, nz, env, epsg_code);
 
 	double no_data_value = 0.;
 	bool have_no_data = QueryNoDataValue(url, no_data_value);
 
-	if (have_no_data)
+	std::list<std::pair<DatasetPtr, StylePtr>> datasets;
+	for (auto path : paths)
 	{
-		style_clone->GetStretch()->SetUseExternalNoDataValue(have_no_data);
-		style_clone->GetStretch()->SetExternalNoDataValue(no_data_value);
+		std::string filePath = path;
+		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(filePath));
+		if (tiffDataset == nullptr)
+			return false;
+
+		StylePtr style_clone = GetStyle(url, request_body, tiffDataset);
+		style_clone->set_code(epsg_code);
+
+		if (have_no_data)
+		{
+			style_clone->GetStretch()->SetUseExternalNoDataValue(have_no_data);
+			style_clone->GetStretch()->SetExternalNoDataValue(no_data_value);
+		}
+
+		datasets.emplace_back(std::make_pair(tiffDataset, style_clone));
 	}
 
-	return WMSHandler::GetTileData(datasets, env, style_clone.get(), 256, 256, result);
+	return WMSHandler::GetRenderBytes(datasets, env, 256, 256, result);
 }
 
 bool WMTSHandler::GetCapabilities(boost::beast::string_view doc_root, const Url& url, std::shared_ptr<HandleResult> result)

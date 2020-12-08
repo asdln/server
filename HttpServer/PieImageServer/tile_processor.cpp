@@ -336,7 +336,18 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 	{
 		CoordinateTransformation transformation2(ptrVisSRef, ptrDSSRef);
 		bTransRes = transformation2.Transform(envelope, envelopeClone);
-		//bTransRes = ((SysGeometry::GeometryPtr)envelopeClone)->Transform(ptrDSSRef);
+
+		if (bTransRes == false)
+		{
+			Envelop envelopeClone3 = ptrEnvDataset;
+			CoordinateTransformation transformation3(ptrDSSRef, ptrVisSRef);
+			bTransRes = transformation3.Transform(ptrEnvDataset, envelopeClone3);
+
+			if (bTransRes && !envelopeClone3.Intersects(envelope))
+			{
+				return false;
+			}
+		}
 
 		double dx1, dy1, dx2, dy2;
 		envelopeClone.QueryCoords(dx1, dy1, dx2, dy2);
@@ -780,12 +791,117 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 	return true;
 }
 
-BufferPtr TileProcessor::GetTileData(std::list<DatasetPtr> datasets, const Envelop& env, int tile_width, int tile_height, Style* style)
+BufferPtr TileProcessor::GetCombinedData(const std::list<std::pair<DatasetPtr, StylePtr>>& datasets, const Envelop& env, int tile_width, int tile_height)
 {
-	//暂时只获取第一个数据集
-	std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(datasets.front());
-	if (tiffDataset == nullptr)
+	if (datasets.empty())
 		return nullptr;
+
+	unsigned char* render_buffer_final = nullptr;
+	unsigned char* mask_buffer_final = nullptr;
+
+	//Dataset* dataset = datasets.front().first.get();
+	//Style* style = datasets.front().second.get();
+	//bool bRes = GetTileData(dataset, style, env, tile_width, tile_height, &render_buffer, &mask_buffer);
+
+	int size = tile_width * tile_height;
+
+	//默认带透明度
+	int render_color_count = 4;
+
+	for (auto content : datasets)
+	{
+		unsigned char* render_buffer = nullptr;
+		unsigned char* mask_buffer = nullptr;
+
+		Dataset* dataset = content.first.get();
+		Style* style = content.second.get();
+		bool bRes = GetTileData(dataset, style, env, tile_width, tile_height, &render_buffer, &mask_buffer, render_color_count);
+
+		Format format = style->format();
+		int band_count = style->band_count();
+
+		//根据mask的值，添加透明通道的值。
+		if (bRes && band_count == 3)
+		{
+			for (int j = (tile_width * tile_height) - 1; j >= 0; j--)
+			{
+				int srcIndex = j * 3;
+				int dstIndex = j * 4;
+
+				memcpy(render_buffer + dstIndex, render_buffer + srcIndex, 3);
+				render_buffer[dstIndex + 3] = mask_buffer[j];
+			}
+		}
+		
+		if (bRes && render_buffer_final == nullptr && mask_buffer_final == nullptr)
+		{
+			render_buffer_final = render_buffer;
+			mask_buffer_final = mask_buffer;
+		}
+		else
+		{
+			if (bRes)
+			{
+				for (int i = 0; i < size; i++)
+				{
+					//此处只是对透明度进行简单处理。如果处理不同的透明度的值的影响，需要进行透明度权重相乘。
+					if (mask_buffer[i] != 0)
+					{
+						int index = i * render_color_count;
+						render_buffer_final[index] = render_buffer[index];
+						render_buffer_final[index + 1] = render_buffer[index + 1];
+						render_buffer_final[index + 2] = render_buffer[index + 2];
+						render_buffer_final[index + 3] = render_buffer[index + 3];
+					}
+				}
+			}
+
+			if (render_buffer)
+				delete[] render_buffer;
+
+			if (mask_buffer)
+				delete[] mask_buffer;
+		}
+	}
+
+	Format format = Format::WEBP;
+
+	WebpCompress webpCompress;
+	BufferPtr buffer = webpCompress.DoCompress(render_buffer_final, 256, 256);
+
+	//if (format == Format::JPG)
+	//{
+	//	JpgCompress jpgCompress;
+	//	buffer = jpgCompress.DoCompress(render_buffer, 256, 256);
+	//}
+	//else
+	//{
+	//	if (format == Format::PNG)
+	//	{
+	//		PngCompress pngCompress;
+	//		buffer = pngCompress.DoCompress(render_buffer, 256, 256);
+	//	}
+	//	else if (format == Format::WEBP)
+	//	{
+	//		WebpCompress webpCompress;
+	//		buffer = webpCompress.DoCompress(render_buffer, 256, 256);
+	//	}
+	//}
+
+	if (render_buffer_final)
+		delete[] render_buffer_final;
+
+	if (mask_buffer_final)
+		delete[] mask_buffer_final;
+
+	return buffer;
+}
+
+bool TileProcessor::GetTileData(Dataset* dataset, Style* style, const Envelop& env, int tile_width, int tile_height, unsigned char** buffer_out, unsigned char** mask_buff, int render_color_count)
+{
+	TiffDataset* tiffDataset = dynamic_cast<TiffDataset*>(dataset);
+	if (tiffDataset == nullptr)
+		return false;
 
 	//OGRSpatialReference* pDefaultSpatialReference = (OGRSpatialReference*)OSRNewSpatialReference(
 	//	"GEOGCS[\"GCS_WGS_1984\",DATUM[\"D_WGS_1984\",SPHEROID[\"WGS_1984\",6378137,298.257223563]],PRIMEM[\"Greenwich\",0],UNIT[\"Degree\",0.017453292519943295]]");
@@ -816,85 +932,35 @@ BufferPtr TileProcessor::GetTileData(std::list<DatasetPtr> datasets, const Envel
 	//		poSpatialReference->IsSame(pDefaultSpatialReference);
 	//}
 
-	int nRenderBand = 3;
-	if (format == Format::PNG || format == Format::WEBP)
-		nRenderBand = 4;
-
 	bool bRes = true;
-	const size_t nSize = (size_t)tile_width * tile_height * nRenderBand * pixel_bytes;
+	const size_t nSize = (size_t)tile_width * tile_height * render_color_count * pixel_bytes;
 
-	unsigned char* buff = nullptr;
-	unsigned char* pMaskBuffer = nullptr;
-	buff = new unsigned char[nSize];
+	*buffer_out = new unsigned char[nSize];
+	unsigned char* buff = *buffer_out;
+	unsigned char* mask_buffer = nullptr;
 	memset(buff, 255, nSize);
 
 	if (bSimple)
 	{
-		bRes = SimpleProject(tiffDataset.get(), band_count, band_map, env, buff, tile_width, tile_height);
+		bRes = SimpleProject(tiffDataset, band_count, band_map, env, buff, tile_width, tile_height);
 	}
 	else
 	{
 		//env 必须是 pDefaultSpatialReference 的空间参考
-		pMaskBuffer = new unsigned char[(size_t)tile_width * tile_height];
-		memset(pMaskBuffer, 255, (size_t)tile_width * tile_height);
-		bRes = DynamicProject(pDefaultSpatialReference, tiffDataset.get(), band_count, band_map, env, buff, pMaskBuffer, tile_width, tile_height);
+		*mask_buff = new unsigned char[(size_t)tile_width * tile_height];
+		mask_buffer = *mask_buff;
+		memset(mask_buffer, 255, (size_t)tile_width * tile_height);
+		bRes = DynamicProject(pDefaultSpatialReference, tiffDataset, band_count, band_map, env, buff, mask_buffer, tile_width, tile_height);
 	}
 
 	if (!bRes)
 	{
-		delete[] buff;
-		buff = nullptr;
-
-		if (pMaskBuffer != nullptr)
-			delete[] pMaskBuffer;
-
 		//OSRDestroySpatialReference(pDefaultSpatialReference);
-		return nullptr;
+		return false;
 	}
 
-	style->GetStretch()->DoStretch(buff, pMaskBuffer, tile_width * tile_height, band_count, band_map, tiffDataset.get());
-
-	BufferPtr buffer = nullptr;
-	if (format == Format::JPG)
-	{
-		JpgCompress jpgCompress;
-		buffer = jpgCompress.DoCompress(buff, 256, 256);
-	}
-	else
-	{
-		//根据mask的值，添加透明通道的值。
-		if (band_count == 3)
-		{
-			for (int j = (tile_width * tile_height) - 1; j >= 0; j--)
-			{
-				int srcIndex = j * 3;
-				int dstIndex = j * 4;
-
-				memcpy(buff + dstIndex, buff + srcIndex, 3);
-				buff[dstIndex + 3] = pMaskBuffer[j];
-			}
-		}
-
-		if (format == Format::PNG)
-		{
-			PngCompress pngCompress;
-			buffer = pngCompress.DoCompress(buff, 256, 256);
-		}
-		else if (format == Format::WEBP)
-		{
-			WebpCompress webpCompress;
-			buffer = webpCompress.DoCompress(buff, 256, 256);
-		}
-	}
-	
-	delete[] buff;
-	buff = nullptr;
-
-	if (pMaskBuffer != nullptr)
-		delete[] pMaskBuffer;
-
-	//OSRDestroySpatialReference(pDefaultSpatialReference);
-	return buffer;
+	style->GetStretch()->DoStretch(buff, mask_buffer, tile_width * tile_height, band_count, band_map, tiffDataset);
+	return true;
 }
 
 TileProcessor::~TileProcessor()

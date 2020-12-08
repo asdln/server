@@ -5,7 +5,8 @@
 #include <memory>
 #include "min_max_stretch.h"
 #include "percent_min_max_stretch.h"
-#include "dataset.h"
+
+class Dataset;
 
 enum class StyleType
 {
@@ -53,7 +54,7 @@ class Style
 
 public:
 
-	void Prepare(DatasetPtr dataset);
+	void Prepare(Dataset* dataset);
 
 	StylePtr Clone();
 
@@ -64,6 +65,10 @@ public:
 	int code() { return srs_epsg_code_; }
 
 	void set_code(int code) { srs_epsg_code_ = code; }
+
+	Format format() { return format_; }
+
+	int band_count() { return bandCount_; }
 
 	void QueryInfo(int band_count, int* band_map, Format& format, StyleType& style_type, int& epsg_code) 
 	{ 

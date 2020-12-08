@@ -129,9 +129,9 @@ StylePtr Style::CompletelyClone()
 	return pClone;
 }
 
-void Style::Prepare(DatasetPtr dataset)
+void Style::Prepare(Dataset* dataset)
 {
-	std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(dataset);
+	TiffDataset* tiffDataset = dynamic_cast<TiffDataset*>(dataset);
 	int dataset_band_count = tiffDataset->GetBandCount();
 	int nBandCount = bandCount_;
 	int bandMap[4] = { bandMap_[0] <= dataset_band_count ? bandMap_[0] : dataset_band_count
@@ -154,5 +154,5 @@ void Style::Prepare(DatasetPtr dataset)
 		bandMap_[i] = bandMap[i];
 	}
 
-	stretch_->Prepare(bandCount_, bandMap_, dataset.get());
+	stretch_->Prepare(bandCount_, bandMap_, dataset);
 }

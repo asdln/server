@@ -29,10 +29,9 @@ bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, cons
 	return GetMap(doc_root, url, request_body, result);
 }
 
-bool WMSHandler::GetTileData(std::list<DatasetPtr> datasets, const Envelop& env, Style* style, int tile_width, int tile_height, std::shared_ptr<HandleResult> result)
+bool WMSHandler::GetRenderBytes(const std::list<std::pair<DatasetPtr, StylePtr>>& datasets, const Envelop& env, int tile_width, int tile_height, std::shared_ptr<HandleResult> result)
 {
-	std::shared_ptr<TileProcessor> pRequestProcessor = std::make_shared<TileProcessor>();
-	BufferPtr buffer = pRequestProcessor->GetTileData(datasets, env, tile_width, tile_height, style);
+	BufferPtr buffer = TileProcessor::GetCombinedData(datasets, env, tile_width, tile_height);
 
 	//if(buffer != nullptr)
 	//{
@@ -95,16 +94,13 @@ bool WMSHandler::GetTileData(std::list<DatasetPtr> datasets, const Envelop& env,
 bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
 	std::list<std::string> paths;
-	QueryDataPath(url, paths);
+	QueryDataPath(url, request_body, paths);
 
 	//暂时只获取第一个数据集
-	std::list<DatasetPtr> datasets;
 	std::string filePath = paths.front();
 	std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(filePath));
 	if (tiffDataset == nullptr)
 		return false;
-
-	datasets.emplace_back(tiffDataset);
 
 	StylePtr style_clone = GetStyle(url, request_body, tiffDataset);
 
@@ -145,7 +141,9 @@ bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, cons
 		style_clone->GetStretch()->SetExternalNoDataValue(no_data_value);
 	}
 
-	return GetTileData(datasets, env, style_clone.get(), tile_width, tile_height, result);
+	std::list<std::pair<DatasetPtr, StylePtr>> datasets;
+	datasets.emplace_back(std::make_pair(tiffDataset, style_clone));
+	return GetRenderBytes(datasets, env, tile_width, tile_height, result);
 }
 
 bool WMSHandler::GetCapabilities(boost::beast::string_view doc_root, const Url& url, std::shared_ptr<HandleResult> result)

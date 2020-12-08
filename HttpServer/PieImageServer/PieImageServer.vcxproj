@@ -189,6 +189,7 @@
     <ClInclude Include="cJSON.h" />
     <ClInclude Include="CJsonObject.hpp" />
     <ClInclude Include="compress.h" />
+    <ClInclude Include="concurrentqueue.h" />
     <ClInclude Include="coordinate_transformation.h" />
     <ClInclude Include="dataset_factory.h" />
     <ClInclude Include="dataset.h" />

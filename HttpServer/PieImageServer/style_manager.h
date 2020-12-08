@@ -7,6 +7,7 @@
 #include <shared_mutex>
 #include "style.h"
 #include "url.h"
+#include "dataset.h"
 
 class StyleManager
 {

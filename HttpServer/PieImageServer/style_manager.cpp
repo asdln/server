@@ -26,6 +26,9 @@ std::shared_mutex StyleManager::s_shared_mutex_style_container;
 //{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind": "histogramEqualize", "percent" : 0.0}}}
 //{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind": "standardDeviation", "scale" : 2.05}}}
 
+//可以省略一些字段，例如：
+//{"style":{"stretch" : {"kind":"percentMinimumMaximum", "percent" : 3.0}}}
+
 
 bool GetMd5(std::string& str_md5, const char* const buffer, size_t buffer_size)
 {
@@ -188,7 +191,7 @@ StylePtr StyleManager::GetStyle(const Url& url, const std::string& request_body,
 					style->GetStretch()->SetStatisticExternalNoDataValue(is_nodata_value_statistic);
 				}
 
-				style->Prepare(dataset);
+				style->Prepare(dataset.get());
 				s_map_style_container[md5] = style;
 				return style->CompletelyClone();
 			}
@@ -267,14 +270,22 @@ StylePtr StyleManager::FromJson(const std::string& jsonStyle)
 		if (oJson.Get("style", oJson_style))
 		{
 			style = std::make_shared<Style>();
-			oJson_style.Get("bandCount", style->bandCount_);
-			for (int i = 0; i < style->bandCount_; i++)
+			if (oJson_style.Get("bandCount", style->bandCount_))
 			{
-				oJson_style["bandMap"].Get(i, style->bandMap_[i]);
+				for (int i = 0; i < style->bandCount_; i++)
+				{
+					oJson_style["bandMap"].Get(i, style->bandMap_[i]);
+				}
 			}
 
 			oJson_style.Get("version", style->version_);
+
 			style->kind_ = String2StyleType(oJson_style("kind"));
+			if (style->kind_ == StyleType::NONE)
+			{
+				style->kind_ = StyleType::TRUE_COLOR;
+			}
+
 			style->format_ = String2Format(oJson_style("format"));
 
 			style->uid_ = oJson_style("uid");

@@ -5,7 +5,7 @@
 #include "session.h"
 #include "handle_result.h"
 #include "style.h"
-
+#include "dataset.h"
 
 class Handler
 {
@@ -20,7 +20,7 @@ public:
 	virtual int QueryTileWidth(const Url& url);
 	virtual int QueryTileHeight(const Url& url);
 
-	virtual void QueryDataPath(const Url& url, std::list<std::string>& paths);
+	virtual void QueryDataPath(const Url& url, const std::string& request_body, std::list<std::string>& paths);
 
 	virtual bool QueryNoDataValue(const Url& url, double& value);
 
