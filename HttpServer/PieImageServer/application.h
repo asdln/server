@@ -33,6 +33,8 @@ protected:
 	std::shared_ptr<std::string> doc_root_;
 	int threads_;
 
+	std::string gdal_cache_size_ = "1000";
+
 	int statistic_window_size_;
 
 	std::string app_path_;

@@ -38,6 +38,8 @@ public:
 
 	OGRSpatialReference* GetSpatialReference(int epsg_code);
 
+	void ClearDatasets();
+
 	//use_external_no_data 是否使用外部传入的无效值。有些影像本身没有无效值信息，但是有黑边。外部传入无效值，去黑边
 	HistogramPtr GetHistogram(Dataset* tiff_dataset, int band, bool use_external_no_data, double external_no_data_value);
 

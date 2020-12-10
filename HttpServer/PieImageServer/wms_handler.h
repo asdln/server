@@ -18,6 +18,8 @@ public:
 	bool GetFeatureInfo(boost::beast::string_view doc_root, const Url& url, std::shared_ptr<HandleResult> result);
 
 	bool UpdateStyle(const std::string& request_body, std::shared_ptr<HandleResult> result);
+
+	bool ClearAllDatasets(const std::string& request_body, std::shared_ptr<HandleResult> result);
 };
 
 #endif //PIEIMAGESERVER_WMS_HANDLER_H_

@@ -84,6 +84,12 @@ std::shared_ptr<Dataset> ResourcePool::GetDataset(const std::string& path)
 	}
 }
 
+void ResourcePool::ClearDatasets()
+{
+	std::lock_guard<std::mutex> guard(mutex_dataset_);
+	map_dataset_pool_.clear();
+}
+
 OGRSpatialReference* ResourcePool::GetSpatialReference(int epsg_code)
 {
 	{

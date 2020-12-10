@@ -26,6 +26,10 @@ bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, con
 		{
 			return UpdateStyle(request_body, result);
 		}
+		else if (request.compare("ClearAllDatasets") == 0)
+		{
+			return ClearAllDatasets(request_body, result);
+		}
 	}
 
 	return GetTile(doc_root, url, request_body, result);

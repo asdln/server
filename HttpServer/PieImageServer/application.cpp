@@ -216,6 +216,10 @@ Application::Application(int argc, char* argv[])
 
 	LoadConfig();
 
+	CPLSetConfigOption("GDAL_CACHEMAX", gdal_cache_size_.c_str());
+	LOG(INFO) << "GDAL Version:  " << GDALVersionInfo("--version");
+	LOG(INFO) << "GDAL CacheSize:  " << gdal_cache_size_ << "Mb";
+
 	ResourcePool::GetInstance()->SetDatasetPoolMaxCount(threads_ + 1);
 
 	LOG(INFO) << "threads : " << threads_ << "   port : " << port_ << "    statistic_size: " << statistic_window_size_ << std::endl;
@@ -258,6 +262,11 @@ bool Application::LoadConfig()
 	if (tag_system.count("statistic_size") == 1)
 	{
 		statistic_window_size_ = std::max<int>(1, tag_system.get<int>("statistic_size"));
+	}
+
+	if (tag_system.count("gdal_cache_size") == 1)
+	{
+		gdal_cache_size_ = tag_system.get<std::string>("gdal_cache_size");
 	}
 
 	boost::property_tree::ptree tag_etcd = root_node.get_child("Etcd");

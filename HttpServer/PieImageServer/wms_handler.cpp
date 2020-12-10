@@ -24,9 +24,19 @@ bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, cons
 		{
 			return UpdateStyle(request_body, result);
 		}
+		else if (request.compare("ClearAllDatasets") == 0)
+		{
+			return ClearAllDatasets(request_body, result);
+		}
 	}
 
 	return GetMap(doc_root, url, request_body, result);
+}
+
+bool WMSHandler::ClearAllDatasets(const std::string& request_body, std::shared_ptr<HandleResult> result)
+{
+	ResourcePool::GetInstance()->ClearDatasets();
+	return true;
 }
 
 bool WMSHandler::GetRenderBytes(const std::list<std::pair<DatasetPtr, StylePtr>>& datasets, const Envelop& env, int tile_width, int tile_height, std::shared_ptr<HandleResult> result)
