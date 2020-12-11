@@ -35,7 +35,7 @@ int main(int argc, char* argv[])
 	//	pl.free(p);
 	//}
 
-	FLAGS_log_dir = "./";
+	FLAGS_log_dir = "./log/";
 	FLAGS_logbufsecs = 0;
 	FLAGS_alsologtostderr = 1;
 	google::InitGoogleLogging(argv[0]);
