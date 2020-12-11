@@ -15,14 +15,9 @@ public:
 
 	static bool UpdateStyle(const std::string& jsonStyle, std::string& style_key);
 
-	static StylePtr GetStyle(const Url& url, const std::string& request_body, DatasetPtr dataset);
+	static StylePtr GetStyle(const Url& url, const std::string& style_string, DatasetPtr dataset);
 
 	static StylePtr GetStyle(const std::string& styleKey, size_t version);
-
-	static StylePtr FromJson(const std::string& jsonStyle);
-
-	static std::string ToJson(StylePtr style);
-
 	 
 protected:
 

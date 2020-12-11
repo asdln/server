@@ -1,6 +1,5 @@
 #include "style_manager.h"
 #include "true_color_style.h"
-#include "CJsonObject.hpp"
 #include "min_max_stretch.h"
 #include "histogram_equalize_stretch.h"
 #include "standard_deviation_stretch.h"
@@ -29,6 +28,11 @@ std::shared_mutex StyleManager::s_shared_mutex_style_container;
 //可以省略一些字段，例如：
 //{"style":{"stretch" : {"kind":"percentMinimumMaximum", "percent" : 3.0}}}
 
+//post body:
+
+//例子1: {"info":[{"path":"d:/1.tif","style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind":"percentMinimumMaximum", "percent" : 3.0}}},{"path":"d:/2.tif", "style" : {"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind":"percentMinimumMaximum", "percent" : 3.0}}}]}
+//例子2: {"info":[{"path":"d:/1.tif","style":{"stretch":{"kind":"percentMinimumMaximum","percent":3.0}}},{"path":"d:/2.tif","style":{"stretch":{"kind":"percentMinimumMaximum","percent":3.0}}}]}
+//例子3: {"info":[{"path":"d:/linux_share/DEM-Gloable32.tif","style":{"stretch":{"kind":"standardDeviation","scale":0.5}}},{"path":"d:/linux_share/t/1.tiff","style":{"stretch":{"kind":"percentMinimumMaximum","percent":3.0}}}]}
 
 bool GetMd5(std::string& str_md5, const char* const buffer, size_t buffer_size)
 {
@@ -48,7 +52,7 @@ bool GetMd5(std::string& str_md5, const char* const buffer, size_t buffer_size)
 
 bool StyleManager::UpdateStyle(const std::string& json_style, std::string& style_key)
 {
-	StylePtr style = FromJson(json_style);
+	StylePtr style = StyleSerielizer::FromJson(json_style);
 	if (nullptr == style)
 		return false;
 
@@ -61,7 +65,7 @@ bool StyleManager::UpdateStyle(const std::string& json_style, std::string& style
 		CreateUID(style->uid_);
 
 		style_key = GetStyleKey(style.get());
-		std::string new_json = ToJson(style);
+		std::string new_json = StyleSerielizer::ToJson(style);
 
 		AddOrUpdateStyleMap(style_key, style);
 		
@@ -77,7 +81,7 @@ bool StyleManager::UpdateStyle(const std::string& json_style, std::string& style
 			AddOrUpdateStyleMap(style_key, style);
 
 			std::string old_json_style = etcd_storage.GetValue(style_key);
-			oldStyle = FromJson(old_json_style);
+			oldStyle = StyleSerielizer::FromJson(old_json_style);
 
 			if (oldStyle != nullptr && oldStyle->version_ < style->version_)
 			{
@@ -104,7 +108,7 @@ bool StyleManager::UpdateStyle(const std::string& json_style, std::string& style
 	return true;
 }
 
-StylePtr StyleManager::GetStyle(const Url& url, const std::string& request_body, DatasetPtr dataset)
+StylePtr StyleManager::GetStyle(const Url& url, const std::string& style_string, DatasetPtr dataset)
 {
 	std::string file_path = dataset->file_path();
 	std::string string_style;
@@ -126,13 +130,15 @@ StylePtr StyleManager::GetStyle(const Url& url, const std::string& request_body,
 	}
 
 	//style获取顺序：获取body，如果没有，获取url的style2，如果没有，获取url的style
-	if (!request_body.empty())
+	if (!style_string.empty())
 	{
-		neb::CJsonObject oJson(request_body);
-		if (oJson.Get("style", oJson_style))
-		{
-			string_style = oJson_style.ToString();
-		}
+		//neb::CJsonObject oJson(request_body);
+		//if (oJson.Get("style", oJson_style))
+		//{
+		//	string_style = oJson_style.ToString();
+		//}
+
+		string_style = style_string;
 	}
 	else
 	{
@@ -171,7 +177,7 @@ StylePtr StyleManager::GetStyle(const Url& url, const std::string& request_body,
 			}
 			else
 			{
-				StylePtr style = FromJson(string_style);
+				StylePtr style = StyleSerielizer::FromJson(string_style);
 				if (style == nullptr)
 				{
 					LOG(ERROR) << "FromJson(request_body) error";
@@ -239,7 +245,7 @@ StylePtr StyleManager::GetStyle(const std::string& styleKey, size_t version)
 	{
 		EtcdStorage etcd_storge;
 		std::string str_json_style = etcd_storge.GetValue(styleKey);
-		style = FromJson(str_json_style);
+		style = StyleSerielizer::FromJson(str_json_style);
 		if(style == nullptr || style->version_ != version)
 		{
 			return nullptr;
@@ -254,131 +260,6 @@ StylePtr StyleManager::GetStyle(const std::string& styleKey, size_t version)
 	}
 
 	return style;
-}
-
-StylePtr StyleManager::FromJson(const std::string& jsonStyle)
-{
-	if (jsonStyle.empty())
-		return nullptr;
-
-	StylePtr style;
-
-	try
-	{
-		neb::CJsonObject oJson(jsonStyle);
-		neb::CJsonObject oJson_style;
-		if (oJson.Get("style", oJson_style))
-		{
-			style = std::make_shared<Style>();
-			if (oJson_style.Get("bandCount", style->bandCount_))
-			{
-				for (int i = 0; i < style->bandCount_; i++)
-				{
-					oJson_style["bandMap"].Get(i, style->bandMap_[i]);
-				}
-			}
-
-			oJson_style.Get("version", style->version_);
-
-			style->kind_ = String2StyleType(oJson_style("kind"));
-			if (style->kind_ == StyleType::NONE)
-			{
-				style->kind_ = StyleType::TRUE_COLOR;
-			}
-
-			style->format_ = String2Format(oJson_style("format"));
-
-			style->uid_ = oJson_style("uid");
-
-			std::string stretch_kind = oJson_style["stretch"]("kind");
-			if (stretch_kind.compare(StretchType2String(StretchType::MINIMUM_MAXIMUM)) == 0)
-			{
-				double dMin = 0.0;
-				double dMax = 0.0;
-
-				auto stretch = std::make_shared<MinMaxStretch>();
-				style->stretch_ = stretch;
-
-				for (int i = 0; i < style->bandCount_; i++)
-				{
-					oJson_style["stretch"]["minimum"].Get(i, stretch->min_value_[i]);
-					oJson_style["stretch"]["maximum"].Get(i, stretch->max_value_[i]);
-				}
-			}
-			else if (stretch_kind.compare(StretchType2String(StretchType::PERCENT_MINMAX)) == 0)
-			{
-				auto stretch = std::make_shared<PercentMinMaxStretch>();
-				style->stretch_ = stretch;
-
-				double percent = 1.0;
-				oJson_style["stretch"].Get("percent", percent);
-				stretch->set_stretch_percent(percent);
-			}
-			else if (stretch_kind.compare(StretchType2String(StretchType::HISTOGRAMEQUALIZE)) == 0)
-			{
-				auto stretch = std::make_shared<HistogramEqualizeStretch>();
-				style->stretch_ = stretch;
-
-				double percent = 0.0;
-				oJson_style["stretch"].Get("percent", percent);
-				stretch->set_stretch_percent(percent);
-			}
-			else if (stretch_kind.compare(StretchType2String(StretchType::STANDARD_DEVIATION)) == 0)
-			{
-				auto stretch = std::make_shared<StandardDeviationStretch>();
-				style->stretch_ = stretch;
-
-				double scale = 2.5;
-				oJson_style["stretch"].Get("scale", scale);
-				stretch->set_dev_scale(scale);
-			}
-		}
-	}
-	catch (...)
-	{
-		LOG(ERROR) << "style format wrong";
-	}
-
-	return style;
-}
-
-//目前部署没用到etcd所以暂时不写
-std::string StyleManager::ToJson(StylePtr style)
-{
-	neb::CJsonObject oJson;
-	//oJson.Add("uid", style->uid_.c_str());
-	//oJson.Add("version", style->version_);
-	//oJson.Add("kind", StyleType2String(style->kind_));
-	//oJson.Add("format", Format2String(style->format_));
-	//oJson.Add("bandCount", style->bandCount_);
-	//oJson.AddEmptySubArray("bandMap");
-
-	//for (int i = 0; i < style->bandCount_; i ++)
-	//{
-	//	oJson["bandMap"].Add(style->bandMap_[i]);
-	//}
-
-	//oJson.AddEmptySubObject("stretch");
-	//if (style->stretch_->kind() == StretchType::MINIMUM_MAXIMUM)
-	//{
-	//	oJson["stretch"].Add("kind", StretchType2String(StretchType::MINIMUM_MAXIMUM));
-	//	oJson["stretch"].Add("minimum", 0.0);
-	//	oJson["stretch"].Add("maximum", 255.0);
-	//}
-	//else if (style->stretch_->kind() == StretchType::PERCENT_MINMAX)
-	//{
-	//	PercentMinMaxStretchPtr percent_min_max_stretch = std::dynamic_pointer_cast<PercentMinMaxStretch>(style);
-	//	oJson["stretch"].Add("kind", StretchType2String(StretchType::PERCENT_MINMAX));
-	//	oJson["stretch"].Add("percent", percent_min_max_stretch->stretch_percent());
-	//}
-	//else if (style->stretch_->kind() == StretchType::HISTOGRAMEQUALIZE)
-	//{
-	//}
-
-	neb::CJsonObject oJson1;
-	oJson1.Add("style", oJson);
-
-	return oJson1.ToString();
 }
 
 StylePtr StyleManager::GetFromStyleMap(const std::string& key)

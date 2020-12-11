@@ -37,9 +37,6 @@ bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, con
 
 bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
-	std::list<std::string> paths;
-	QueryDataPath(url, request_body, paths);
-
 	int epsg_code = QuerySRS(url);
 	if (epsg_code == -1)
 	{
@@ -58,23 +55,56 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, co
 	bool have_no_data = QueryNoDataValue(url, no_data_value);
 
 	std::list<std::pair<DatasetPtr, StylePtr>> datasets;
-	for (auto path : paths)
+
+	if (!request_body.empty())
 	{
-		std::string filePath = path;
-		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(filePath));
-		if (tiffDataset == nullptr)
-			continue;
+		std::list<std::pair<std::string, std::string>> data_info;
+		QueryDataInfo(request_body, data_info);
 
-		StylePtr style_clone = GetStyle(url, request_body, tiffDataset);
-		style_clone->set_code(epsg_code);
-
-		if (have_no_data)
+		for (auto info : data_info)
 		{
-			style_clone->GetStretch()->SetUseExternalNoDataValue(have_no_data);
-			style_clone->GetStretch()->SetExternalNoDataValue(no_data_value);
-		}
+			const std::string& path = info.first;
+			std::string style_string = info.second;
 
-		datasets.emplace_back(std::make_pair(tiffDataset, style_clone));
+			std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(path));
+			if (tiffDataset == nullptr)
+				continue;
+
+			StylePtr style_clone = StyleManager::GetStyle(url, style_string, tiffDataset);
+			style_clone->set_code(epsg_code);
+
+			if (have_no_data)
+			{
+				style_clone->GetStretch()->SetUseExternalNoDataValue(have_no_data);
+				style_clone->GetStretch()->SetExternalNoDataValue(no_data_value);
+			}
+
+			datasets.emplace_back(std::make_pair(tiffDataset, style_clone));
+		}
+	}
+	else
+	{
+		std::list<std::string> paths;
+		QueryDataPath(url, paths);
+
+		for (auto path : paths)
+		{
+			std::string filePath = path;
+			std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(filePath));
+			if (tiffDataset == nullptr)
+				continue;
+
+			StylePtr style_clone = StyleManager::GetStyle(url, request_body, tiffDataset);
+			style_clone->set_code(epsg_code);
+
+			if (have_no_data)
+			{
+				style_clone->GetStretch()->SetUseExternalNoDataValue(have_no_data);
+				style_clone->GetStretch()->SetExternalNoDataValue(no_data_value);
+			}
+
+			datasets.emplace_back(std::make_pair(tiffDataset, style_clone));
+		}
 	}
 
 	return WMSHandler::GetRenderBytes(datasets, env, 256, 256, result);

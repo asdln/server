@@ -103,17 +103,6 @@ bool WMSHandler::GetRenderBytes(const std::list<std::pair<DatasetPtr, StylePtr>>
 
 bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
-	std::list<std::string> paths;
-	QueryDataPath(url, request_body, paths);
-
-	//暂时只获取第一个数据集
-	std::string filePath = paths.front();
-	std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(filePath));
-	if (tiffDataset == nullptr)
-		return false;
-
-	StylePtr style_clone = GetStyle(url, request_body, tiffDataset);
-
 	Envelop env;
 	std::string env_string;
 	if (url.QueryValue("bbox", env_string))
@@ -135,24 +124,69 @@ bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, cons
 	int tile_width = QueryTileWidth(url);
 	int tile_height = QueryTileHeight(url);
 
-	//如果在url里显式的指定投影，则覆盖
 	int epsg_code = QuerySRS(url);
-	if (epsg_code != -1)
+	if (epsg_code == -1)
 	{
-		style_clone->set_code(epsg_code);
+		//默认 web_mercator
+		epsg_code = 3857;
 	}
 
 	double no_data_value = 0.;
 	bool have_no_data = QueryNoDataValue(url, no_data_value);
 
-	if (have_no_data)
+	std::list<std::pair<DatasetPtr, StylePtr>> datasets;
+
+	if (!request_body.empty())
 	{
-		style_clone->GetStretch()->SetUseExternalNoDataValue(have_no_data);
-		style_clone->GetStretch()->SetExternalNoDataValue(no_data_value);
+		std::list<std::pair<std::string, std::string>> data_info;
+		QueryDataInfo(request_body, data_info);
+
+		for (auto info : data_info)
+		{
+			const std::string& path = info.first;
+			std::string style_string = info.second;
+
+			std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(path));
+			if (tiffDataset == nullptr)
+				continue;
+
+			StylePtr style_clone = StyleManager::GetStyle(url, style_string, tiffDataset);
+			style_clone->set_code(epsg_code);
+
+			if (have_no_data)
+			{
+				style_clone->GetStretch()->SetUseExternalNoDataValue(have_no_data);
+				style_clone->GetStretch()->SetExternalNoDataValue(no_data_value);
+			}
+
+			datasets.emplace_back(std::make_pair(tiffDataset, style_clone));
+		}
+	}
+	else
+	{
+		std::list<std::string> paths;
+		QueryDataPath(url, paths);
+
+		for (auto path : paths)
+		{
+			std::string filePath = path;
+			std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(filePath));
+			if (tiffDataset == nullptr)
+				continue;
+
+			StylePtr style_clone = StyleManager::GetStyle(url, request_body, tiffDataset);
+			style_clone->set_code(epsg_code);
+
+			if (have_no_data)
+			{
+				style_clone->GetStretch()->SetUseExternalNoDataValue(have_no_data);
+				style_clone->GetStretch()->SetExternalNoDataValue(no_data_value);
+			}
+
+			datasets.emplace_back(std::make_pair(tiffDataset, style_clone));
+		}
 	}
 
-	std::list<std::pair<DatasetPtr, StylePtr>> datasets;
-	datasets.emplace_back(std::make_pair(tiffDataset, style_clone));
 	return GetRenderBytes(datasets, env, tile_width, tile_height, result);
 }
 

@@ -1,5 +1,13 @@
 #include "style.h"
 #include "tiff_dataset.h"
+#include "true_color_style.h"
+#include "min_max_stretch.h"
+#include "histogram_equalize_stretch.h"
+#include "standard_deviation_stretch.h"
+#include "percent_min_max_stretch.h"
+#define GOOGLE_GLOG_DLL_DECL 
+#define GLOG_NO_ABBREVIATED_SEVERITIES
+#include "glog/logging.h"
 
 Format default_format = Format::WEBP;
 std::string default_string_format = "webp";
@@ -155,4 +163,142 @@ void Style::Prepare(Dataset* dataset)
 	}
 
 	stretch_->Prepare(bandCount_, bandMap_, dataset);
+}
+
+
+StylePtr StyleSerielizer::FromJsonObj(neb::CJsonObject& json_obj)
+{
+	StylePtr style;
+	style = std::make_shared<Style>();
+	if (json_obj.Get("bandCount", style->bandCount_))
+	{
+		for (int i = 0; i < style->bandCount_; i++)
+		{
+			json_obj["bandMap"].Get(i, style->bandMap_[i]);
+		}
+	}
+
+	json_obj.Get("version", style->version_);
+
+	style->kind_ = String2StyleType(json_obj("kind"));
+	if (style->kind_ == StyleType::NONE)
+	{
+		style->kind_ = StyleType::TRUE_COLOR;
+	}
+
+	style->format_ = String2Format(json_obj("format"));
+
+	style->uid_ = json_obj("uid");
+
+	std::string stretch_kind = json_obj["stretch"]("kind");
+	if (stretch_kind.compare(StretchType2String(StretchType::MINIMUM_MAXIMUM)) == 0)
+	{
+		double dMin = 0.0;
+		double dMax = 0.0;
+
+		auto stretch = std::make_shared<MinMaxStretch>();
+		style->stretch_ = stretch;
+
+		for (int i = 0; i < style->bandCount_; i++)
+		{
+			json_obj["stretch"]["minimum"].Get(i, stretch->min_value_[i]);
+			json_obj["stretch"]["maximum"].Get(i, stretch->max_value_[i]);
+		}
+	}
+	else if (stretch_kind.compare(StretchType2String(StretchType::PERCENT_MINMAX)) == 0)
+	{
+		auto stretch = std::make_shared<PercentMinMaxStretch>();
+		style->stretch_ = stretch;
+
+		double percent = 1.0;
+		json_obj["stretch"].Get("percent", percent);
+		stretch->set_stretch_percent(percent);
+	}
+	else if (stretch_kind.compare(StretchType2String(StretchType::HISTOGRAMEQUALIZE)) == 0)
+	{
+		auto stretch = std::make_shared<HistogramEqualizeStretch>();
+		style->stretch_ = stretch;
+
+		double percent = 0.0;
+		json_obj["stretch"].Get("percent", percent);
+		stretch->set_stretch_percent(percent);
+	}
+	else if (stretch_kind.compare(StretchType2String(StretchType::STANDARD_DEVIATION)) == 0)
+	{
+		auto stretch = std::make_shared<StandardDeviationStretch>();
+		style->stretch_ = stretch;
+
+		double scale = 2.5;
+		json_obj["stretch"].Get("scale", scale);
+		stretch->set_dev_scale(scale);
+	}
+
+	return style;
+}
+
+StylePtr StyleSerielizer::FromJson(const std::string& jsonStyle)
+{
+	if (jsonStyle.empty())
+		return nullptr;
+
+	StylePtr style;
+
+	try
+	{
+		neb::CJsonObject oJson(jsonStyle);
+		neb::CJsonObject oJson_style;
+
+		//如果不包含"style"，则认为已经提取了字段值
+		if (!oJson.Get("style", oJson_style))
+		{
+			oJson_style = neb::CJsonObject(jsonStyle);
+		}
+
+		style = FromJsonObj(oJson_style);
+	}
+	catch (...)
+	{
+		LOG(ERROR) << "style format wrong";
+	}
+
+	return style;
+}
+
+//目前部署没用到etcd所以暂时不写
+std::string StyleSerielizer::ToJson(StylePtr style)
+{
+	neb::CJsonObject oJson;
+	//oJson.Add("uid", style->uid_.c_str());
+	//oJson.Add("version", style->version_);
+	//oJson.Add("kind", StyleType2String(style->kind_));
+	//oJson.Add("format", Format2String(style->format_));
+	//oJson.Add("bandCount", style->bandCount_);
+	//oJson.AddEmptySubArray("bandMap");
+
+	//for (int i = 0; i < style->bandCount_; i ++)
+	//{
+	//	oJson["bandMap"].Add(style->bandMap_[i]);
+	//}
+
+	//oJson.AddEmptySubObject("stretch");
+	//if (style->stretch_->kind() == StretchType::MINIMUM_MAXIMUM)
+	//{
+	//	oJson["stretch"].Add("kind", StretchType2String(StretchType::MINIMUM_MAXIMUM));
+	//	oJson["stretch"].Add("minimum", 0.0);
+	//	oJson["stretch"].Add("maximum", 255.0);
+	//}
+	//else if (style->stretch_->kind() == StretchType::PERCENT_MINMAX)
+	//{
+	//	PercentMinMaxStretchPtr percent_min_max_stretch = std::dynamic_pointer_cast<PercentMinMaxStretch>(style);
+	//	oJson["stretch"].Add("kind", StretchType2String(StretchType::PERCENT_MINMAX));
+	//	oJson["stretch"].Add("percent", percent_min_max_stretch->stretch_percent());
+	//}
+	//else if (style->stretch_->kind() == StretchType::HISTOGRAMEQUALIZE)
+	//{
+	//}
+
+	neb::CJsonObject oJson1;
+	oJson1.Add("style", oJson);
+
+	return oJson1.ToString();
 }

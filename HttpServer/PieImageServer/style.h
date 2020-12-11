@@ -6,6 +6,8 @@
 #include "min_max_stretch.h"
 #include "percent_min_max_stretch.h"
 
+#include "CJsonObject.hpp"
+
 class Dataset;
 
 enum class StyleType
@@ -50,6 +52,7 @@ typedef std::shared_ptr<Style> StylePtr;
 
 class Style
 {
+	friend class StyleSerielizer;
 	friend class StyleManager;
 
 public:
@@ -99,6 +102,18 @@ protected:
 
 	std::shared_ptr<Stretch> stretch_ = std::make_shared<PercentMinMaxStretch>();
 };
+
+class StyleSerielizer
+{
+public:
+
+	static StylePtr FromJson(const std::string& jsonStyle);
+
+	static StylePtr FromJsonObj(neb::CJsonObject& json_obj);
+
+	static std::string ToJson(StylePtr style);
+};
+
 
 std::string StyleType2String(StyleType style_type);
 
