@@ -19,6 +19,8 @@
 			{"info":[{"path":"d:/1.tif","style":{"stretch":{"kind":"percentMinimumMaximum","percent":3.0}}},{"path":"d:/2.tif","style":{"stretch":{"kind":"percentMinimumMaximum","percent":3.0}}}]}
 		例子3：
 			{"info":[{"path":"d:/linux_share/DEM-Gloable32.tif","style":{"stretch":{"kind":"standardDeviation","scale":0.5}}},{"path":"d:/linux_share/t/1.tiff","style":{"stretch":{"kind":"percentMinimumMaximum","percent":3.0}}}]}
+	
+		style字段可以省略，则使用默认显示方式
 
 3）info的stretch支持下面四种拉伸方式
 
@@ -26,6 +28,9 @@
 	{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind": "minimumMaximum", "minimum" : [0.0, 0.0, 0.0] , "maximum" : [255.0, 255.0, 255.0] }}}
 	{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind": "histogramEqualize", "percent" : 0.0}}}
 	{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind": "standardDeviation", "scale" : 2.05}}}
+
+	可以省略一些字段，例如：
+	{"style":{"stretch" : {"kind":"percentMinimumMaximum", "percent" : 3.0}}}
 
 
 4）正在开发预设数据集和显示方式的接口。开发好后，不用每次都指定数据集和显示方式。但是需要启动etcd
