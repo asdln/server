@@ -1,0 +1,31 @@
+1）镜像启动命令：
+	docker run -it -p 8083:8083 image_server:4.0.0 ./server
+	镜像内部默认8083端口，-v 需要添加数据目录映射
+
+2）url支持两种，一种是post，一种是get。其中 "request=GetTile&TILECOL={x}&TILEROW={y}&TILEMATRIX={z}" 必须写
+	get举例，info参数为描述数据路径和显示方式的json串：
+		http://localhost:8083/v1?request=GetTile&TILECOL={x}&TILEROW={y}&TILEMATRIX={z}&info=%7B%22info%22:[%7B%22path%22:%22d:/linux_share/DEM-Gloable32.tif%22,%22style%22:%7B%22stretch%22:%7B%22kind%22:%22histogramEqualize%22,%22percent%22:0.0%7D%7D%7D,%7B%22path%22:%22d:/linux_share/t/1.tiff%22,%22style%22:%7B%22stretch%22:%7B%22kind%22:%22percentMinimumMaximum%22,%22percent%22:3.0%7D%7D%7D]%7D
+
+	post举例：
+		http://localhost:8083/v1?request=GetTile&TILECOL={x}&TILEROW={y}&TILEMATRIX={z}
+
+	postbody体内容：
+		{"info":[{"path":"d:/1.tif","style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind":"percentMinimumMaximum", "percent" : 3.0}}},{"path":"d:/2.tif", "style" : {"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind":"percentMinimumMaximum", "percent" : 3.0}}}]}
+
+	get和post的json格式是一样的，如下例子1,2,3
+		例子1：
+			{"info":[{"path":"d:/1.tif","style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind":"percentMinimumMaximum", "percent" : 3.0}}},{"path":"d:/2.tif", "style" : {"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind":"percentMinimumMaximum", "percent" : 3.0}}}]}
+		例子2：
+			{"info":[{"path":"d:/1.tif","style":{"stretch":{"kind":"percentMinimumMaximum","percent":3.0}}},{"path":"d:/2.tif","style":{"stretch":{"kind":"percentMinimumMaximum","percent":3.0}}}]}
+		例子3：
+			{"info":[{"path":"d:/linux_share/DEM-Gloable32.tif","style":{"stretch":{"kind":"standardDeviation","scale":0.5}}},{"path":"d:/linux_share/t/1.tiff","style":{"stretch":{"kind":"percentMinimumMaximum","percent":3.0}}}]}
+
+3）info的stretch支持下面四种拉伸方式
+
+	{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind":"percentMinimumMaximum", "percent" : 3.0}}}
+	{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind": "minimumMaximum", "minimum" : [0.0, 0.0, 0.0] , "maximum" : [255.0, 255.0, 255.0] }}}
+	{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind": "histogramEqualize", "percent" : 0.0}}}
+	{"style":{"kind":"trueColor", "bandMap" : [1, 2, 3] , "bandCount" : 3, "stretch" : {"kind": "standardDeviation", "scale" : 2.05}}}
+
+
+4）正在开发预设数据集和显示方式的接口。开发好后，不用每次都指定数据集和显示方式。但是需要启动etcd
