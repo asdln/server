@@ -15,7 +15,7 @@ public:
 
 	static bool UpdateStyle(const std::string& jsonStyle, std::string& style_key);
 
-	static StylePtr GetStyle(const Url& url, const std::string& style_string, DatasetPtr dataset);
+	static StylePtr GetStyle(const std::string& style_string, DatasetPtr dataset);
 
 	static StylePtr GetStyle(const std::string& styleKey, size_t version);
 	 

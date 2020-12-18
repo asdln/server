@@ -22,8 +22,6 @@ public:
 
 	virtual void QueryDataPath(const Url& url, std::list<std::string>& paths);
 
-	virtual bool QueryNoDataValue(const Url& url, double& value);
-
 	virtual void QueryDataInfo(const std::string& request_body, std::list<std::pair<std::string, std::string>>& data_info);
 
 	virtual int QuerySRS(const Url& url);

@@ -51,15 +51,13 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, co
 	Envelop env;
 	GetEnvFromTileIndex(nx, ny, nz, env, epsg_code);
 
-	double no_data_value = 0.;
-	bool have_no_data = QueryNoDataValue(url, no_data_value);
-
 	std::list<std::pair<DatasetPtr, StylePtr>> datasets;
+	std::string info = request_body;
 
-	if (!request_body.empty())
+	if (!info.empty() || url.QueryValue("info", info))
 	{
 		std::list<std::pair<std::string, std::string>> data_info;
-		QueryDataInfo(request_body, data_info);
+		QueryDataInfo(info, data_info);
 
 		for (auto info : data_info)
 		{
@@ -70,39 +68,8 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, co
 			if (tiffDataset == nullptr)
 				continue;
 
-			StylePtr style_clone = StyleManager::GetStyle(url, style_string, tiffDataset);
+			StylePtr style_clone = StyleManager::GetStyle(style_string, tiffDataset);
 			style_clone->set_code(epsg_code);
-
-			if (have_no_data)
-			{
-				style_clone->GetStretch()->SetUseExternalNoDataValue(have_no_data);
-				style_clone->GetStretch()->SetExternalNoDataValue(no_data_value);
-			}
-
-			datasets.emplace_back(std::make_pair(tiffDataset, style_clone));
-		}
-	}
-	else
-	{
-		std::list<std::string> paths;
-		QueryDataPath(url, paths);
-
-		for (auto path : paths)
-		{
-			std::string filePath = path;
-			std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(filePath));
-			if (tiffDataset == nullptr)
-				continue;
-
-			StylePtr style_clone = StyleManager::GetStyle(url, request_body, tiffDataset);
-			style_clone->set_code(epsg_code);
-
-			if (have_no_data)
-			{
-				style_clone->GetStretch()->SetUseExternalNoDataValue(have_no_data);
-				style_clone->GetStretch()->SetExternalNoDataValue(no_data_value);
-			}
-
 			datasets.emplace_back(std::make_pair(tiffDataset, style_clone));
 		}
 	}

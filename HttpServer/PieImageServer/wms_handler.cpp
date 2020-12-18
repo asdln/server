@@ -101,93 +101,97 @@ bool WMSHandler::GetRenderBytes(const std::list<std::pair<DatasetPtr, StylePtr>>
 	return true;
 }
 
+
+// 暂时不维护。如需要，参考WMTSHandler::GetTile进行修改
 bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
-	Envelop env;
-	std::string env_string;
-	if (url.QueryValue("bbox", env_string))
-	{
-		std::vector<std::string> tokens;
-		Split(env_string, tokens, ",");
-		if (tokens.size() != 4)
-		{
-			return false;
-		}
+	return true;
 
-		env.PutCoords(atof(tokens[0].c_str()), atof(tokens[1].c_str()), atof(tokens[2].c_str()), atof(tokens[3].c_str()));
-	}
-	else
-	{
-		return false;
-	}
+	//Envelop env;
+	//std::string env_string;
+	//if (url.QueryValue("bbox", env_string))
+	//{
+	//	std::vector<std::string> tokens;
+	//	Split(env_string, tokens, ",");
+	//	if (tokens.size() != 4)
+	//	{
+	//		return false;
+	//	}
 
-	int tile_width = QueryTileWidth(url);
-	int tile_height = QueryTileHeight(url);
+	//	env.PutCoords(atof(tokens[0].c_str()), atof(tokens[1].c_str()), atof(tokens[2].c_str()), atof(tokens[3].c_str()));
+	//}
+	//else
+	//{
+	//	return false;
+	//}
 
-	int epsg_code = QuerySRS(url);
-	if (epsg_code == -1)
-	{
-		//默认 web_mercator
-		epsg_code = 3857;
-	}
+	//int tile_width = QueryTileWidth(url);
+	//int tile_height = QueryTileHeight(url);
 
-	double no_data_value = 0.;
-	bool have_no_data = QueryNoDataValue(url, no_data_value);
+	//int epsg_code = QuerySRS(url);
+	//if (epsg_code == -1)
+	//{
+	//	//默认 web_mercator
+	//	epsg_code = 3857;
+	//}
 
-	std::list<std::pair<DatasetPtr, StylePtr>> datasets;
+	//double no_data_value = 0.;
+	//bool have_no_data = QueryNoDataValue(url, no_data_value);
 
-	if (!request_body.empty())
-	{
-		std::list<std::pair<std::string, std::string>> data_info;
-		QueryDataInfo(request_body, data_info);
+	//std::list<std::pair<DatasetPtr, StylePtr>> datasets;
 
-		for (auto info : data_info)
-		{
-			const std::string& path = info.first;
-			std::string style_string = info.second;
+	//if (!request_body.empty())
+	//{
+	//	std::list<std::pair<std::string, std::string>> data_info;
+	//	QueryDataInfo(request_body, data_info);
 
-			std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(path));
-			if (tiffDataset == nullptr)
-				continue;
+	//	for (auto info : data_info)
+	//	{
+	//		const std::string& path = info.first;
+	//		std::string style_string = info.second;
 
-			StylePtr style_clone = StyleManager::GetStyle(url, style_string, tiffDataset);
-			style_clone->set_code(epsg_code);
+	//		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(path));
+	//		if (tiffDataset == nullptr)
+	//			continue;
 
-			if (have_no_data)
-			{
-				style_clone->GetStretch()->SetUseExternalNoDataValue(have_no_data);
-				style_clone->GetStretch()->SetExternalNoDataValue(no_data_value);
-			}
+	//		StylePtr style_clone = StyleManager::GetStyle(url, style_string, tiffDataset);
+	//		style_clone->set_code(epsg_code);
 
-			datasets.emplace_back(std::make_pair(tiffDataset, style_clone));
-		}
-	}
-	else
-	{
-		std::list<std::string> paths;
-		QueryDataPath(url, paths);
+	//		if (have_no_data)
+	//		{
+	//			style_clone->GetStretch()->SetUseExternalNoDataValue(have_no_data);
+	//			style_clone->GetStretch()->SetExternalNoDataValue(no_data_value);
+	//		}
 
-		for (auto path : paths)
-		{
-			std::string filePath = path;
-			std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(filePath));
-			if (tiffDataset == nullptr)
-				continue;
+	//		datasets.emplace_back(std::make_pair(tiffDataset, style_clone));
+	//	}
+	//}
+	//else
+	//{
+	//	std::list<std::string> paths;
+	//	QueryDataPath(url, paths);
 
-			StylePtr style_clone = StyleManager::GetStyle(url, request_body, tiffDataset);
-			style_clone->set_code(epsg_code);
+	//	for (auto path : paths)
+	//	{
+	//		std::string filePath = path;
+	//		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(filePath));
+	//		if (tiffDataset == nullptr)
+	//			continue;
 
-			if (have_no_data)
-			{
-				style_clone->GetStretch()->SetUseExternalNoDataValue(have_no_data);
-				style_clone->GetStretch()->SetExternalNoDataValue(no_data_value);
-			}
+	//		StylePtr style_clone = StyleManager::GetStyle(url, request_body, tiffDataset);
+	//		style_clone->set_code(epsg_code);
 
-			datasets.emplace_back(std::make_pair(tiffDataset, style_clone));
-		}
-	}
+	//		if (have_no_data)
+	//		{
+	//			style_clone->GetStretch()->SetUseExternalNoDataValue(have_no_data);
+	//			style_clone->GetStretch()->SetExternalNoDataValue(no_data_value);
+	//		}
 
-	return GetRenderBytes(datasets, env, tile_width, tile_height, result);
+	//		datasets.emplace_back(std::make_pair(tiffDataset, style_clone));
+	//	}
+	//}
+
+	//return GetRenderBytes(datasets, env, tile_width, tile_height, result);
 }
 
 bool WMSHandler::GetCapabilities(boost::beast::string_view doc_root, const Url& url, std::shared_ptr<HandleResult> result)

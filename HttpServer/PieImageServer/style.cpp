@@ -190,6 +190,13 @@ StylePtr StyleSerielizer::FromJsonObj(neb::CJsonObject& json_obj)
 
 	style->uid_ = json_obj("uid");
 
+	double external_nodata_value;
+	if (json_obj["stretch"].Get("externalNodataValue", external_nodata_value))
+	{
+		style->GetStretch()->SetUseExternalNoDataValue(true);
+		style->GetStretch()->SetExternalNoDataValue(external_nodata_value);
+	}
+
 	std::string stretch_kind = json_obj["stretch"]("kind");
 	if (stretch_kind.compare(StretchType2String(StretchType::MINIMUM_MAXIMUM)) == 0)
 	{
@@ -231,6 +238,15 @@ StylePtr StyleSerielizer::FromJsonObj(neb::CJsonObject& json_obj)
 		double scale = 2.5;
 		json_obj["stretch"].Get("scale", scale);
 		stretch->set_dev_scale(scale);
+	}
+	else
+	{
+		auto stretch = std::make_shared<PercentMinMaxStretch>();
+		style->stretch_ = stretch;
+
+		double percent = 0.0;
+		json_obj["stretch"].Get("percent", percent);
+		stretch->set_stretch_percent(percent);
 	}
 
 	return style;

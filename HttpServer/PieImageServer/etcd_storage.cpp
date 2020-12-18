@@ -21,9 +21,9 @@ namespace http = beast::http;       // from <boost/beast/http.hpp>
 namespace net = boost::asio;        // from <boost/asio.hpp>
 using tcp = net::ip::tcp;           // from <boost/asio/ip/tcp.hpp>
 
-std::string EtcdStorage::host_;
+std::string EtcdStorage::host_ = "0.0.0.0";
 
-std::string EtcdStorage::port_;
+std::string EtcdStorage::port_ = "2379";
 
 EtcdStorage::EtcdStorage()
 {

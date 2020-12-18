@@ -108,47 +108,18 @@ bool StyleManager::UpdateStyle(const std::string& json_style, std::string& style
 	return true;
 }
 
-StylePtr StyleManager::GetStyle(const Url& url, const std::string& style_string, DatasetPtr dataset)
+StylePtr StyleManager::GetStyle(const std::string& style_string, DatasetPtr dataset)
 {
 	std::string file_path = dataset->file_path();
 	std::string string_style;
-	std::string nodata_value;
 	std::string nodata_value_statistic;
 	neb::CJsonObject oJson_style;
 
-	url.QueryValue("nodatavalue", nodata_value);
-	url.QueryValue("nodatavaluestatistic", nodata_value_statistic);
-
-	bool is_nodata_value_statistic = false;
-	if (nodata_value_statistic.compare("true") == 0)
-	{
-		is_nodata_value_statistic = true;
-	}
-	else
-	{
-		nodata_value_statistic = "false";
-	}
-
-	//style获取顺序：获取body，如果没有，获取url的style2，如果没有，获取url的style
-	if (!style_string.empty())
-	{
-		//neb::CJsonObject oJson(request_body);
-		//if (oJson.Get("style", oJson_style))
-		//{
-		//	string_style = oJson_style.ToString();
-		//}
-
-		string_style = style_string;
-	}
-	else
-	{
-		url.QueryValue("style2", string_style);
-	}
+	string_style = style_string;
 	
 	if (!string_style.empty())
 	{
 		file_path += string_style;
-		file_path += nodata_value;
 		file_path += nodata_value_statistic;
 		std::string md5;
 		GetMd5(md5, file_path.c_str(), file_path.size());
@@ -189,42 +160,14 @@ StylePtr StyleManager::GetStyle(const Url& url, const std::string& style_string,
 					s_map_style_container.clear();
 				}
 
-				if (!nodata_value.empty())
-				{
-					double external_no_data_value = boost::lexical_cast<double>(nodata_value);
-					style->GetStretch()->SetUseExternalNoDataValue(true);
-					style->GetStretch()->SetExternalNoDataValue(external_no_data_value);
-					style->GetStretch()->SetStatisticExternalNoDataValue(is_nodata_value_statistic);
-				}
-
 				style->Prepare(dataset.get());
 				s_map_style_container[md5] = style;
 				return style->CompletelyClone();
 			}
 		}
 	}
-	else
-	{
-		std::vector<std::string> tokens;
-		std::string style_str = "";
-		url.QueryValue("style", style_str);
-		Split(style_str, tokens, ":");
 
-		StylePtr style;
-		if (tokens.size() == 3)
-		{
-			StylePtr style1 = GetStyle(tokens[0] + ":" + tokens[1], atoi(tokens[2].c_str()));
-			if(style1 != nullptr)
-				style = style1->Clone();
-		}
-
-		if (style == nullptr)
-		{
-			style = std::make_shared<Style>();
-		}
-
-		return style;
-	}
+	return nullptr;
 }
 
 std::string StyleManager::GetStyleKey(Style* pStyle)
