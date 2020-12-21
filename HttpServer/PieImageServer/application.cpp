@@ -25,6 +25,7 @@
 #include <fstream>
 #include "etcd_storage.h"
 #include "resource_pool.h"
+#include "argparse.hpp"
 
 #define GOOGLE_GLOG_DLL_DECL 
 #define GLOG_NO_ABBREVIATED_SEVERITIES
@@ -159,6 +160,63 @@ int get_process_path(char *process_path){
 
 Application::Application(int argc, char* argv[])
 {
+	argparse::ArgumentParser program("server");
+
+	program.add_argument("--port")
+		.help("port listened on")
+		.default_value(8083)
+		.action([](const std::string& value) { return std::stoi(value); });
+
+	program.add_argument("--thread")
+		.help("number of thread created")
+		.default_value(12)
+		.action([](const std::string& value) { return std::stoi(value); });
+
+	program.add_argument("--statistic_size")
+		.help("histogram statistic size")
+		.default_value(1024)
+		.action([](const std::string& value) { return std::stoi(value); });
+
+	program.add_argument("--gdal_cache_size")
+		.help("gdal maximum cache size")
+		.default_value(std::string("1000"));
+
+	program.add_argument("--use_etcd")
+		.help("is use etcd")
+		.default_value(false)
+		.implicit_value(true);
+
+	program.add_argument("--etcd_host")
+		.help("etcd service's host")
+		.default_value(std::string("127.0.0.1"));
+
+	program.add_argument("--etcd_port")
+		.help("etcd service's port")
+		.default_value(std::string("2379"));
+
+	try {
+		program.parse_args(argc, argv);
+	}
+	catch (const std::runtime_error& err) {
+		std::cout << "argument parse error: " << err.what() << std::endl;
+		std::cout << "please input correct argument: " << std::endl;
+		std::cout << program;
+		exit(0);
+	}
+
+	port_ = program.get<int>("--port");
+	threads_ = program.get<int>("--thread");
+	statistic_window_size_ = program.get<int>("--statistic_size");
+	gdal_cache_size_ = program.get<std::string>("--gdal_cache_size");
+
+	EtcdStorage::use_etcd_ = program.get<bool>("--use_etcd");
+
+	EtcdStorage::host_ = program.get<std::string>("--etcd_host");
+	EtcdStorage::port_ = program.get<std::string>("--etcd_port");
+
+	std::cout << program << std::endl << std::endl;
+	
+
 	GDALAllRegister();
 
 	for (int i = 1; i < argc; i++)
@@ -198,31 +256,38 @@ Application::Application(int argc, char* argv[])
 
 	LOG(INFO) << "GDAL_DATA : " << gdal_data_path;
 
-	if (service_files_.empty())
-	{
-		service_data_path_ = app_path_ + "../service_data";
+	//if (service_files_.empty())
+	//{
+	//	service_data_path_ = app_path_ + "../service_data";
 
-		LOG(INFO) << "service_data_path_ : " << service_data_path_;
-		get_filenames(service_data_path_, service_files_);
-	}
+	//	LOG(INFO) << "service_data_path_ : " << service_data_path_;
+	//	get_filenames(service_data_path_, service_files_);
+	//}
 
-	for (auto& file_name : service_files_)
-	{
-		LOG(INFO) << "data: " << file_name;
-	}
+	//for (auto& file_name : service_files_)
+	//{
+	//	LOG(INFO) << "data: " << file_name;
+	//}
 
     address_ = net::ip::make_address("0.0.0.0");
 	doc_root_ = std::make_shared<std::string>("tile");
 
-	LoadConfig();
-
 	CPLSetConfigOption("GDAL_CACHEMAX", gdal_cache_size_.c_str());
 	LOG(INFO) << "GDAL Version:  " << GDALVersionInfo("--version");
-	LOG(INFO) << "GDAL CacheSize:  " << gdal_cache_size_ << "Mb";
+	LOG(INFO) << "gdal_cache_size:  " << gdal_cache_size_ << "Mb";
+
+	//LoadConfig();
 
 	ResourcePool::GetInstance()->SetDatasetPoolMaxCount(threads_ + 1);
 
-	LOG(INFO) << "threads : " << threads_ << "   port : " << port_ << "    statistic_size: " << statistic_window_size_ << std::endl;
+	LOG(INFO) << "thread : " << threads_ << "   port : " << port_ << "    statistic_size: " << statistic_window_size_ << std::endl;
+
+	LOG(INFO) << "use_etcd : " << EtcdStorage::use_etcd_ << std::endl;
+
+	if (EtcdStorage::use_etcd_)
+	{
+		LOG(INFO) << "etcd_host : " << EtcdStorage::host_ << "    etcd_port : " << EtcdStorage::port_ << std::endl;
+	}
 
 	InitBandMap();
 }
@@ -232,56 +297,56 @@ Application::~Application()
 
 }
 
-bool Application::LoadConfig()
-{
-	threads_ = 12;
-	port_ = 8083;
-	statistic_window_size_ = 1024;
-	EtcdStorage::port_ = "2379";
-	EtcdStorage::host_ = "0.0.0.0";
-
-	if (!boost::filesystem::exists(app_path_ + "config.ini")) 
-	{
-		LOG(INFO) << "config.ini not exists : " << app_path_ + "config.ini";
-		return false;
-	}
-
-	boost::property_tree::ptree root_node, tag_system;
-	boost::property_tree::ini_parser::read_ini(app_path_ + "config.ini", root_node);
-	tag_system = root_node.get_child("Server");
-	if (tag_system.count("port") == 1) 
-	{
-		port_ = tag_system.get<int>("port");
-	}
-	
-	if (tag_system.count("threads") == 1) 
-	{
-		threads_ = std::max<int>(1, tag_system.get<int>("threads"));
-	}
-
-	if (tag_system.count("statistic_size") == 1)
-	{
-		statistic_window_size_ = std::max<int>(1, tag_system.get<int>("statistic_size"));
-	}
-
-	if (tag_system.count("gdal_cache_size") == 1)
-	{
-		gdal_cache_size_ = tag_system.get<std::string>("gdal_cache_size");
-	}
-
-	boost::property_tree::ptree tag_etcd = root_node.get_child("Etcd");
-	if (tag_etcd.count("port") == 1) 
-	{
-		EtcdStorage::port_ = tag_etcd.get<std::string>("port");
-	}
-
-	if (tag_etcd.count("host") == 1) 
-	{
-		EtcdStorage::host_ = tag_etcd.get<std::string>("host");
-	}
-
-	return true;
-}
+//bool Application::LoadConfig()
+//{
+//	threads_ = 12;
+//	port_ = 8083;
+//	statistic_window_size_ = 1024;
+//	EtcdStorage::port_ = "2379";
+//	EtcdStorage::host_ = "0.0.0.0";
+//
+//	if (!boost::filesystem::exists(app_path_ + "config.ini")) 
+//	{
+//		LOG(INFO) << "config.ini not exists : " << app_path_ + "config.ini";
+//		return false;
+//	}
+//
+//	boost::property_tree::ptree root_node, tag_system;
+//	boost::property_tree::ini_parser::read_ini(app_path_ + "config.ini", root_node);
+//	tag_system = root_node.get_child("Server");
+//	if (tag_system.count("port") == 1) 
+//	{
+//		port_ = tag_system.get<int>("port");
+//	}
+//	
+//	if (tag_system.count("threads") == 1) 
+//	{
+//		threads_ = std::max<int>(1, tag_system.get<int>("threads"));
+//	}
+//
+//	if (tag_system.count("statistic_size") == 1)
+//	{
+//		statistic_window_size_ = std::max<int>(1, tag_system.get<int>("statistic_size"));
+//	}
+//
+//	if (tag_system.count("gdal_cache_size") == 1)
+//	{
+//		gdal_cache_size_ = tag_system.get<std::string>("gdal_cache_size");
+//	}
+//
+//	boost::property_tree::ptree tag_etcd = root_node.get_child("Etcd");
+//	if (tag_etcd.count("port") == 1) 
+//	{
+//		EtcdStorage::port_ = tag_etcd.get<std::string>("port");
+//	}
+//
+//	if (tag_etcd.count("host") == 1) 
+//	{
+//		EtcdStorage::host_ = tag_etcd.get<std::string>("host");
+//	}
+//
+//	return true;
+//}
 
 void Application::InitBandMap()
 {

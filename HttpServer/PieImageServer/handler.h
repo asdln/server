@@ -20,10 +20,6 @@ public:
 	virtual int QueryTileWidth(const Url& url);
 	virtual int QueryTileHeight(const Url& url);
 
-	virtual void QueryDataPath(const Url& url, std::list<std::string>& paths);
-
-	virtual void QueryDataInfo(const std::string& request_body, std::list<std::pair<std::string, std::string>>& data_info);
-
 	virtual int QuerySRS(const Url& url);
 };
 

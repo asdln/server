@@ -159,6 +159,9 @@
     <ClCompile Include="standard_deviation_stretch.cpp">
       <Filter>源文件\stretch</Filter>
     </ClCompile>
+    <ClCompile Include="storage_manager.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="utility.h">
@@ -267,6 +270,9 @@
       <Filter>头文件\stretch</Filter>
     </ClInclude>
     <ClInclude Include="concurrentqueue.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="storage_manager.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

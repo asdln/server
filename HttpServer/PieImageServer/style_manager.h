@@ -6,34 +6,22 @@
 #include <memory>
 #include <shared_mutex>
 #include "style.h"
-#include "url.h"
 #include "dataset.h"
 
 class StyleManager
 {
 public:
 
-	static bool UpdateStyle(const std::string& jsonStyle, std::string& style_key);
-
+	// 根据style_string的内容获取StylePtr，可以节省序列化和style的prepare的时间。
 	static StylePtr GetStyle(const std::string& style_string, DatasetPtr dataset);
 
-	static StylePtr GetStyle(const std::string& styleKey, size_t version);
-	 
 protected:
 
-	static std::string GetStyleKey(Style* pStyle);
-
-	static StylePtr GetFromStyleMap(const std::string& key);
-
-	static bool AddOrUpdateStyleMap(const std::string& key, StylePtr style);
 
 protected:
 
-	static std::map<std::string, StylePtr> s_style_map;
-	static std::shared_mutex s_shared_mutex;
-
-	static std::map<std::string, StylePtr> s_map_style_container;
-	static std::shared_mutex s_shared_mutex_style_container;
+	static std::map<std::string, StylePtr> s_map_style_container_;
+	static std::shared_mutex s_shared_mutex_style_container_;
 };
 
 #endif //HTTPSERVER_STYLE_MANAGER_H_

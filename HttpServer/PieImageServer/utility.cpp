@@ -5,8 +5,13 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+#include <boost/algorithm/hex.hpp>
+#include <boost/uuid/detail/md5.hpp>
+#include <boost/lexical_cast.hpp>
+
 #include "math.h"
 #include <vector>
+#include "CJsonObject.hpp"
 
 void GetEnvFromTileIndex(int nx, int ny, int nz, Envelop& env, int epsg)
 {
@@ -178,6 +183,22 @@ int GetDataTypeBytes(DataType DataType)
 	return nBytes;
 }
 
+bool GetMd5(std::string& str_md5, const char* const buffer, size_t buffer_size)
+{
+	if (buffer == nullptr)
+	{
+		return false;
+	}
+	boost::uuids::detail::md5 boost_md5;
+	boost_md5.process_bytes(buffer, buffer_size);
+	boost::uuids::detail::md5::digest_type digest;
+	boost_md5.get_digest(digest);
+	const auto char_digest = reinterpret_cast<const char*>(&digest);
+	str_md5.clear();
+	boost::algorithm::hex(char_digest, char_digest + sizeof(boost::uuids::detail::md5::digest_type), std::back_inserter(str_md5));
+	return true;
+}
+
 void CreateUID(std::string& uid)
 {
 	auto uidGen = boost::uuids::random_generator();
@@ -185,4 +206,34 @@ void CreateUID(std::string& uid)
 	std::stringstream sGuid;
 	sGuid << uid1;
 	uid = sGuid.str();
+}
+
+void QueryDataInfo(const std::string& request_body, std::list<std::pair<std::string, std::string>>& data_info)
+{
+	neb::CJsonObject oJson_info;
+	neb::CJsonObject oJson(request_body);
+	if (oJson.Get("info", oJson_info))
+	{
+		if (oJson_info.IsArray())
+		{
+			int array_size = oJson_info.GetArraySize();
+			for (int i = 0; i < array_size; i++)
+			{
+				neb::CJsonObject oJson_dataset_info = oJson_info[i];
+				std::string path = "";
+				std::string style_string = "";
+				neb::CJsonObject oJson_style;
+				if (oJson_dataset_info.Get("path", path))
+				{
+					//style_string ©иртн╙©у
+					if (oJson_dataset_info.Get("style", oJson_style))
+					{
+						style_string = oJson_style.ToString();
+					}
+
+					data_info.emplace_back(std::make_pair(path, style_string));
+				}
+			}
+		}
+	}
 }

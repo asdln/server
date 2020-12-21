@@ -117,6 +117,7 @@
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;GOOGLE_GLOG_DLL_DECL;GLOG_NO_ABBREVIATED_SEVERITIES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>D:\work\boost_1_73_0;D:\work\libjpeg-turbo-master;D:\work\gdal-release-2.4\gdal\bld\include;D:\work\libpng-libpng16;D:\work\libwebp-master\src;D:\work\glog-master\src\windows</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -168,6 +169,7 @@
     <ClCompile Include="resource_pool.cpp" />
     <ClCompile Include="session.cpp" />
     <ClCompile Include="standard_deviation_stretch.cpp" />
+    <ClCompile Include="storage_manager.cpp" />
     <ClCompile Include="style.cpp" />
     <ClCompile Include="style_manager.cpp" />
     <ClCompile Include="tile_processor.cpp" />
@@ -207,6 +209,7 @@
     <ClInclude Include="resource_pool.h" />
     <ClInclude Include="session.h" />
     <ClInclude Include="standard_deviation_stretch.h" />
+    <ClInclude Include="storage_manager.h" />
     <ClInclude Include="style.h" />
     <ClInclude Include="style_manager.h" />
     <ClInclude Include="tile_processor.h" />

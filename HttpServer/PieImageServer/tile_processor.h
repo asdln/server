@@ -1,5 +1,5 @@
-#ifndef HTTPSERVER_DATA_PROCESSOR_H_
-#define HTTPSERVER_DATA_PROCESSOR_H_
+#ifndef HTTPSERVER_TILE_PROCESSOR_H_
+#define HTTPSERVER_TILE_PROCESSOR_H_
 
 #include <string>
 #include <list>
@@ -39,4 +39,4 @@ protected:
 
 };
 
-#endif //HTTPSERVER_DATA_PROCESSOR_H_
+#endif //HTTPSERVER_TILE_PROCESSOR_H_

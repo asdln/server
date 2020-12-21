@@ -13,11 +13,7 @@ public:
 
 	bool GetMap(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result);
 
-	bool GetCapabilities(boost::beast::string_view doc_root, const Url& url, std::shared_ptr<HandleResult> result);
-
-	bool GetFeatureInfo(boost::beast::string_view doc_root, const Url& url, std::shared_ptr<HandleResult> result);
-
-	bool UpdateStyle(const std::string& request_body, std::shared_ptr<HandleResult> result);
+	bool UpdateDataStyle(const std::string& request_body, std::shared_ptr<HandleResult> result);
 
 	bool ClearAllDatasets(const std::string& request_body, std::shared_ptr<HandleResult> result);
 };

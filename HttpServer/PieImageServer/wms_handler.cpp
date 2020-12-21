@@ -2,6 +2,7 @@
 #include "style_manager.h"
 #include "tiff_dataset.h"
 #include "resource_pool.h"
+#include "storage_manager.h"
 
 bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
@@ -12,17 +13,9 @@ bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, cons
 		{
 			return GetMap(doc_root, url, request_body, result);
 		}
-		else if (request.compare("GetCapabilities") == 0)
+		else if (request.compare("UpdateDataStyle") == 0)
 		{
-			return GetCapabilities(doc_root, url, result);
-		}
-		else if (request.compare("GetFeatureInfo") == 0)
-		{
-			return GetFeatureInfo(doc_root, url, result);
-		}
-		else if (request.compare("UpdateStyle") == 0)
-		{
-			return UpdateStyle(request_body, result);
+			return UpdateDataStyle(request_body, result);
 		}
 		else if (request.compare("ClearAllDatasets") == 0)
 		{
@@ -194,28 +187,28 @@ bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, cons
 	//return GetRenderBytes(datasets, env, tile_width, tile_height, result);
 }
 
-bool WMSHandler::GetCapabilities(boost::beast::string_view doc_root, const Url& url, std::shared_ptr<HandleResult> result)
+bool WMSHandler::UpdateDataStyle(const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
-	return true;
-}
+	std::string res_string_body;
+	http::status status_code = http::status::ok;
 
-bool WMSHandler::GetFeatureInfo(boost::beast::string_view doc_root, const Url& url, std::shared_ptr<HandleResult> result)
-{
-	return true;
-}
+	std::string md5;
+	if (StorageManager::AddOrUpdateDataStyle(request_body, md5))
+	{
+		res_string_body = md5;
+		status_code = http::status::ok;
+	}
+	else
+	{
+		res_string_body = "UpdateDataStyle failed";
+		status_code = http::status::internal_server_error;
+	}
 
-bool WMSHandler::UpdateStyle(const std::string& request_body, std::shared_ptr<HandleResult> result)
-{
-	std::string style_key;
-
-	if (!StyleManager::UpdateStyle(request_body, style_key))
-		return false;
-
-	auto string_body = std::make_shared<http::response<http::string_body>>(http::status::ok, result->version());
+	auto string_body = std::make_shared<http::response<http::string_body>>(status_code, result->version());
 	string_body->set(http::field::server, BOOST_BEAST_VERSION_STRING);
 	string_body->set(http::field::content_type, "text/html");
 	string_body->keep_alive(result->keep_alive());
-	string_body->body() = style_key;
+	string_body->body() = res_string_body;
 	string_body->prepare_payload();
 
 	string_body->set(http::field::access_control_allow_origin, "*");

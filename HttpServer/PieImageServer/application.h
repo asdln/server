@@ -24,7 +24,7 @@ protected:
 
 	void InitBandMap();
 
-	bool LoadConfig();
+	//bool LoadConfig();
 
 protected:
 

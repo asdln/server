@@ -25,6 +25,8 @@ std::string EtcdStorage::host_ = "0.0.0.0";
 
 std::string EtcdStorage::port_ = "2379";
 
+bool EtcdStorage::use_etcd_ = false;
+
 EtcdStorage::EtcdStorage()
 {
 
@@ -36,48 +38,67 @@ EtcdStorage::EtcdStorage(const std::string& host, const std::string& port)
 	port_ = port;
 }
 
-void EtcdStorage::SetValue(const std::string& key, const std::string& value)
+bool EtcdStorage::SetValue(const std::string& key, const std::string& value)
 {
+	if (!use_etcd_)
+		return true;
+
 	try
 	{
 		std::string value1;
-		HttpRequest(host_, port_, "/v2/keys" + key + "?value=" + value, http::verb::put, value1);
+		//ttl 默认设置为5小时
+		HttpRequest(host_, port_, "/v2/keys/" + key + "?value=" + value + "&ttl=18000", http::verb::put, value1);
 	}
 	catch (std::exception e)
 	{
-		LOG(ERROR) << e.what();
+		LOG(ERROR) << "Etcd SetValue failed"  << e.what();
+		return false;
 	}
 	catch (...)
 	{
 		LOG(ERROR) << "Etcd SetValue failed";
+		return false;
 	}
+
+	return true;
 }
 
-std::string EtcdStorage::GetValue(const std::string& key)
+bool EtcdStorage::GetValue(const std::string& key, std::string& value)
 {
-	std::string res;
+	if (!use_etcd_)
+		return true;
 
 	try
 	{
-		std::string value;
-		HttpRequest(host_, port_, "/v2/keys" + key, http::verb::get, value);
+		HttpRequest(host_, port_, "/v2/keys/" + key, http::verb::get, value);
 
 		if (value.empty())
-			return "";
+		{
+			LOG(ERROR) << "etcd get value empty";
+			return false;
+		}
 
 		neb::CJsonObject oJson(value);
-		res = oJson["node"]("value");
+		value = oJson["node"]("value");
+
+		if (value.empty())
+		{
+			LOG(ERROR) << "etcd get value empty";
+			return false;
+		}
 	}
 	catch (std::exception e)
 	{
-		LOG(ERROR) << e.what();
+		LOG(ERROR) << "Etcd SetValue failed" << e.what();
+		return false;
 	}
 	catch (...)
 	{
 		LOG(ERROR) << "Etcd GetValue failed";
+		return false;
 	}
 
-	return res;
+	return true;
 }
 
 void EtcdStorage::HttpRequest(const std::string& host, const std::string& port, const std::string& target, http::verb op, std::string& value)

@@ -13,8 +13,6 @@ using namespace boost;
 
 int main(int argc, char* argv[])
 {
-    std::cout << "server starting" <<std::endl;
-
 	//if (argc != 5)
 	//{
 	//	std::cerr <<

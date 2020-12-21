@@ -15,9 +15,9 @@ public:
 	EtcdStorage(const std::string& host, const std::string& port = "2379");
 
 	
-	void SetValue(const std::string& key, const std::string& value);
+	bool SetValue(const std::string& key, const std::string& value);
 
-	std::string GetValue(const std::string& key);
+	bool GetValue(const std::string& key, std::string& value);
 
 protected:
 
@@ -29,6 +29,8 @@ protected:
 	static std::string host_;
 
 	static std::string port_;
+
+	static bool use_etcd_;
 };
 
 #endif  //HTTPSERVER_ETCD_STORAGE_H_

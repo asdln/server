@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <list>
 
 class utility
 {
@@ -134,5 +135,10 @@ bool LoadData(const std::string& path);
 
 void Split(const std::string& s, std::vector<std::string>& tokens, const std::string& delimiters = " ");
 
+bool GetMd5(std::string& str_md5, const char* const buffer, size_t buffer_size);
+
+void CreateUID(std::string& uid);
+
+void QueryDataInfo(const std::string& request_body, std::list<std::pair<std::string, std::string>>& data_info);
 
 #endif  //HTTPSERVER_UTILITY_H_
