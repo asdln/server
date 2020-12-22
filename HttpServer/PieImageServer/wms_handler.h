@@ -16,6 +16,16 @@ public:
 	bool UpdateDataStyle(const std::string& request_body, std::shared_ptr<HandleResult> result);
 
 	bool ClearAllDatasets(const std::string& request_body, std::shared_ptr<HandleResult> result);
+
+
+	//{"user":"admin", "group":"group1", "images":["c:/1.tif", "c:/2.tif", "c:/3.tif"]}
+	bool AddImages(const std::string& request_body, std::shared_ptr<HandleResult> result);
+
+	//{"user":"admin", "group":"group1"}
+	bool GetImages(const std::string& request_body, std::shared_ptr<HandleResult> result);
+
+	//{"user":"admin", "group":"group1"}
+	bool ClearImages(const std::string& request_body, std::shared_ptr<HandleResult> result);
 };
 
 #endif //PIEIMAGESERVER_WMS_HANDLER_H_

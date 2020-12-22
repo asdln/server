@@ -21,6 +21,8 @@ public:
 	virtual int QueryTileHeight(const Url& url);
 
 	virtual int QuerySRS(const Url& url);
+
+	std::shared_ptr<http::response<http::string_body>> CreateStringResponse(http::status status_code, int version, bool keep_alive, const std::string& res_string);
 };
 
 #endif //HTTPSERVER_HANDLER_H_

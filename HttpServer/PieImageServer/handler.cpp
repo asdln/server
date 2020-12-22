@@ -101,3 +101,19 @@ int Handler::QueryTileHeight(const Url& url)
 
 	return height;
 }
+
+std::shared_ptr<http::response<http::string_body>> Handler::CreateStringResponse(http::status status_code, int version, bool keep_alive, const std::string& res_string)
+{
+	auto string_body = std::make_shared<http::response<http::string_body>>(status_code, version);
+	string_body->set(http::field::server, BOOST_BEAST_VERSION_STRING);
+	string_body->set(http::field::content_type, "text/html");
+	string_body->keep_alive(keep_alive);
+	string_body->body() = res_string;
+	string_body->prepare_payload();
+
+	string_body->set(http::field::access_control_allow_origin, "*");
+	string_body->set(http::field::access_control_allow_methods, "POST, GET, OPTIONS, DELETE");
+	string_body->set(http::field::access_control_allow_credentials, "true");
+
+	return string_body;
+}

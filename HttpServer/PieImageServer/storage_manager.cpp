@@ -54,28 +54,32 @@ bool StorageManager::AddOrUpdateDataStyle(const std::string& data_style_json, st
 	}
 
 	EtcdStorage etcd_storage;
-	return etcd_storage.SetValue(md5, data_style_json);
+	if (etcd_storage.IsUseEtcd())
+	{
+		return etcd_storage.SetValue(md5, data_style_json);
+	}
+	else
+	{
+		return true;
+	}
 }
 
 bool StorageManager::GetDataStyle(const std::string& md5, std::string& data_style_json)
 {
-	//{
-	//	std::shared_lock<std::shared_mutex> lock(s_mutex_);
-	//	std::unordered_map<std::string, std::pair<std::string, std::list<std::string>::iterator>>::iterator itr = s_LRU_data_style_map.find(md5);
-	//	if (itr != s_LRU_data_style_map.end())
-	//	{
-	//		std::list<std::string>::iterator list_itr = itr->second.second;
-	//		s_LRU_list.erase(list_itr);
+	{
+		//¶ÁËø
+		std::shared_lock<std::shared_mutex> lock(s_mutex_);
 
-	//		data_style_json = itr->second.first;
-
-	//		s_LRU_list.push_back(md5);
-	//		s_LRU_data_style_map.insert(make_pair(md5, make_pair(data_style_json, --s_LRU_list.end())));
-	//		return true;
-	//	}
-	//}
+		std::unordered_map<std::string, std::pair<std::string, std::list<std::string>::iterator>>::iterator itr = s_LRU_data_style_map.find(md5);
+		if (itr != s_LRU_data_style_map.end() && s_LRU_list.front() == md5)
+		{
+			data_style_json = itr->second.first;
+			return true;
+		}
+	}
 
 	{
+		//Ð´Ëø
 		std::unique_lock<std::shared_mutex> lock(s_mutex_);
 
 		std::unordered_map<std::string, std::pair<std::string, std::list<std::string>::iterator>>::iterator itr = s_LRU_data_style_map.find(md5);
@@ -90,29 +94,31 @@ bool StorageManager::GetDataStyle(const std::string& md5, std::string& data_styl
 		else
 		{
 			EtcdStorage etcd_storage;
-			if (!etcd_storage.GetValue(md5, data_style_json))
+			if (etcd_storage.IsUseEtcd())
 			{
-				LOG(ERROR) << "can not get value";
-				return false;
-			}
+				if (!etcd_storage.GetValue(md5, data_style_json))
+				{
+					LOG(ERROR) << "can not get value";
+					return false;
+				}
 
-			if (data_style_json.empty())
-			{
-				LOG(ERROR) << "can not get value from etcd";
-				return false;
-			}
-			
-			if (s_LRU_list.size() >= s_LRU_buffer_size)
-			{
-				const std::string& least_rencent_used_md5 = s_LRU_list.back();
-				s_LRU_data_style_map.erase(least_rencent_used_md5);
-				s_LRU_list.pop_back();
-			}
+				if (data_style_json.empty())
+				{
+					LOG(ERROR) << "can not get value from etcd";
+					return false;
+				}
 
-			s_LRU_list.push_front(md5);
-			s_LRU_data_style_map[md5] = make_pair(data_style_json, s_LRU_list.begin());
+				if (s_LRU_list.size() >= s_LRU_buffer_size)
+				{
+					const std::string& least_rencent_used_md5 = s_LRU_list.back();
+					s_LRU_data_style_map.erase(least_rencent_used_md5);
+					s_LRU_list.pop_back();
+				}
 
-			return true;
+				s_LRU_list.push_front(md5);
+				s_LRU_data_style_map[md5] = make_pair(data_style_json, s_LRU_list.begin());
+				return true;
+			}
 		}
 	}
 

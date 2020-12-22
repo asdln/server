@@ -23,6 +23,18 @@ bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, con
 		{
 			return ClearAllDatasets(request_body, result);
 		}
+		else if (request.compare("AddImages") == 0)
+		{
+			return AddImages(request_body, result);
+		}
+		else if (request.compare("GetImages") == 0)
+		{
+			return GetImages(request_body, result);
+		}
+		else if (request.compare("ClearImages") == 0)
+		{
+			return ClearImages(request_body, result);
+		}
 
 		return false;
 	}

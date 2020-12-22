@@ -3,6 +3,7 @@
 #include "tiff_dataset.h"
 #include "resource_pool.h"
 #include "storage_manager.h"
+#include "image_group_manager.h"
 
 bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
@@ -20,6 +21,18 @@ bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, cons
 		else if (request.compare("ClearAllDatasets") == 0)
 		{
 			return ClearAllDatasets(request_body, result);
+		}
+		else if (request.compare("AddImages") == 0)
+		{
+			return AddImages(request_body, result);
+		}
+		else if (request.compare("GetImages") == 0)
+		{
+			return GetImages(request_body, result);
+		}
+		else if (request.compare("ClearImages") == 0)
+		{
+			return ClearImages(request_body, result);
 		}
 	}
 
@@ -204,17 +217,55 @@ bool WMSHandler::UpdateDataStyle(const std::string& request_body, std::shared_pt
 		status_code = http::status::internal_server_error;
 	}
 
-	auto string_body = std::make_shared<http::response<http::string_body>>(status_code, result->version());
-	string_body->set(http::field::server, BOOST_BEAST_VERSION_STRING);
-	string_body->set(http::field::content_type, "text/html");
-	string_body->keep_alive(result->keep_alive());
-	string_body->body() = res_string_body;
-	string_body->prepare_payload();
+	auto string_body = CreateStringResponse(status_code, result->version(), result->keep_alive(), res_string_body);
+	result->set_string_body(string_body);
 
-	string_body->set(http::field::access_control_allow_origin, "*");
-	string_body->set(http::field::access_control_allow_methods, "POST, GET, OPTIONS, DELETE");
-	string_body->set(http::field::access_control_allow_credentials, "true");
+	return true;
+}
 
+bool WMSHandler::AddImages(const std::string& request_body, std::shared_ptr<HandleResult> result)
+{
+	http::status status_code = http::status::ok;
+	std::string res_string_body = request_body;
+	if (!ImageGroupManager::AddImages(request_body))
+	{
+		res_string_body = "add images failed";
+		status_code = http::status::internal_server_error;
+	}
+
+	auto string_body = CreateStringResponse(status_code, result->version(), result->keep_alive(), res_string_body);
+	result->set_string_body(string_body);
+
+	return true;
+}
+
+bool WMSHandler::GetImages(const std::string& request_body, std::shared_ptr<HandleResult> result)
+{
+	http::status status_code = http::status::ok;
+	std::string res_string_body;
+	if (!ImageGroupManager::GetImages(request_body, res_string_body))
+	{
+		res_string_body = "get images failed";
+		status_code = http::status::internal_server_error;
+	}
+
+	auto string_body = CreateStringResponse(status_code, result->version(), result->keep_alive(), res_string_body);
+	result->set_string_body(string_body);
+
+	return true;
+}
+
+bool WMSHandler::ClearImages(const std::string& request_body, std::shared_ptr<HandleResult> result)
+{
+	http::status status_code = http::status::ok;
+	std::string res_string_body = "OK";
+	if (!ImageGroupManager::ClearImages(request_body))
+	{
+		res_string_body = "get images failed";
+		status_code = http::status::internal_server_error;
+	}
+
+	auto string_body = CreateStringResponse(status_code, result->version(), result->keep_alive(), res_string_body);
 	result->set_string_body(string_body);
 
 	return true;

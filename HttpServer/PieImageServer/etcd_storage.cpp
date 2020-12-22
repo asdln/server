@@ -38,16 +38,16 @@ EtcdStorage::EtcdStorage(const std::string& host, const std::string& port)
 	port_ = port;
 }
 
-bool EtcdStorage::SetValue(const std::string& key, const std::string& value)
+bool EtcdStorage::SetValue(const std::string& key, const std::string& value, bool set_ttl)
 {
-	if (!use_etcd_)
-		return true;
-
 	try
 	{
 		std::string value1;
 		//ttl 默认设置为5小时
-		HttpRequest(host_, port_, "/v2/keys/" + key + "?value=" + value + "&ttl=18000", http::verb::put, value1);
+		if(set_ttl)
+			HttpRequest(host_, port_, "/v2/keys/" + key + "?value=" + value + "&ttl=18000", http::verb::put, value1);
+		else
+			HttpRequest(host_, port_, "/v2/keys/" + key + "?value=" + value, http::verb::put, value1);
 	}
 	catch (std::exception e)
 	{
@@ -65,21 +65,42 @@ bool EtcdStorage::SetValue(const std::string& key, const std::string& value)
 
 bool EtcdStorage::GetValue(const std::string& key, std::string& value)
 {
-	if (!use_etcd_)
-		return true;
-
 	try
 	{
 		HttpRequest(host_, port_, "/v2/keys/" + key, http::verb::get, value);
 
-		if (value.empty())
-		{
-			LOG(ERROR) << "etcd get value empty";
-			return false;
-		}
+		//if (value.empty())
+		//{
+		//	LOG(ERROR) << "etcd get value empty";
+		//	return false;
+		//}
 
-		neb::CJsonObject oJson(value);
-		value = oJson["node"]("value");
+		if (!value.empty())
+		{
+			neb::CJsonObject oJson(value);
+			value = oJson["node"]("value");
+		}
+	}
+	catch (std::exception e)
+	{
+		LOG(ERROR) << "Etcd SetValue failed" << e.what();
+		return false;
+	}
+	catch (...)
+	{
+		LOG(ERROR) << "Etcd GetValue failed";
+		return false;
+	}
+
+	return true;
+}
+
+bool EtcdStorage::Delete(const std::string& key)
+{
+	try
+	{
+		std::string value;
+		HttpRequest(host_, port_, "/v2/keys/" + key, http::verb::delete_, value);
 
 		if (value.empty())
 		{

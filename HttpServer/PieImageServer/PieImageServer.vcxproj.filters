@@ -162,6 +162,9 @@
     <ClCompile Include="storage_manager.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="image_group_manager.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="utility.h">
@@ -273,6 +276,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="storage_manager.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="image_group_manager.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
