@@ -136,6 +136,7 @@
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>D:\work\boost_1_73_0;D:\work\libjpeg-turbo-master;D:\work\libpng-libpng16;D:\work\gdal-release-2.4\gdal\bld\include;D:\work\glog-master\src\windows;D:\work\libwebp-master\src</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
