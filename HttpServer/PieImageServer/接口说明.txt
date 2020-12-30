@@ -1,5 +1,5 @@
 1）镜像启动命令：
-	docker run -it -p 8083:8083 image_server:4.0.0 ./server
+	docker run -it -p 8083:8083 -v /data:/data image_server:4.0.1 ./server
 	镜像内部默认8083端口，-v 需要添加数据目录映射
 
 2）url支持两种，一种是post，一种是get。其中 "request=GetTile&TILECOL={x}&TILEROW={y}&TILEMATRIX={z}" 必须写

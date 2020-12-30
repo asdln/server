@@ -88,5 +88,5 @@ StylePtr StyleManager::GetStyle(const std::string& style_string, DatasetPtr data
 		}
 	}
 
-	return nullptr;
+	return std::make_shared<Style>();
 }
