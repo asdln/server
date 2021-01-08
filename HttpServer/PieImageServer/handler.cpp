@@ -106,7 +106,7 @@ std::shared_ptr<http::response<http::string_body>> Handler::CreateStringResponse
 {
 	auto string_body = std::make_shared<http::response<http::string_body>>(status_code, version);
 	string_body->set(http::field::server, BOOST_BEAST_VERSION_STRING);
-	string_body->set(http::field::content_type, "text/html");
+	string_body->set(http::field::content_type, "application/json");
 	string_body->keep_alive(keep_alive);
 	string_body->body() = res_string;
 	string_body->prepare_payload();

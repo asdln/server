@@ -289,6 +289,19 @@ Application::Application(int argc, char* argv[])
 		LOG(INFO) << "etcd_host : " << EtcdStorage::host_ << "    etcd_port : " << EtcdStorage::port_ << std::endl;
 	}
 
+	EtcdStorage etcd_storage;
+	if (etcd_storage.IsUseEtcd())
+	{
+		std::string value;
+		if (!etcd_storage.GetValue("kkk", value))
+		{
+			LOG(INFO) << "etcd connect test failed!";
+		}
+		else
+		{
+			LOG(INFO) << "etcd connect test successful!";
+		}
+	}
 	InitBandMap();
 }
 
