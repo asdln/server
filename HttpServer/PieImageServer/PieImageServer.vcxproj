@@ -157,6 +157,7 @@
     <ClCompile Include="dataset_factory.cpp" />
     <ClCompile Include="dataset.cpp" />
     <ClCompile Include="etcd_storage.cpp" />
+    <ClCompile Include="etcd_v3.cpp" />
     <ClCompile Include="handler.cpp" />
     <ClCompile Include="handler_mapping.cpp" />
     <ClCompile Include="handle_result.cpp" />
@@ -198,6 +199,7 @@
     <ClInclude Include="dataset_factory.h" />
     <ClInclude Include="dataset.h" />
     <ClInclude Include="etcd_storage.h" />
+    <ClInclude Include="etcd_v3.h" />
     <ClInclude Include="handler.h" />
     <ClInclude Include="handler_mapping.h" />
     <ClInclude Include="handle_result.h" />

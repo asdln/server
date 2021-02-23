@@ -12,7 +12,7 @@ public:
 
 	EtcdStorage();
 
-	EtcdStorage(const std::string& host, const std::string& port = "2379");
+	//EtcdStorage(const std::string& host, const std::string& port = "2379");
 
 	
 	bool SetValue(const std::string& key, const std::string& value, bool set_ttl = true);

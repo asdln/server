@@ -32,11 +32,11 @@ EtcdStorage::EtcdStorage()
 
 }
 
-EtcdStorage::EtcdStorage(const std::string& host, const std::string& port)
-{
-	host_ = host;
-	port_ = port;
-}
+// EtcdStorage::EtcdStorage(const std::string& host, const std::string& port)
+// {
+// 	host_ = host;
+// 	port_ = port;
+// }
 
 bool EtcdStorage::SetValue(const std::string& key, const std::string& value, bool set_ttl)
 {
@@ -83,7 +83,7 @@ bool EtcdStorage::GetValue(const std::string& key, std::string& value)
 	}
 	catch (std::exception e)
 	{
-		LOG(ERROR) << "Etcd SetValue failed" << e.what();
+		LOG(ERROR) << "Etcd GetValue failed" << e.what();
 		return false;
 	}
 	catch (...)
@@ -104,18 +104,18 @@ bool EtcdStorage::Delete(const std::string& key)
 
 		if (value.empty())
 		{
-			LOG(ERROR) << "etcd get value empty";
+			LOG(ERROR) << "etcd delete value empty";
 			return false;
 		}
 	}
 	catch (std::exception e)
 	{
-		LOG(ERROR) << "Etcd SetValue failed" << e.what();
+		LOG(ERROR) << "Etcd Delete Value failed" << e.what();
 		return false;
 	}
 	catch (...)
 	{
-		LOG(ERROR) << "Etcd GetValue failed";
+		LOG(ERROR) << "Etcd Delete Value failed";
 		return false;
 	}
 
