@@ -181,18 +181,27 @@ Application::Application(int argc, char* argv[])
 		.help("gdal maximum cache size")
 		.default_value(std::string("1000"));
 
-	program.add_argument("--use_etcd")
-		.help("is use etcd")
+    program.add_argument("--use_etcd_v2")
+        .help("is use etcd_v2")
 		.default_value(false)
 		.implicit_value(true);
 
-	program.add_argument("--etcd_host")
-		.help("etcd service's host")
+    program.add_argument("--use_etcd_v3")
+        .help("is use etcd_v3")
+        .default_value(false)
+        .implicit_value(true);
+
+    program.add_argument("--etcd_v2_host")
+        .help("etcd_v2 service's host")
 		.default_value(std::string("127.0.0.1"));
 
-	program.add_argument("--etcd_port")
-		.help("etcd service's port")
+    program.add_argument("--etcd_v2_port")
+        .help("etcd_v2 service's port")
 		.default_value(std::string("2379"));
+
+    program.add_argument("--etcd_v3_address")
+        .help("etcd_v3 service's address, cluster address example:\"http://a.com:2379;http://b.com:2379;http://c.com:2379\"")
+        .default_value(std::string("http://127.0.0.1:2379"));
 
 	try {
 		program.parse_args(argc, argv);
@@ -209,20 +218,27 @@ Application::Application(int argc, char* argv[])
 	statistic_window_size_ = program.get<int>("--statistic_size");
 	gdal_cache_size_ = program.get<std::string>("--gdal_cache_size");
 
-	EtcdStorage::use_etcd_ = program.get<bool>("--use_etcd");
+    EtcdStorage::use_etcd_v2_ = program.get<bool>("--use_etcd_v2");
 
-	EtcdStorage::host_ = program.get<std::string>("--etcd_host");
-	EtcdStorage::port_ = program.get<std::string>("--etcd_port");
+    EtcdStorage::host_v2_ = program.get<std::string>("--etcd_v2_host");
+    EtcdStorage::port_v2_ = program.get<std::string>("--etcd_v2_port");
+
+#ifndef ETCD_V2
+
+    EtcdStorage::use_etcd_v3_ = program.get<bool>("--use_etcd_v3");
+    EtcdStorage::address_v3_ = program.get<std::string>("--etcd_v3_address");
+
+#endif
 
 	std::cout << program << std::endl << std::endl;
+
+    if(EtcdStorage::use_etcd_v2_ && EtcdStorage::use_etcd_v3_)
+    {
+        EtcdStorage::use_etcd_v3_ = false;
+    }
 	
 
 	GDALAllRegister();
-
-	for (int i = 1; i < argc; i++)
-	{
-		service_files_.push_back(argv[i]);
-	}
 
     const int max_path = MAX_PATH_LEN;
     char _szPath[max_path + 1] = { 0 };
@@ -282,24 +298,36 @@ Application::Application(int argc, char* argv[])
 
 	LOG(INFO) << "thread : " << threads_ << "   port : " << port_ << "    statistic_size: " << statistic_window_size_ << std::endl;
 
-	LOG(INFO) << "use_etcd : " << EtcdStorage::use_etcd_ << std::endl;
-
-	if (EtcdStorage::use_etcd_)
-	{
-		LOG(INFO) << "etcd_host : " << EtcdStorage::host_ << "    etcd_port : " << EtcdStorage::port_ << std::endl;
-	}
+    if(EtcdStorage::use_etcd_v2_)
+    {
+        LOG(INFO) << "use_etcd_v2 : " << EtcdStorage::use_etcd_v2_ << std::endl;
+        LOG(INFO) << "etcd_v2_host : " << EtcdStorage::host_v2_ << "    etcd_v2_port : " << EtcdStorage::port_v2_ << std::endl;
+    }
+    else if(EtcdStorage::use_etcd_v3_)
+    {
+        LOG(INFO) << "use_etcd_v3 : " << EtcdStorage::use_etcd_v3_ << std::endl;
+        LOG(INFO) << "etcd_v3_address : " << EtcdStorage::address_v3_ << std::endl;
+    }
+    else
+    {
+        LOG(INFO) << "etcd is not used" << std::endl;
+    }
 
 	EtcdStorage etcd_storage;
 	if (etcd_storage.IsUseEtcd())
-	{
-		std::string value;
-		if (!etcd_storage.GetValue("kkk", value))
+    {
+        if (!etcd_storage.SetValue("pie", "test"))
 		{
 			LOG(INFO) << "etcd connect test failed!";
 		}
 		else
 		{
-			LOG(INFO) << "etcd connect test successful!";
+            std::string value;
+            etcd_storage.GetValue("pie", value);
+            if(value.compare("test") == 0)
+                LOG(INFO) << "etcd connect test successful!";
+            else
+                LOG(INFO) << "etcd get value test failed!";
 		}
 	}
 	InitBandMap();

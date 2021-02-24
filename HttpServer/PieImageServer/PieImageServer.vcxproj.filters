@@ -165,6 +165,9 @@
     <ClCompile Include="image_group_manager.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="etcd_v2.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
     <ClCompile Include="etcd_v3.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -282,6 +285,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="image_group_manager.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="etcd_v2.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="etcd_v3.h">

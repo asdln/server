@@ -1,6 +1,8 @@
 #ifndef HTTPSERVER_ETCD_V3_H_
 #define HTTPSERVER_ETCD_V3_H_
 
+#ifndef ETCD_V2
+
 #include <string>
 
 class EtcdV3
@@ -18,6 +20,10 @@ public:
 protected:
 
 	std::string address_;  //http://127.0.0.1:4001
+
+    std::string prefix_ = "/pie_image_server";
 };
+
+#endif
 
 #endif
