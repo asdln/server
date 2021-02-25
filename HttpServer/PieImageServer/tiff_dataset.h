@@ -56,7 +56,7 @@ private:
 
     OGRSpatialReference* poSpatialReference_ = nullptr;
 
-    double dGeoTransform_[6];
+    double dGeoTransform_[6] = {0.0, 1.0, 0.0, 0.0, 0.0, -1.0};
 
     DataType enumDataType_;
 

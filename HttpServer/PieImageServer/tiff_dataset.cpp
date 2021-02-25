@@ -61,6 +61,16 @@ bool TiffDataset::Open(const std::string& path)
 	{
 		poSpatialReference_ = (OGRSpatialReference*)OSRNewSpatialReference(poDataset_->GetProjectionRef());
 		poDataset_->GetGeoTransform(dGeoTransform_);
+
+		if (std::string(poDataset_->GetProjectionRef()).empty())
+		{
+			dGeoTransform_[0] = 0;
+			dGeoTransform_[1] = 1;
+			dGeoTransform_[2] = 0;
+			dGeoTransform_[3] = 0;
+			dGeoTransform_[4] = 0;
+			dGeoTransform_[5] = -1;
+		}
 	}
 
 	CalcExtent();

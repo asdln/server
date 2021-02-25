@@ -39,7 +39,7 @@ StylePtr StyleManager::GetStyle(const std::string& style_string, DatasetPtr data
 
 	string_style = style_string;
 	
-	if (!string_style.empty())
+	//if (!string_style.empty())
 	{
 		file_path += string_style;
 		std::string md5;
@@ -69,10 +69,18 @@ StylePtr StyleManager::GetStyle(const std::string& style_string, DatasetPtr data
 			}
 			else
 			{
-				StylePtr style = StyleSerielizer::FromJson(string_style);
-				if (style == nullptr)
+				StylePtr style;
+				if (string_style.empty())
 				{
-					LOG(ERROR) << "FromJson(request_body) error";
+					style = std::make_shared<Style>();
+				}
+				else
+				{
+					style = StyleSerielizer::FromJson(string_style);
+					if (style == nullptr)
+					{
+						LOG(ERROR) << "FromJson(request_body) error";
+					}
 				}
 
 				if (s_map_style_container_.size() > 10000)

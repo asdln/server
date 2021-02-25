@@ -39,7 +39,7 @@ bool EtcdV2::SetValue(const std::string& key, const std::string& value, bool set
     }
     catch (std::exception e)
     {
-        LOG(ERROR) << "Etcd SetValue failed"  << e.what();
+        LOG(ERROR) << "Etcd SetValue failed: "  << e.what();
         return false;
     }
     catch (...)

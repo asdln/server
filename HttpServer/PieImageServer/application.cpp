@@ -207,8 +207,9 @@ Application::Application(int argc, char* argv[])
 		program.parse_args(argc, argv);
 	}
 	catch (const std::runtime_error& err) {
+		std::cout << "ERROR: " << std::endl << err.what() << std::endl;
 		std::cout << "argument parse error: " << err.what() << std::endl;
-		std::cout << "please input correct argument: " << std::endl;
+		std::cout << "please input correct argument, program exited " << std::endl;
 		std::cout << program;
 		exit(0);
 	}
@@ -296,17 +297,17 @@ Application::Application(int argc, char* argv[])
 
 	ResourcePool::GetInstance()->SetDatasetPoolMaxCount(threads_ + 1);
 
-	LOG(INFO) << "thread : " << threads_ << "   port : " << port_ << "    statistic_size: " << statistic_window_size_ << std::endl;
+	LOG(INFO) << "thread : " << threads_ << "   port : " << port_ << "    statistic_size: " << statistic_window_size_;
 
     if(EtcdStorage::use_etcd_v2_)
     {
         LOG(INFO) << "use_etcd_v2 : " << EtcdStorage::use_etcd_v2_ << std::endl;
-        LOG(INFO) << "etcd_v2_host : " << EtcdStorage::host_v2_ << "    etcd_v2_port : " << EtcdStorage::port_v2_ << std::endl;
+        LOG(INFO) << "etcd_v2_host : " << EtcdStorage::host_v2_ << "    etcd_v2_port : " << EtcdStorage::port_v2_;
     }
     else if(EtcdStorage::use_etcd_v3_)
     {
-        LOG(INFO) << "use_etcd_v3 : " << EtcdStorage::use_etcd_v3_ << std::endl;
-        LOG(INFO) << "etcd_v3_address : " << EtcdStorage::address_v3_ << std::endl;
+        LOG(INFO) << "use_etcd_v3 : " << EtcdStorage::use_etcd_v3_;
+        LOG(INFO) << "etcd_v3_address : " << EtcdStorage::address_v3_;
     }
     else
     {
@@ -316,6 +317,7 @@ Application::Application(int argc, char* argv[])
 	EtcdStorage etcd_storage;
 	if (etcd_storage.IsUseEtcd())
     {
+		LOG(INFO) << "try to connect to etcd, please wait...";
         if (!etcd_storage.SetValue("pie", "test"))
 		{
 			LOG(INFO) << "etcd connect test failed!";
@@ -331,6 +333,7 @@ Application::Application(int argc, char* argv[])
 		}
 	}
 	InitBandMap();
+	LOG(INFO) << "server started";
 }
 
 Application::~Application() 

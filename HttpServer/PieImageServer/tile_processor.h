@@ -23,7 +23,7 @@ public:
 
 protected:
 
-	static bool SimpleProject(Dataset* pDataset, int nBandCount, int bandMap[], const Envelop& env, void* pData, int width, int height);
+	static bool SimpleProject(Dataset* pDataset, int nBandCount, int bandMap[], const Envelop& env, void* pData, unsigned char* pMaskData, int width, int height);
 
 	static bool DynamicProject(OGRSpatialReference* pDstSpatialReference, Dataset* pDataset, int nBandCount, int bandMap[], const Envelop& env, unsigned char* pData, unsigned char* pMaskBuffer, int width, int height);
 

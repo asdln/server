@@ -197,7 +197,7 @@ bool TileProcessor::ProcessPerPixel(Dataset* ptrDataset
 	return bValid;
 }
 
-bool TileProcessor::SimpleProject(Dataset* pDataset, int nBandCount, int bandMap[], const Envelop& env, void* pData, int width, int height)
+bool TileProcessor::SimpleProject(Dataset* pDataset, int nBandCount, int bandMap[], const Envelop& env, void* pData, unsigned char* pMaskData, int width, int height)
 {
 	double dImgLeft = 0.0;
 	double dImgTop = 0.0;
@@ -257,8 +257,13 @@ bool TileProcessor::SimpleProject(Dataset* pDataset, int nBandCount, int bandMap
 	int nBufferWidth = dBufferWid;
 	int nBufferHeight = dBufferHei;
 
+	if (nBufferWidth <= 0 || nBufferHeight <= 0)
+		return false;
+
 	if (bNeedAdjust)
 	{
+		memset(pMaskData, 0, (size_t)width * height);
+
 		int nBufferSize = nBufferWidth * nBufferHeight * GetDataTypeBytes(DataType) * nBandCount;
 		char* pTempBuffer = new char[nBufferSize];
 		memset(pTempBuffer, 255, nBufferSize);
@@ -289,6 +294,10 @@ bool TileProcessor::SimpleProject(Dataset* pDataset, int nBandCount, int bandMap
 
 			memcpy(pDstLine, pSrcLine, nSrcLineBytes);
 			//memset(pSrcLine, 0, nSrcLineBytes);
+
+
+			unsigned char* pDstMaskLine = pMaskData + ((j + ny) * width + nx);
+			memset(pDstMaskLine, 255, nBufferWidth);
 		}
 
 		//memcpy(pData, pTempBuffer, width * height * GetPixelDataTypeSize(pixelType));
@@ -312,7 +321,7 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 	bool bDynPrjTrans = false;
 
 	// 坐标转换
-	if (ptrVisSRef && ptrDSSRef)
+	if (ptrVisSRef && ptrDSSRef && ptrDSSRef->GetRoot() != nullptr)
 	{
 		if ((ptrDSSRef->GetAttrValue("DATUM") != nullptr && std::string(ptrVisSRef->GetAttrValue("DATUM")).compare(ptrDSSRef->GetAttrValue("DATUM")) == 0) || !ptrVisSRef->IsSame(ptrDSSRef))
 		{
@@ -922,9 +931,9 @@ bool TileProcessor::GetTileData(Dataset* dataset, Style* style, const Envelop& e
 	OGRSpatialReference* pDefaultSpatialReference = ResourcePool::GetInstance()->GetSpatialReference(epsg_code);
 	int pixel_bytes = GetDataTypeBytes(tiffDataset->GetDataType());
 
-	OGRSpatialReference* poSpatialReference = tiffDataset->GetSpatialReference();
-
 	bool bSimple = false;
+	OGRSpatialReference* poSpatialReference = tiffDataset->GetSpatialReference();
+	
 	//if (!tiffDataset->IsUseRPC())
 	//{
 	//	bSimple = poSpatialReference == nullptr ||
@@ -940,16 +949,17 @@ bool TileProcessor::GetTileData(Dataset* dataset, Style* style, const Envelop& e
 	unsigned char* mask_buffer = nullptr;
 	memset(buff, 255, nSize);
 
+	*mask_buff = new unsigned char[(size_t)tile_width * tile_height];
+	mask_buffer = *mask_buff;
+	memset(mask_buffer, 255, (size_t)tile_width * tile_height);
+
 	if (bSimple)
 	{
-		bRes = SimpleProject(tiffDataset, band_count, band_map, env, buff, tile_width, tile_height);
+		bRes = SimpleProject(tiffDataset, band_count, band_map, env, buff, mask_buffer, tile_width, tile_height);
 	}
 	else
 	{
 		//env 必须是 pDefaultSpatialReference 的空间参考
-		*mask_buff = new unsigned char[(size_t)tile_width * tile_height];
-		mask_buffer = *mask_buff;
-		memset(mask_buffer, 255, (size_t)tile_width * tile_height);
 		bRes = DynamicProject(pDefaultSpatialReference, tiffDataset, band_count, band_map, env, buff, mask_buffer, tile_width, tile_height);
 	}
 
