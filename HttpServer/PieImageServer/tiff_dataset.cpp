@@ -158,6 +158,14 @@ const Envelop& TiffDataset::GetExtent()
 	return envelope_;
 }
 
+int TiffDataset::GetEPSG()
+{
+	if (std::string(poDataset_->GetProjectionRef()).empty())
+		return -1;
+
+	return poSpatialReference_->GetEPSGGeogCS();
+}
+
 bool TiffDataset::World2Pixel(double dProjX, double dProjY, double& dCol, double& dRow)
 {
 	if (m_bUsePRC)

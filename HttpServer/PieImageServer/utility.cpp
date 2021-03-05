@@ -255,17 +255,18 @@ void GetLayers(const std::string& request_body, std::vector<std::string>& paths)
 	}
 }
 
-void GetGeojson(const std::vector<Envelop>& envs, std::string& json)
+void GetGeojson(const std::vector<std::pair<Envelop, int>>& envs, std::string& json)
 {
 	neb::CJsonObject oJson;
 	for (const auto& env : envs)
 	{
 		neb::CJsonObject oJson_env;
-		oJson_env.Add("left", env.GetXMin());
-		oJson_env.Add("right", env.GetXMax());
-		oJson_env.Add("top", env.GetYMax());
-		oJson_env.Add("bottom", env.GetYMin());
+		oJson_env.Add("left", env.first.GetXMin());
+		oJson_env.Add("right", env.first.GetXMax());
+		oJson_env.Add("top", env.first.GetYMax());
+		oJson_env.Add("bottom", env.first.GetYMin());
 
+		oJson_env.Add("epsg", env.second);
 		oJson.Add(oJson_env);
 	}
 

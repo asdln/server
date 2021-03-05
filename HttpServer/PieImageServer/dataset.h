@@ -42,6 +42,8 @@ public:
 
 	virtual const std::string& file_path() = 0;
 
+	virtual int GetEPSG() = 0;
+
 	virtual ~Dataset() {};
 };
 

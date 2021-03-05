@@ -41,6 +41,8 @@ public:
 
     virtual int GetBandCount() override;
 
+    virtual int GetEPSG() override;
+
     bool IsUseRPC() { return m_bUsePRC; }
 
     ~TiffDataset();

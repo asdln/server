@@ -226,11 +226,18 @@ bool WMSHandler::GetLayInfo(const std::string& request_body, std::shared_ptr<Han
 	if (layers.empty())
 		return false;
 
-	std::vector<Envelop> envs;
+	std::vector<std::pair<Envelop, int>> envs;
 	for (auto& path : layers)
 	{
 		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(path));
-		envs.emplace_back(tiffDataset->GetExtent());
+		if(tiffDataset != nullptr)
+			envs.emplace_back(std::make_pair(tiffDataset->GetExtent(), tiffDataset->GetEPSG()));
+		else
+		{
+			Envelop env;
+			env.PutCoords(0, 0, 0, 0);
+			envs.emplace_back(std::make_pair(env, -1));
+		}
 	}
 
 	std::string json;
