@@ -141,4 +141,8 @@ void CreateUID(std::string& uid);
 
 void QueryDataInfo(const std::string& request_body, std::list<std::pair<std::string, std::string>>& data_info);
 
+void GetLayers(const std::string& request_body, std::vector<std::string>& paths);
+
+void GetGeojson(const std::vector<Envelop>& envs, std::string& json);
+
 #endif  //HTTPSERVER_UTILITY_H_

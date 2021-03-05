@@ -876,7 +876,7 @@ BufferPtr TileProcessor::GetCombinedData(const std::list<std::pair<DatasetPtr, S
 	Format format = Format::WEBP;
 
 	WebpCompress webpCompress;
-	BufferPtr buffer = webpCompress.DoCompress(render_buffer_final, 256, 256);
+	BufferPtr buffer = webpCompress.DoCompress(render_buffer_final, tile_width, tile_height);
 
 	//if (format == Format::JPG)
 	//{

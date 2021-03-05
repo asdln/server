@@ -34,6 +34,10 @@ bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, cons
 		{
 			return ClearImages(request_body, result);
 		}
+		else if (request.compare("GetLayInfo") == 0)
+		{
+			return GetLayInfo(request_body, result);
+		}
 	}
 
 	return GetMap(doc_root, url, request_body, result);
@@ -107,97 +111,88 @@ bool WMSHandler::GetRenderBytes(const std::list<std::pair<DatasetPtr, StylePtr>>
 	return true;
 }
 
+bool WMSHandler::GetDatasets(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::list<std::pair<DatasetPtr, StylePtr>>& datasets)
+{
+	int epsg_code = QuerySRS(url);
+	if (epsg_code == -1)
+	{
+		//默认 web_mercator
+		epsg_code = 3857;
+	}
+
+	//先判断url里有没有“key”
+	std::string md5;
+	std::string data_style_json;
+	if (url.QueryValue("key", md5))
+	{
+		if (!StorageManager::GetDataStyle(md5, data_style_json))
+			return false;
+	}
+	else if (!request_body.empty())
+	{
+		data_style_json = request_body;
+	}
+	else if (!url.QueryValue("info", data_style_json))
+	{
+		return false;
+	}
+
+	std::list<std::pair<std::string, std::string>> data_info;
+	QueryDataInfo(data_style_json, data_info);
+
+	for (auto info : data_info)
+	{
+		const std::string& path = info.first;
+		std::string style_string = info.second;
+
+		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(path));
+		if (tiffDataset == nullptr)
+			continue;
+
+		StylePtr style_clone = StyleManager::GetStyle(style_string, tiffDataset);
+		style_clone->set_code(epsg_code);
+		datasets.emplace_back(std::make_pair(tiffDataset, style_clone));
+	}
+
+	return true;
+}
 
 // 暂时不维护。如需要，参考WMTSHandler::GetTile进行修改
 bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
-	return true;
 
-	//Envelop env;
-	//std::string env_string;
-	//if (url.QueryValue("bbox", env_string))
-	//{
-	//	std::vector<std::string> tokens;
-	//	Split(env_string, tokens, ",");
-	//	if (tokens.size() != 4)
-	//	{
-	//		return false;
-	//	}
+	int epsg_code = QuerySRS(url);
+	if (epsg_code == -1)
+	{
+		//默认 web_mercator
+		epsg_code = 3857;
+	}
 
-	//	env.PutCoords(atof(tokens[0].c_str()), atof(tokens[1].c_str()), atof(tokens[2].c_str()), atof(tokens[3].c_str()));
-	//}
-	//else
-	//{
-	//	return false;
-	//}
+	Envelop env;
+	std::string env_string;
+	if (url.QueryValue("bbox", env_string))
+	{
+		std::vector<std::string> tokens;
+		Split(env_string, tokens, ",");
+		if (tokens.size() != 4)
+		{
+			return false;
+		}
 
-	//int tile_width = QueryTileWidth(url);
-	//int tile_height = QueryTileHeight(url);
+		env.PutCoords(atof(tokens[0].c_str()), atof(tokens[1].c_str()), atof(tokens[2].c_str()), atof(tokens[3].c_str()));
+	}
+	else
+	{
+		return false;
+	}
 
-	//int epsg_code = QuerySRS(url);
-	//if (epsg_code == -1)
-	//{
-	//	//默认 web_mercator
-	//	epsg_code = 3857;
-	//}
+	int tile_width = QueryTileWidth(url);
+	int tile_height = QueryTileHeight(url);
 
-	//double no_data_value = 0.;
-	//bool have_no_data = QueryNoDataValue(url, no_data_value);
+	std::list<std::pair<DatasetPtr, StylePtr>> datasets;
+	GetDatasets(doc_root, url, request_body, datasets);
 
-	//std::list<std::pair<DatasetPtr, StylePtr>> datasets;
-
-	//if (!request_body.empty())
-	//{
-	//	std::list<std::pair<std::string, std::string>> data_info;
-	//	QueryDataInfo(request_body, data_info);
-
-	//	for (auto info : data_info)
-	//	{
-	//		const std::string& path = info.first;
-	//		std::string style_string = info.second;
-
-	//		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(path));
-	//		if (tiffDataset == nullptr)
-	//			continue;
-
-	//		StylePtr style_clone = StyleManager::GetStyle(url, style_string, tiffDataset);
-	//		style_clone->set_code(epsg_code);
-
-	//		if (have_no_data)
-	//		{
-	//			style_clone->GetStretch()->SetUseExternalNoDataValue(have_no_data);
-	//			style_clone->GetStretch()->SetExternalNoDataValue(no_data_value);
-	//		}
-
-	//		datasets.emplace_back(std::make_pair(tiffDataset, style_clone));
-	//	}
-	//}
-	//else
-	//{
-	//	std::list<std::string> paths;
-	//	QueryDataPath(url, paths);
-
-	//	for (auto path : paths)
-	//	{
-	//		std::string filePath = path;
-	//		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(filePath));
-	//		if (tiffDataset == nullptr)
-	//			continue;
-
-	//		StylePtr style_clone = StyleManager::GetStyle(url, request_body, tiffDataset);
-	//		style_clone->set_code(epsg_code);
-
-	//		if (have_no_data)
-	//		{
-	//			style_clone->GetStretch()->SetUseExternalNoDataValue(have_no_data);
-	//			style_clone->GetStretch()->SetExternalNoDataValue(no_data_value);
-	//		}
-
-	//		datasets.emplace_back(std::make_pair(tiffDataset, style_clone));
-	//	}
-	//}
-
-	//return GetRenderBytes(datasets, env, tile_width, tile_height, result);
+	return WMSHandler::GetRenderBytes(datasets, env, tile_width, tile_height, result);
 }
 
 bool WMSHandler::UpdateDataStyle(const std::string& request_body, std::shared_ptr<HandleResult> result)
@@ -220,6 +215,30 @@ bool WMSHandler::UpdateDataStyle(const std::string& request_body, std::shared_pt
 	auto string_body = CreateStringResponse(status_code, result->version(), result->keep_alive(), res_string_body);
 	result->set_string_body(string_body);
 
+	return true;
+}
+
+bool WMSHandler::GetLayInfo(const std::string& request_body, std::shared_ptr<HandleResult> result)
+{
+	std::vector<std::string> layers;
+	GetLayers(request_body, layers);
+
+	if (layers.empty())
+		return false;
+
+	std::vector<Envelop> envs;
+	for (auto& path : layers)
+	{
+		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(path));
+		envs.emplace_back(tiffDataset->GetExtent());
+	}
+
+	std::string json;
+	GetGeojson(envs, json);
+
+	auto string_body = CreateStringResponse(http::status::ok, result->version(), result->keep_alive(), json);
+	result->set_string_body(string_body);
+	
 	return true;
 }
 

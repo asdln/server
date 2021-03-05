@@ -237,3 +237,37 @@ void QueryDataInfo(const std::string& request_body, std::list<std::pair<std::str
 		}
 	}
 }
+
+void GetLayers(const std::string& request_body, std::vector<std::string>& paths)
+{
+	neb::CJsonObject oJson_info;
+	neb::CJsonObject oJson(request_body);
+
+	if (oJson.IsArray())
+	{
+		int array_size = oJson.GetArraySize();
+		for (int i = 0; i < array_size; i++)
+		{
+			std::string path;
+			oJson.Get(i, path);
+			paths.emplace_back(path);
+		}
+	}
+}
+
+void GetGeojson(const std::vector<Envelop>& envs, std::string& json)
+{
+	neb::CJsonObject oJson;
+	for (const auto& env : envs)
+	{
+		neb::CJsonObject oJson_env;
+		oJson_env.Add("left", env.GetXMin());
+		oJson_env.Add("right", env.GetXMax());
+		oJson_env.Add("top", env.GetYMax());
+		oJson_env.Add("bottom", env.GetYMin());
+
+		oJson.Add(oJson_env);
+	}
+
+	json = oJson.ToString();
+}

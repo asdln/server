@@ -35,6 +35,10 @@ bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, con
 		{
 			return ClearImages(request_body, result);
 		}
+		else if (request.compare("GetLayInfo") == 0)
+		{
+			return GetLayInfo(request_body, result);
+		}
 
 		return false;
 	}
@@ -59,40 +63,7 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, co
 	GetEnvFromTileIndex(nx, ny, nz, env, epsg_code);
 
 	std::list<std::pair<DatasetPtr, StylePtr>> datasets;
-
-	//先判断url里有没有“key”
-	std::string md5;
-	std::string data_style_json;
-	if (url.QueryValue("key", md5))
-	{
-		if (!StorageManager::GetDataStyle(md5, data_style_json))
-			return false;
-	}
-	else if (!request_body.empty())
-	{
-		data_style_json = request_body;
-	}
-	else if (!url.QueryValue("info", data_style_json))
-	{
-		return false;
-	}
-
-	std::list<std::pair<std::string, std::string>> data_info;
-	QueryDataInfo(data_style_json, data_info);
-
-	for (auto info : data_info)
-	{
-		const std::string& path = info.first;
-		std::string style_string = info.second;
-
-		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(path));
-		if (tiffDataset == nullptr)
-			continue;
-
-		StylePtr style_clone = StyleManager::GetStyle(style_string, tiffDataset);
-		style_clone->set_code(epsg_code);
-		datasets.emplace_back(std::make_pair(tiffDataset, style_clone));
-	}
+	GetDatasets(doc_root, url, request_body, datasets);
 
 	return WMSHandler::GetRenderBytes(datasets, env, 256, 256, result);
 }
