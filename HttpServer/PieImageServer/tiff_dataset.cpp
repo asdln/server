@@ -160,10 +160,37 @@ const Envelop& TiffDataset::GetExtent()
 
 int TiffDataset::GetEPSG()
 {
+	if (m_bUsePRC)
+		return 4326;
+
 	if (std::string(poDataset_->GetProjectionRef()).empty())
 		return -1;
 
-	return poSpatialReference_->GetEPSGGeogCS();
+	poSpatialReference_->AutoIdentifyEPSG();
+
+	if (poSpatialReference_->IsProjected())
+	{
+		const char* pszAuthName, * pszAuthCode;
+
+		pszAuthName = poSpatialReference_->GetAuthorityName("PROJCS");
+		pszAuthCode = poSpatialReference_->GetAuthorityCode("PROJCS");
+
+		if (pszAuthName == NULL || pszAuthCode == NULL)
+		{
+			return -1;
+		}
+
+		if (EQUAL(pszAuthName, "EPSG"))
+		{
+			return atoi(pszAuthCode);
+		}
+	}
+	else if(poSpatialReference_->IsGeographic())
+	{
+		return poSpatialReference_->GetEPSGGeogCS();
+	}
+
+	return -1;
 }
 
 bool TiffDataset::World2Pixel(double dProjX, double dProjY, double& dCol, double& dRow)
