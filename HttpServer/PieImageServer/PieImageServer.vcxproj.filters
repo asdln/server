@@ -171,6 +171,9 @@
     <ClCompile Include="etcd_v3.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="amazon_s3.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="utility.h">
@@ -291,6 +294,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="etcd_v3.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="amazon_s3.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

@@ -22,6 +22,8 @@ public:
 
 	virtual int QuerySRS(const Url& url);
 
+	virtual bool QueryIsUseCache(const Url& url);
+
 	std::shared_ptr<http::response<http::string_body>> CreateStringResponse(http::status status_code, int version, bool keep_alive, const std::string& res_string);
 };
 

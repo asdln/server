@@ -4,6 +4,7 @@
 #include "resource_pool.h"
 #include "storage_manager.h"
 #include "image_group_manager.h"
+#include "amazon_s3.h"
 
 bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
@@ -49,7 +50,7 @@ bool WMSHandler::ClearAllDatasets(const std::string& request_body, std::shared_p
 	return true;
 }
 
-bool WMSHandler::GetRenderBytes(const std::list<std::pair<DatasetPtr, StylePtr>>& datasets, const Envelop& env, int tile_width, int tile_height, std::shared_ptr<HandleResult> result)
+/*bool WMSHandler::GetRenderBytes(const std::list<std::pair<DatasetPtr, StylePtr>>& datasets, const Envelop& env, int tile_width, int tile_height, std::shared_ptr<HandleResult> result)
 {
 	BufferPtr buffer = TileProcessor::GetCombinedData(datasets, env, tile_width, tile_height);
 
@@ -110,19 +111,12 @@ bool WMSHandler::GetRenderBytes(const std::list<std::pair<DatasetPtr, StylePtr>>
 
 	return true;
 }
+*/
 
-bool WMSHandler::GetDatasets(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::list<std::pair<DatasetPtr, StylePtr>>& datasets)
+bool WMSHandler::GetDataStyleString(const Url& url, const std::string& request_body, std::string& data_style_json)
 {
-	int epsg_code = QuerySRS(url);
-	if (epsg_code == -1)
-	{
-		//默认 web_mercator
-		epsg_code = 3857;
-	}
-
 	//先判断url里有没有“key”
 	std::string md5;
-	std::string data_style_json;
 	if (url.QueryValue("key", md5))
 	{
 		if (!StorageManager::GetDataStyle(md5, data_style_json))
@@ -137,6 +131,11 @@ bool WMSHandler::GetDatasets(boost::beast::string_view doc_root, const Url& url,
 		return false;
 	}
 
+	return true;
+}
+
+bool WMSHandler::GetDatasets(int epsg_code, const std::string& data_style_json, std::list<std::pair<DatasetPtr, StylePtr>>& datasets)
+{
 	std::list<std::pair<std::string, std::string>> data_info;
 	QueryDataInfo(data_style_json, data_info);
 
@@ -157,10 +156,94 @@ bool WMSHandler::GetDatasets(boost::beast::string_view doc_root, const Url& url,
 	return true;
 }
 
+// bool WMSHandler::GetDatasets(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::list<std::pair<DatasetPtr, StylePtr>>& datasets)
+// {
+// 	int epsg_code = QuerySRS(url);
+// 	if (epsg_code == -1)
+// 	{
+// 		//默认 web_mercator
+// 		epsg_code = 3857;
+// 	}
+// 
+// 	std::string data_style_json;
+// 	if (!GetDataStyleString(url, request_body, data_style_json))
+// 		return false;
+// 
+// 	std::list<std::pair<std::string, std::string>> data_info;
+// 	QueryDataInfo(data_style_json, data_info);
+// 
+// 	for (auto info : data_info)
+// 	{
+// 		const std::string& path = info.first;
+// 		std::string style_string = info.second;
+// 
+// 		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(path));
+// 		if (tiffDataset == nullptr)
+// 			continue;
+// 
+// 		StylePtr style_clone = StyleManager::GetStyle(style_string, tiffDataset);
+// 		style_clone->set_code(epsg_code);
+// 		datasets.emplace_back(std::make_pair(tiffDataset, style_clone));
+// 	}
+// 
+// 	return true;
+// }
+
+bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, int tile_height, int epsg_code, const std::string& data_style, const std::string& amazon_md5, std::shared_ptr<HandleResult> result)
+{
+	BufferPtr buffer = nullptr;
+	AmazonS3 amason_s3;
+	std::string md5;
+	if (use_cache && AmazonS3::GetUseS3())
+	{
+		buffer = amason_s3.GetS3Object(amazon_md5);
+	}
+
+	if (buffer == nullptr)
+	{
+		std::list<std::pair<DatasetPtr, StylePtr>> datasets;
+		GetDatasets(epsg_code, data_style, datasets);
+
+		buffer = TileProcessor::GetCombinedData(datasets, env, tile_width, tile_height);
+		if (use_cache && AmazonS3::GetUseS3() && buffer != nullptr)
+		{
+			amason_s3.PutS3Object(md5, buffer);
+		}
+	}
+
+	if (buffer != nullptr)
+	{
+		result->set_buffer(buffer);
+
+		http::buffer_body::value_type body;
+		body.data = result->buffer()->data();
+		body.size = result->buffer()->size();
+		body.more = false;
+
+		auto msg = std::make_shared<http::response<http::buffer_body>>(
+			std::piecewise_construct,
+			std::make_tuple(std::move(body)),
+			std::make_tuple(http::status::ok, result->version()));
+
+		msg->set(http::field::server, BOOST_BEAST_VERSION_STRING);
+		msg->set(http::field::content_type, "image/jpeg");
+
+		msg->set(http::field::access_control_allow_origin, "*");
+		msg->set(http::field::access_control_allow_methods, "POST, GET, OPTIONS, DELETE");
+		msg->set(http::field::access_control_allow_credentials, "true");
+
+		msg->content_length(result->buffer()->size());
+		msg->keep_alive(result->keep_alive());
+
+		result->set_buffer_body(msg);
+	}
+
+	return true;
+}
+
 // 暂时不维护。如需要，参考WMTSHandler::GetTile进行修改
 bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
-
 	int epsg_code = QuerySRS(url);
 	if (epsg_code == -1)
 	{
@@ -189,10 +272,20 @@ bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, cons
 	int tile_width = QueryTileWidth(url);
 	int tile_height = QueryTileHeight(url);
 
-	std::list<std::pair<DatasetPtr, StylePtr>> datasets;
-	GetDatasets(doc_root, url, request_body, datasets);
+	std::string data_style;
+	if (!GetDataStyleString(url, request_body, data_style))
+		return false;
 
-	return WMSHandler::GetRenderBytes(datasets, env, tile_width, tile_height, result);
+	bool use_cache = QueryIsUseCache(url);
+
+	std::string md5;
+	if (use_cache && AmazonS3::GetUseS3())
+	{
+		std::string amazon_data_style = data_style + env_string + std::to_string(tile_width) + std::to_string(tile_height) + std::to_string(epsg_code);
+		GetMd5(md5, amazon_data_style.c_str(), amazon_data_style.size());
+	}
+
+	return GetHandleResult(use_cache, env, tile_width, tile_height, epsg_code, data_style, md5, result);
 }
 
 bool WMSHandler::UpdateDataStyle(const std::string& request_body, std::shared_ptr<HandleResult> result)

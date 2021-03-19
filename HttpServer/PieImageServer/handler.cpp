@@ -17,6 +17,22 @@ int Handler::QuerySRS(const Url& url)
 	return epsg;
 }
 
+bool Handler::QueryIsUseCache(const Url& url)
+{
+	bool use_cache = true;
+
+	std::string cache;
+	if (url.QueryValue("cache", cache))
+	{
+		if (cache.compare("false") == 0 || cache.compare("0") == 0)
+		{
+			use_cache = false;
+		}
+	}
+
+	return use_cache;
+}
+
 int Handler::QueryX(const Url& url)
 {
 	int nx = 0;

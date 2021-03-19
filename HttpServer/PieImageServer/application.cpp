@@ -26,6 +26,7 @@
 #include "etcd_storage.h"
 #include "resource_pool.h"
 #include "argparse.hpp"
+#include "amazon_s3.h"
 
 #define GOOGLE_GLOG_DLL_DECL 
 #define GLOG_NO_ABBREVIATED_SEVERITIES
@@ -181,6 +182,14 @@ Application::Application(int argc, char* argv[])
 		.help("gdal maximum cache size")
 		.default_value(std::string("1000"));
 
+	program.add_argument("--use_amazon_s3")
+		.help("use amazon s3 as image cache")
+		.default_value(false);
+
+	program.add_argument("--amazon_s3_bucket_name")
+		.help("amazon s3 bucket name for caching")
+		.default_value(std::string(""));
+
     program.add_argument("--use_etcd_v2")
         .help("is use etcd_v2")
 		.default_value(false)
@@ -223,6 +232,21 @@ Application::Application(int argc, char* argv[])
 
     EtcdStorage::host_v2_ = program.get<std::string>("--etcd_v2_host");
     EtcdStorage::port_v2_ = program.get<std::string>("--etcd_v2_port");
+
+	bool use_s3 = program.get<bool>("--use_amazon_s3");
+	AmazonS3::SetUseS3(use_s3);
+	std::string bucket_name;
+	if (use_s3)
+	{
+		bucket_name = program.get<std::string>("--amazon_s3_bucket_name");
+		AmazonS3::SetBucketName(bucket_name);
+
+		if (bucket_name.empty())
+		{
+			LOG(ERROR) << "amazon s3 bucket name is empty, use --amazon_s3_bucket_name flag";
+			exit(0);
+		}
+	}
 
 #ifndef ETCD_V2
 
@@ -332,6 +356,13 @@ Application::Application(int argc, char* argv[])
                 LOG(INFO) << "etcd get value test failed!";
 		}
 	}
+
+	LOG(INFO) << "use_amazon_s3 : " << use_s3;
+	if (use_s3)
+	{
+		LOG(INFO) << "amazon s3 bucket name: " << bucket_name;
+	}
+
 	InitBandMap();
 	LOG(INFO) << "server started";
 }
