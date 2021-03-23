@@ -430,16 +430,20 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 	double dxTmp[2];
 	double dyTmp[2];
 
-	pDataset->Pixel2World(nRasterWid * 0.2, nRasterHei * 0.5, dxTmp[0], dyTmp[0]);
-	pDataset->Pixel2World(nRasterWid * 0.8, nRasterHei * 0.5, dxTmp[1], dyTmp[1]);
+	pDataset->Pixel2World(nRasterWid * 0.3, nRasterHei * 0.4, dxTmp[0], dyTmp[0]);
+	pDataset->Pixel2World(nRasterWid * 0.7, nRasterHei * 0.4, dxTmp[1], dyTmp[1]);
 
 	if (bDynPrjTrans)
 	{
 		CoordinateTransformation coordTrans(ptrDSSRef, ptrVisSRef);
-		coordTrans.Transform(2, dxTmp, dyTmp, nullptr);
+		bool bRes = coordTrans.Transform(2, dxTmp, dyTmp, nullptr);
+		if (bRes == false)
+		{
+			return false;
+		}
 	}
 
-	double dImgResX = sqrt((dxTmp[0] - dxTmp[1]) * (dxTmp[0] - dxTmp[1]) + (dyTmp[0] - dyTmp[1]) * (dyTmp[0] - dyTmp[1])) / (nRasterWid * 0.6);
+	double dImgResX = sqrt((dxTmp[0] - dxTmp[1]) * (dxTmp[0] - dxTmp[1]) + (dyTmp[0] - dyTmp[1]) * (dyTmp[0] - dyTmp[1])) / (nRasterWid * 0.4);
 
 	//查找合适的金字塔级别
 	int nPyramidLevel = 0;
@@ -874,9 +878,13 @@ BufferPtr TileProcessor::GetCombinedData(const std::list<std::pair<DatasetPtr, S
 	}
 
 	Format format = Format::WEBP;
+	BufferPtr buffer = nullptr;
 
-	WebpCompress webpCompress;
-	BufferPtr buffer = webpCompress.DoCompress(render_buffer_final, tile_width, tile_height);
+	if (render_buffer_final != nullptr)
+	{
+		WebpCompress webpCompress;
+		buffer = webpCompress.DoCompress(render_buffer_final, tile_width, tile_height);
+	}
 
 	//if (format == Format::JPG)
 	//{
