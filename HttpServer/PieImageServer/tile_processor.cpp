@@ -323,7 +323,9 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 	// ×ø±ê×ª»»
 	if (ptrVisSRef && ptrDSSRef && ptrDSSRef->GetRoot() != nullptr)
 	{
-		if ((ptrDSSRef->GetAttrValue("DATUM") != nullptr && std::string(ptrVisSRef->GetAttrValue("DATUM")).compare(ptrDSSRef->GetAttrValue("DATUM")) == 0) || !ptrVisSRef->IsSame(ptrDSSRef))
+		if ((ptrDSSRef->GetAttrValue("DATUM") != nullptr && ptrVisSRef->GetAttrValue("DATUM")!= nullptr 
+			&&  std::string(ptrVisSRef->GetAttrValue("DATUM")).compare(ptrDSSRef->GetAttrValue("DATUM")) == 0) 
+			|| !ptrVisSRef->IsSame(ptrDSSRef))
 		{
 			bDynPrjTrans = true;
 		}
