@@ -171,7 +171,9 @@
     <ClCompile Include="percent_min_max_stretch.cpp" />
     <ClCompile Include="png_buffer.cpp" />
     <ClCompile Include="png_compress.cpp" />
+    <ClCompile Include="rect.cpp" />
     <ClCompile Include="resource_pool.cpp" />
+    <ClCompile Include="s3_dataset.cpp" />
     <ClCompile Include="session.cpp" />
     <ClCompile Include="standard_deviation_stretch.cpp" />
     <ClCompile Include="storage_manager.cpp" />
@@ -215,7 +217,9 @@
     <ClInclude Include="percent_min_max_stretch.h" />
     <ClInclude Include="png_buffer.h" />
     <ClInclude Include="png_compress.h" />
+    <ClInclude Include="rect.h" />
     <ClInclude Include="resource_pool.h" />
+    <ClInclude Include="s3_dataset.h" />
     <ClInclude Include="session.h" />
     <ClInclude Include="standard_deviation_stretch.h" />
     <ClInclude Include="storage_manager.h" />

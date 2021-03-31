@@ -323,12 +323,15 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 	// 坐标转换
 	if (ptrVisSRef && ptrDSSRef && ptrDSSRef->GetRoot() != nullptr)
 	{
-		if ((ptrDSSRef->GetAttrValue("DATUM") != nullptr && ptrVisSRef->GetAttrValue("DATUM")!= nullptr 
-			&&  std::string(ptrVisSRef->GetAttrValue("DATUM")).compare(ptrDSSRef->GetAttrValue("DATUM")) == 0) 
-			|| !ptrVisSRef->IsSame(ptrDSSRef))
-		{
+// 		if ((ptrDSSRef->GetAttrValue("DATUM") != nullptr && ptrVisSRef->GetAttrValue("DATUM")!= nullptr 
+// 			&&  std::string(ptrVisSRef->GetAttrValue("DATUM")).compare(ptrDSSRef->GetAttrValue("DATUM")) == 0) 
+// 			|| !ptrVisSRef->IsSame(ptrDSSRef))
+// 		{
+// 			bDynPrjTrans = true;
+// 		}
+
+		if(!ptrVisSRef->IsSame(ptrDSSRef))
 			bDynPrjTrans = true;
-		}
 	}
 
 	bool bDynProjectToGeoCoord = false;
@@ -360,14 +363,14 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 			}
 		}
 
-		double dx1, dy1, dx2, dy2;
-		envelopeClone.QueryCoords(dx1, dy1, dx2, dy2);
-
-		//针对极地坐标做特殊处理
-		if (!bTransRes || std::isnan(dx1) || std::isnan(dy1) || std::isnan(dx2) || std::isnan(dy2))
-		{
-			return ProcessPerPixel(pDataset, envelope, ptrDSSRef, nWidth, nHeight, nBandCount, bandMap, pData, pMaskData, resampType, bDynProjectToGeoCoord);
-		}
+ 		double dx1, dy1, dx2, dy2;
+ 		envelopeClone.QueryCoords(dx1, dy1, dx2, dy2);
+ 
+ 		//针对极地坐标做特殊处理
+ 		if (!bTransRes || std::isnan(dx1) || std::isnan(dy1) || std::isnan(dx2) || std::isnan(dy2))
+ 		{
+ 			return ProcessPerPixel(pDataset, envelope, ptrDSSRef, nWidth, nHeight, nBandCount, bandMap, pData, pMaskData, resampType, bDynProjectToGeoCoord);
+ 		}
 	}
 
 	double dScreenResolutionX = envelope.GetWidth() / (double)nWidth;

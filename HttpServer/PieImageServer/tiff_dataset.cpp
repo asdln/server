@@ -279,7 +279,6 @@ bool TiffDataset::Pixel2World(double dCol, double dRow, double& dProjX, double& 
 
 		if (panSuccess != 1)
 		{
-			double dfResultX, dfResultY;
 			GDALRPCTransformInfo* psTransform = (GDALRPCTransformInfo*)rpc_transform_arg;
 			dProjX = psTransform->adfPLToLatLongGeoTransform[0]
 				+ psTransform->adfPLToLatLongGeoTransform[1] * dCol
@@ -305,21 +304,21 @@ bool TiffDataset::Pixel2World(double dCol, double dRow, double& dProjX, double& 
 }
 
 bool TiffDataset::Read(int nx, int ny, int width, int height,
-	void* pData, int bufferWidth, int bufferHeight, DataType DataType,
+	void* pData, int bufferWidth, int bufferHeight, DataType dataType,
 	int nBandCount, int* pBandMap, long long pixSpace, long long lineSapce, long long bandSpace,
 	void* psExtraArg)
 {
 	if (pixSpace == 0)
-		pixSpace = GetDataTypeBytes(DataType) * nBandCount;
+		pixSpace = GetDataTypeBytes(dataType) * nBandCount;
 
 	if (lineSapce == 0)
 		lineSapce = pixSpace * bufferWidth;
 
 	if (bandSpace == 0)
-		bandSpace = GetDataTypeBytes(DataType);
+		bandSpace = GetDataTypeBytes(dataType);
 
 	CPLErr error = poDataset_->RasterIO(GF_Read, nx, ny, width, height, pData, bufferWidth, bufferHeight
-		, (GDALDataType)DataType, nBandCount, pBandMap, pixSpace, lineSapce, bandSpace, (GDALRasterIOExtraArg*)psExtraArg);
+		, (GDALDataType)dataType, nBandCount, pBandMap, pixSpace, lineSapce, bandSpace, (GDALRasterIOExtraArg*)psExtraArg);
 
 	return error == CE_None;
 }

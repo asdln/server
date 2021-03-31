@@ -17,7 +17,7 @@ public:
     virtual const std::string& file_path() override;
 
 	virtual bool Read(int nx, int ny, int width, int height,
-		void* pData, int bufferWidth, int bufferHeight, DataType DataType,
+		void* pData, int bufferWidth, int bufferHeight, DataType dataType,
 		int nBandCount, int* pBandMap, long long pixSpace = 0, long long lineSapce = 0, long long bandSpace = 0,
 		void* psExtraArg = nullptr) override;
 
@@ -52,7 +52,7 @@ protected:
     void CalcExtent();
 
 
-private:
+protected:
 
     GDALDataset* poDataset_ = nullptr;
 
