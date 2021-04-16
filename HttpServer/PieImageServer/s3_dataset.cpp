@@ -1,7 +1,6 @@
 #include "s3_dataset.h"
 #include<iostream>
 #include <fstream>
-#include "rect.h"
 
 template<typename T>
 T LinearSample(double u, double v, void* value1, void* value2, void* value3, void* value4, bool bAdjust = true)
