@@ -150,3 +150,7 @@ protected:
 void DoTask(TaskRecord* task_record);
 
 void ProcessLoop(TaskRecord* task_record, int& status);
+
+bool AWSS3PutObject_File(const Aws::String& bucketName, const Aws::String& objectName
+	, const Aws::String& region, const Aws::String& aws_secret_access_key
+	, const Aws::String& aws_access_key_id, const std::string& file_name);

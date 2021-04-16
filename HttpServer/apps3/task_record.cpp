@@ -100,6 +100,46 @@ bool AWSS3PutObject(const Aws::String& bucketName, const Aws::String& objectName
 	}
 }
 
+bool AWSS3PutObject_File(const Aws::String& bucketName, const Aws::String& objectName
+	, const Aws::String& region, const Aws::String& aws_secret_access_key
+	, const Aws::String& aws_access_key_id, const std::string& file_name)
+{
+	Aws::Client::ClientConfiguration config;
+
+	if (!region.empty())
+	{
+		config.region = region;
+	}
+
+	Aws::Auth::AWSCredentials cred(aws_access_key_id, aws_secret_access_key);
+	Aws::S3::S3Client s3_client(cred, config);
+
+	Aws::S3::Model::PutObjectRequest request;
+	request.SetBucket(bucketName);
+	request.SetKey(objectName);
+
+	auto input_data = Aws::MakeShared<Aws::FStream>("SampleAllocationTag",
+			file_name.c_str(), std::ios_base::in | std::ios_base::binary);
+	request.SetBody(input_data);
+
+	Aws::S3::Model::PutObjectOutcome outcome =
+		s3_client.PutObject(request);
+
+	if (outcome.IsSuccess()) {
+
+		std::cout << "Added object '" << objectName << "' to bucket '"
+			<< bucketName << "'.";
+		return true;
+	}
+	else
+	{
+		std::cout << "Error: PutObject: " <<
+			outcome.GetError().GetMessage() << std::endl;
+
+		return false;
+	}
+}
+
 TaskRecord::TaskRecord(const std::string& region, const std::string& save_bucket_name
 	, const std::string& aws_secret_access_key
 	, const std::string& aws_access_key_id, int time_limit_sec) : time_limit_sec_(time_limit_sec)

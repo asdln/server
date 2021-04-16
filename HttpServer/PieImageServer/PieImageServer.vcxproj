@@ -114,16 +114,16 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>ETCD_V2;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_DEBUG;_CONSOLE;GOOGLE_GLOG_DLL_DECL;GLOG_NO_ABBREVIATED_SEVERITIES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>ETCD_V2;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_DEBUG;_CONSOLE;GOOGLE_GLOG_DLL_DECL;GLOG_NO_ABBREVIATED_SEVERITIES;USE_IMPORT_EXPORT;_SILENCE_CXX17_OLD_ALLOCATOR_MEMBERS_DEPRECATION_WARNING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>D:\work\boost_1_73_0;D:\work\libjpeg-turbo-master;D:\work\OSGeo4W\include;D:\work\libpng-libpng16;D:\work\libwebp-master\src;D:\work\glog-master\src\windows</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\work\boost_1_73_0;D:\work\libjpeg-turbo-master;D:\work\OSGeo4W\include;D:\work\libpng-libpng16;D:\work\libwebp-master\src;D:\work\glog-master\src\windows;D:\work\third-party-install\aws-sdk-cpp\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>D:\work\boost_1_73_0\stage\lib;D:\work\libjpeg-turbo-master\Debug;D:\work\OSGeo4W\lib;D:\work\libpng-libpng16\Release;D:\work\zlib-master\build\Release;D:\work\libwebp-master\Release;D:\work\glog-master\Debug</AdditionalLibraryDirectories>
-      <AdditionalDependencies>turbojpeg-static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;gdal_i.lib;libpng16_static.lib;zlibstatic.lib;webp.lib;glogd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>D:\work\boost_1_73_0\stage\lib;D:\work\libjpeg-turbo-master\Debug;D:\work\OSGeo4W\lib;D:\work\libpng-libpng16\Release;D:\work\zlib-master\build\Release;D:\work\libwebp-master\Release;D:\work\glog-master\Debug;D:\work\third-party-install\aws-sdk-cpp\lib;D:\work\third-party-install\aws-sdk-cpp\bin</AdditionalLibraryDirectories>
+      <AdditionalDependencies>turbojpeg-static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;gdal_i.lib;libpng16_static.lib;zlibstatic.lib;webp.lib;glogd.lib;aws-cpp-sdk-s3.lib;aws-cpp-sdk-core.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/NODEFAULTLIB:"libcmtd.lib"  /NODEFAULTLIB:"MSVCRT.lib" %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>

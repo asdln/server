@@ -83,41 +83,18 @@ int make_tile(const std::string& path, int dataset_count, int thread_count
     return code;
 }
 
-void make_tile_test()
-{
-	//TaskRecord* task_record = new TaskRecord("d:/linux_share/GF2_PMS1__L1A0001064454-MSS1.tif", 6);
-    //TaskRecord* task_record = new TaskRecord("d:/linux_share/mosaic.tif", 4);
-    TaskRecord* task_record = new TaskRecord("", "", "", "");
-    //task_record->Open("d:/test/GF1/GF1_PMS1_E109.1_N34.4_20150213_L1A0000650074-MSS1.tiff", 4);
-    //task_record->Open("d:/linux_share/world.tif", 4);
-    task_record->Open("/vsis3/pie-engine-test/gdal/GF1_Test.tif", 1);
-    
-    //ProcessLoop(task_record);
-
- //	std::thread t1(ProcessLoop, task_record);
- // 	std::thread t2(ProcessLoop, task_record);
- // 	std::thread t3(ProcessLoop, task_record);
- // 	std::thread t4(ProcessLoop, task_record);
- // 	std::thread t5(ProcessLoop, task_record);
- // 	std::thread t6(ProcessLoop, task_record);
-	//std::thread t7(ProcessLoop, task_record);
-	//std::thread t8(ProcessLoop, task_record);
- //
- //	t1.join();
- // 	t2.join();
- // 	t3.join();
- // 	t4.join();
- // 	t5.join();
- // 	t6.join();
-	//t7.join();
-	//t8.join();
-}
-
 int main(int argc, char* argv[])
 {
-    //make_tile_test();
-
     return make_tile("/vsis3/pie-engine-test/NN/world.tif", 4, 4, "cn-northwest-1"
         , "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ"
         , "s3.cn-northwest-1.amazonaws.com.cn", "pie-engine-test", 780);
+
+	//Aws::SDKOptions options;
+	//Aws::InitAPI(options);
+
+	//AWSS3PutObject_File("pie-engine-test", "NN/mosaic.tif", "cn-northwest-1"
+	//	, "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ"
+	//	, "/home/work/mosaic.tif");
+
+	//Aws::ShutdownAPI(options);
 }

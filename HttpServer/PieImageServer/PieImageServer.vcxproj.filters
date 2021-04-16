@@ -175,7 +175,7 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="s3_dataset.cpp">
-      <Filter>源文件</Filter>
+      <Filter>源文件\dataset</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -303,7 +303,7 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="s3_dataset.h">
-      <Filter>头文件</Filter>
+      <Filter>头文件\dataset</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

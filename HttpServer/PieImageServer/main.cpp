@@ -7,7 +7,8 @@
 #include "glog/logging.h"
 
 #include <iostream>
-#include <boost/pool/pool.hpp>     
+#include <boost/pool/pool.hpp>
+#include <aws/core/Aws.h>
 
 using namespace boost;
 
@@ -33,6 +34,10 @@ int main(int argc, char* argv[])
 	//	pl.free(p);
 	//}
 
+	Aws::SDKOptions options;
+	//options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
+	Aws::InitAPI(options);
+
 	FLAGS_log_dir = "./log/";
 	FLAGS_logbufsecs = 0;
 	FLAGS_alsologtostderr = 1;
@@ -42,5 +47,6 @@ int main(int argc, char* argv[])
 	global_app->Run();
 
 	google::ShutdownGoogleLogging();
+	Aws::ShutdownAPI(options);
 	return 0;
 }
