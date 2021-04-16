@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(server_cmake2)
+project(server)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -11,8 +11,11 @@ ENDIF()
 
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
 
-INCLUDE_DIRECTORIES(/root/work/image_server/third_party/install/include)
-LINK_DIRECTORIES(/root/work/image_server/third_party/install/lib)
+INCLUDE_DIRECTORIES(../install/include)
+LINK_DIRECTORIES(../install/lib)
+
+INCLUDE_DIRECTORIES(../aws-install/include)
+LINK_DIRECTORIES(../aws-install/lib)
 
 SET(SRC_LIST main.cpp
     application.cpp
@@ -66,3 +69,7 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME} -lwebp)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -lpng)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -letcd-cpp-api)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -lcpprest)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} -laws-cpp-sdk-core)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} -laws-cpp-sdk-s3)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} -laws-c-common)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} -laws-c-event-stream)
