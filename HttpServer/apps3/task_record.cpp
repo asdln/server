@@ -87,8 +87,8 @@ bool AWSS3PutObject(const Aws::String& bucketName, const Aws::String& objectName
 
 	if (outcome.IsSuccess()) {
 
-		std::cout << "Added object '" << objectName << "' to bucket '"
-			<< bucketName << "'.";
+		//std::cout << "Added object '" << objectName << "' to bucket '"
+		//	<< bucketName << "'.";
 		return true;
 	}
 	else
