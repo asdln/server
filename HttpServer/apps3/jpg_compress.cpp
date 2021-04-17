@@ -1,9 +1,35 @@
 #include "jpg_compress.h"
-
+#include <iostream>
+#include <fstream>
 #include "jpeglib.h"
 
 void error_exit(j_common_ptr cinfo) {
 	fprintf(stderr, "JpgCompress error\n", "http_server");
+}
+
+void ReadAndCompress_Test()
+{
+	std::ifstream inFile2("d:/2_3_1.bin", std::ios::binary | std::ios::in);
+	inFile2.seekg(0, std::ios_base::end);
+	int FileSize2 = inFile2.tellg();
+
+	inFile2.seekg(0, std::ios::beg);
+
+	char* buffer2 = new char[FileSize2];
+	inFile2.read(buffer2, FileSize2);
+	inFile2.close();
+
+	std::vector<unsigned char> buffer_dst;
+	JpgCompress jpgCompress;
+	jpgCompress.DoCompress(buffer2, 256, 256, buffer_dst);
+
+	std::string path = "d:/2_3_1.jpg";
+
+	FILE* pFile = nullptr;
+	fopen_s(&pFile, path.c_str(), "wb+");
+	fwrite(buffer_dst.data(), 1, buffer_dst.size(), pFile);
+	fclose(pFile);
+	pFile = nullptr;
 }
 
 void JpgCompress::DoCompress(void* srcbuffer, int nSrcWidth, int nSrcHeight, std::vector<unsigned char>& output)

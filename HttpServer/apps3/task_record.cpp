@@ -20,6 +20,7 @@
 #include <aws/core/utils/stream/PreallocatedStreamBuf.h>
 #include <aws/core/auth/AWSCredentials.h>
 
+
 bool AWSS3GetObject(const Aws::String& fromBucket , const Aws::String& objectKey,
 	const Aws::String& region, const Aws::String& aws_secret_access_key
 	, const Aws::String& aws_access_key_id, std::vector<unsigned char>& buffer)
