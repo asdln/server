@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_DATASET_INTERFACE_H_
-#define HTTPSERVER_DATASET_INTERFACE_H_
+#pragma once
 
 #include <memory>
 #include "utility.h"
@@ -48,5 +47,3 @@ public:
 };
 
 typedef std::shared_ptr<Dataset> DatasetPtr;
-
-#endif //HTTPSERVER_DATASET_INTERFACE_H_

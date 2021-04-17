@@ -1,5 +1,4 @@
-#ifndef PIEIMAGESERVER_REGISTRY_H_
-#define PIEIMAGESERVER_REGISTRY_H_
+#pragma once
 
 #include <memory>
 #include <string>
@@ -48,5 +47,3 @@ protected:
 
 typedef std::shared_ptr<Application> ApplicationPtr;
 extern ApplicationPtr global_app;
-
-#endif //PIEIMAGESERVER_REGISTRY_H_

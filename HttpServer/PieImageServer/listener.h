@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_LISTENER_H_
-#define HTTPSERVER_LISTENER_H_
+#pragma once
 
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
@@ -50,5 +49,3 @@ private:
 
 	void on_accept(beast::error_code ec, tcp::socket socket);
 };
-
-#endif //HTTPSERVER_LISTENER_H_

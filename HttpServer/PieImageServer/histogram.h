@@ -1,5 +1,4 @@
-#ifndef PIEIMAGESERVER_HISTOGRAM_H_
-#define PIEIMAGESERVER_HISTOGRAM_H_
+#pragma once
 
 #include <memory>
 #include "utility.h"
@@ -80,5 +79,3 @@ void CalFitHistogram(void* pData, DataType datatype, long lTempX, long lTempY, b
 	bool bFitMin = false, bool bFitMax = false, double dFitMin = 0.0, double dFitMax = 0.0);
 
 int CalcClassCount(DataType dt);
-
-#endif //PIEIMAGESERVER_HISTOGRAM_H_

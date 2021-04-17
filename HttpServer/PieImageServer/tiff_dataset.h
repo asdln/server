@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_TIFF_DATASET_H_
-#define HTTPSERVER_TIFF_DATASET_H_
+#pragma once
 
 #include "dataset.h"
 
@@ -70,5 +69,3 @@ protected:
 
     std::string file_path_;
 };
-
-#endif //HTTPSERVER_TIFF_DATASET_H_

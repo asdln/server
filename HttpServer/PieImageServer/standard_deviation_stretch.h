@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_STANDARD_DEVIATION_STRETCH_H_
-#define HTTPSERVER_STANDARD_DEVIATION_STRETCH_H_
+#pragma once
 
 #include "min_max_stretch.h"
 #include "math.h"
@@ -31,5 +30,3 @@ protected:
 };
 
 typedef std::shared_ptr<StandardDeviationStretch> StandardDeviationStretchPtr;
-
-#endif

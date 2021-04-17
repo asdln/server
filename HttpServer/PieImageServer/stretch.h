@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_STRETCH_INTERFACE_H_
-#define HTTPSERVER_STRETCH_INTERFACE_H_
+#pragma once
 
 #include <memory>
 #include <mutex>
@@ -67,5 +66,3 @@ protected:
 
 std::string StretchType2String(StretchType type);
 StretchType String2StretchType(std::string type_string);
-
-#endif HTTPSERVER_STRETCH_INTERFACE_H_

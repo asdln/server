@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_S3_DATASET_H_
-#define HTTPSERVER_S3_DATASET_H_
+#pragma once
 
 #include "tiff_dataset.h"
 
@@ -20,5 +19,3 @@ protected:
 
 	int type_bytes_ = 1;
 };
-
-#endif //HTTPSERVER_S3_DATASET_H_

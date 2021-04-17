@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_HANDLER_MAPPING_H_
-#define HTTPSERVER_HANDLER_MAPPING_H_
+#pragma once
 
 #include <map>
 #include <string>
@@ -36,6 +35,4 @@ private:
 
 	static std::mutex mutex_;
 };
-
-#endif //HTTPSERVER_HANDLER_MAPPING_H_
 

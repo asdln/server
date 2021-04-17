@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_UTILITY_H_
-#define HTTPSERVER_UTILITY_H_
+#pragma once
 
 #include <string>
 #include <vector>
@@ -144,5 +143,3 @@ void QueryDataInfo(const std::string& request_body, std::list<std::pair<std::str
 void GetLayers(const std::string& request_body, std::vector<std::string>& paths);
 
 void GetGeojson(const std::vector<std::pair<Envelop, int>>& envs, std::string& json);
-
-#endif  //HTTPSERVER_UTILITY_H_

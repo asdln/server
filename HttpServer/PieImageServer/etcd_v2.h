@@ -1,5 +1,4 @@
-#ifndef ETCD_V2_H
-#define ETCD_V2_H
+#pragma once
 
 #include <string>
 #include <boost/beast/http.hpp>
@@ -25,5 +24,3 @@ protected:
 
     std::string port_;
 };
-
-#endif // ETCD_V2_H

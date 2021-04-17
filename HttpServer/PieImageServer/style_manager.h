@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_STYLE_MANAGER_H_
-#define HTTPSERVER_STYLE_MANAGER_H_
+#pragma once
 
 #include <string>
 #include <map>
@@ -23,5 +22,3 @@ protected:
 	static std::map<std::string, StylePtr> s_map_style_container_;
 	static std::shared_mutex s_shared_mutex_style_container_;
 };
-
-#endif //HTTPSERVER_STYLE_MANAGER_H_

@@ -1,5 +1,4 @@
-#ifndef PIEIMAGESERVER_WEBPCOMPRESS_H_
-#define PIEIMAGESERVER_WEBPCOMPRESS_H_
+#pragma once
 
 #include "compress.h"
 
@@ -9,5 +8,3 @@ public:
 
 	virtual BufferPtr DoCompress(void* lpBmpBuffer, int nWidth, int nHeight) override;
 };
-
-#endif //PIEIMAGESERVER_WEBPCOMPRESS_H_

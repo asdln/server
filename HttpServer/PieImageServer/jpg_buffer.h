@@ -1,6 +1,4 @@
-#ifndef HTTPSERVER_JPG_BUFFER_H_
-#define HTTPSERVER_JPG_BUFFER_H_
-
+#pragma once
 
 #include "buffer.h"
 class JpgBuffer :
@@ -22,5 +20,3 @@ protected:
 
 	size_t size_ = 0;
 };
-
-#endif //HTTPSERVER_JPG_BUFFER_H_

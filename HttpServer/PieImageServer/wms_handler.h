@@ -1,5 +1,4 @@
-#ifndef PIEIMAGESERVER_WMS_HANDLER_H_
-#define PIEIMAGESERVER_WMS_HANDLER_H_
+#pragma once
 
 #include "handler.h"
 
@@ -37,5 +36,3 @@ protected:
 
 	bool GetHandleResult(bool use_cache, Envelop env, int tile_width, int tile_height, int epsg_code, const std::string& data_style, const std::string& amazon_md5, std::shared_ptr<HandleResult> result);
 };
-
-#endif //PIEIMAGESERVER_WMS_HANDLER_H_

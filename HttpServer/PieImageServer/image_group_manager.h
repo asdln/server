@@ -1,5 +1,4 @@
-#ifndef PIEIMAGESERVER_IMAGE_GROUP_MANAGER_H_
-#define PIEIMAGESERVER_IMAGE_GROUP_MANAGER_H_
+#pragma once
 
 #include <string>
 #include <set>
@@ -30,5 +29,3 @@ protected:
 
 	static std::unordered_map<std::string, std::set<std::string>> s_user_group_image_map_;
 };
-
-#endif //PIEIMAGESERVER_IMAGE_GROUP_MANAGER_H_

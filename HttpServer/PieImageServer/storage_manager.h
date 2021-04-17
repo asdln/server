@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_STORAGE_MANAGER_H_
-#define HTTPSERVER_STORAGE_MANAGER_H_
+#pragma once
 
 #include <string>
 #include <map>
@@ -27,5 +26,3 @@ protected:
 	static std::list<std::string> s_LRU_list;
 	static std::unordered_map<std::string/*md5*/, std::pair<std::string/*info的json串*/, std::list<std::string>::iterator/*对应s_LRU_list的迭代器位置*/>> s_LRU_data_style_map;
 };
-
-#endif //HTTPSERVER_STORAGE_MANAGER_H_

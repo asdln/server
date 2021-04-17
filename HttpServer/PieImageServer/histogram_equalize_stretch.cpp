@@ -111,7 +111,7 @@ double* GetCustomHistogram(Dataset* tiff_dataset, int band, bool complete_statis
 	CalFitHistogram(pData, data_type, lTempX, lTempY, bHaveNoDataValue, dfNoDataValue,
 		dStep, dfMin, dfMax, dfMean, dfStdDev, pdHistogram, true, true, dFitMin, dFitMax);
 
-	delete[] pData;
+	delete[] (char*)pData;
 	return pdHistogram;
 }
 

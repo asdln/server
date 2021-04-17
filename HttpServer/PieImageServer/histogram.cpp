@@ -457,7 +457,7 @@ HistogramPtr ComputerHistogram(Dataset* dataset, int band, bool complete_statist
 
 	histogram->SetStep(dStep);
 	histogram->SetClassCount(hist_class);
-	delete[] pData;
+	delete[] (char*)pData;
 
 	return histogram;
 }

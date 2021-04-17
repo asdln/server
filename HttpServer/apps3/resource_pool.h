@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_RESOURCE_POOL_H_
-#define HTTPSERVER_RESOURCE_POOL_H_
+#pragma once
 
 #include <memory>
 #include <mutex>
@@ -43,5 +42,3 @@ private:
 	std::mutex mutex_dataset_;
 	std::vector<std::pair<GDALDataset*, bool>> dataset_pool_;
 };
-
-#endif //HTTPSERVER_RESOURCE_POOL_H_

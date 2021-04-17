@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_ETCD_V3_H_
-#define HTTPSERVER_ETCD_V3_H_
+#pragma once
 
 #ifndef ETCD_V2
 
@@ -23,7 +22,5 @@ protected:
 
     std::string prefix_ = "/pie_image_server";
 };
-
-#endif
 
 #endif

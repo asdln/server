@@ -193,7 +193,7 @@ static char *print_int(cJSON *item)
             }
             else
             {
-                sprintf(str, "%lld", (int64)item->valueint);
+                sprintf(str, "%lld", (long long int)item->valueint);
             }
         }
         else
@@ -204,7 +204,7 @@ static char *print_int(cJSON *item)
             }
             else
             {
-                sprintf(str, "%llu", item->valueint);
+                sprintf(str, "%llu", (long long unsigned int)item->valueint);
             }
         }
     }

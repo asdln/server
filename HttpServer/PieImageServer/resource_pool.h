@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_RESOURCE_POOL_H_
-#define HTTPSERVER_RESOURCE_POOL_H_
+#pragma once
 
 #include <memory>
 #include <mutex>
@@ -69,5 +68,3 @@ private:
 	std::shared_mutex shared_mutex_;
 	std::map<std::string, std::vector<HistogramPtr>> map_histogram_;
 };
-
-#endif //HTTPSERVER_RESOURCE_POOL_H_

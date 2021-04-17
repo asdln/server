@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_HISTOGRAM_EQUALIZE_STRETCH_H_
-#define HTTPSERVER_HISTOGRAM_EQUALIZE_STRETCH_H_
+#pragma once
 
 #include "stretch.h"
 #include "math.h"
@@ -103,5 +102,3 @@ protected:
 };
 
 typedef std::shared_ptr<HistogramEqualizeStretch> HistogramEqualizeStretchPtr;
-
-#endif  //HTTPSERVER_HISTOGRAM_EQUALIZE_STRETCH_H_

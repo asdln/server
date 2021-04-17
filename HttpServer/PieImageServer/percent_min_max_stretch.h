@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_PERCENT_MIN_MAX_STRETCH_H_
-#define HTTPSERVER_PERCENT_MIN_MAX_STRETCH_H_
+#pragma once
 
 #include "min_max_stretch.h"
 
@@ -27,6 +26,3 @@ protected:
 };
 
 typedef std::shared_ptr<PercentMinMaxStretch> PercentMinMaxStretchPtr;
-
-
-#endif //HTTPSERVER_PERCENT_MIN_MAX_STRETCH_H_

@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_HANDLE_RESULT_H_
-#define HTTPSERVER_HANDLE_RESULT_H_
+#pragma once
 
 #include <boost/beast/http.hpp>
 
@@ -49,5 +48,3 @@ private:
 
 	bool keep_alive_;
 };
-
-#endif //HTTPSERVER_HANDLE_RESULT_H_

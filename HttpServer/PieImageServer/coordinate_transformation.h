@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_COORDINATE_TRANSFORMATION_H_
-#define HTTPSERVER_COORDINATE_TRANSFORMATION_H_
+#pragma once
 
 #include "utility.h"
 
@@ -25,5 +24,3 @@ private:
 	bool need_tranverse_before_ = false;
 	bool need_tranverse_after_ = false;
 };
-
-#endif //HTTPSERVER_COORDINATE_TRANSFORMATION_H_

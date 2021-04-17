@@ -316,7 +316,7 @@ std::string CJsonObject::operator()(const std::string& strKey) const
             }
             else
             {
-                snprintf(szNumber, sizeof(szNumber), "%lld", (int64)pJsonStruct->valueint);
+                snprintf(szNumber, sizeof(szNumber), "%lld", (long long int)pJsonStruct->valueint);
             }
         }
         else
@@ -327,7 +327,7 @@ std::string CJsonObject::operator()(const std::string& strKey) const
             }
             else
             {
-                snprintf(szNumber, sizeof(szNumber), "%llu", pJsonStruct->valueint);
+                snprintf(szNumber, sizeof(szNumber), "%llu", (long long unsigned int)pJsonStruct->valueint);
             }
         }
         return(std::string(szNumber));
@@ -392,7 +392,7 @@ std::string CJsonObject::operator()(unsigned int uiWhich) const
             }
             else
             {
-                snprintf(szNumber, sizeof(szNumber), "%lld", (int64)pJsonStruct->valueint);
+                snprintf(szNumber, sizeof(szNumber), "%lld", (long long int)pJsonStruct->valueint);
             }
         }
         else
@@ -403,7 +403,7 @@ std::string CJsonObject::operator()(unsigned int uiWhich) const
             }
             else
             {
-                snprintf(szNumber, sizeof(szNumber), "%llu", pJsonStruct->valueint);
+                snprintf(szNumber, sizeof(szNumber), "%llu", (long long unsigned int)pJsonStruct->valueint);
             }
         }
         return(std::string(szNumber));

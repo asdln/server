@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_TRUE_COLOR_STYLE_H_
-#define HTTPSERVER_TRUE_COLOR_STYLE_H_
+#pragma once
 
 #include <memory>
 #include "style.h"
@@ -29,5 +28,3 @@ protected:
 
     std::shared_ptr<Stretch> stretch_ = std::make_shared<MinMaxStretch>();
 };
-
-#endif //HTTPSERVER_TRUE_COLOR_STYLE_H_

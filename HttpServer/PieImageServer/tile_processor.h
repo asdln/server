@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_TILE_PROCESSOR_H_
-#define HTTPSERVER_TILE_PROCESSOR_H_
+#pragma once
 
 #include <string>
 #include <list>
@@ -38,5 +37,3 @@ protected:
 		, bool bDynProjectToGeoCoord);
 
 };
-
-#endif //HTTPSERVER_TILE_PROCESSOR_H_

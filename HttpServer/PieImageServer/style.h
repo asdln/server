@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_STYLE_H_
-#define HTTPSERVER_STYLE_H_
+#pragma once
 
 #include <string>
 #include <memory>
@@ -122,5 +121,3 @@ StyleType String2StyleType(const std::string& str_style);
 std::string Format2String(Format format);
 
 Format String2Format(const std::string& format_string);
-
-#endif //HTTPSERVER_STYLE_H_

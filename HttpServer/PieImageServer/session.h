@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_SESSION_H_
-#define HTTPSERVER_SESSION_H_
+#pragma once
 
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
@@ -130,5 +129,3 @@ private:
 	std::shared_ptr<void> res_;
 	std::shared_ptr<HandleResult> result_;
 };
-
-#endif //HTTPSERVER_SESSION_H_

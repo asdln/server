@@ -188,7 +188,7 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 	}
 
 	temp_str = std::string(temp_str.c_str() + 7, temp_str.size() - 7);
-	int pos = temp_str.find("/");
+	size_t pos = temp_str.find("/");
 
 	src_bucket_name_ = Aws::String(temp_str.c_str(), pos);
 

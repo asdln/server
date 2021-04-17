@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_BUFFER_H_
-#define HTTPSERVER_BUFFER_H_
+#pragma once
 
 #include <memory>
 
@@ -20,5 +19,3 @@ protected:
 };
 
 typedef std::shared_ptr<Buffer> BufferPtr;
-
-#endif //HTTPSERVER_BUFFER_H_

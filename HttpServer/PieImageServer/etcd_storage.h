@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_ETCD_STORAGE_H_
-#define HTTPSERVER_ETCD_STORAGE_H_
+#pragma once
 
 #include <string>
 
@@ -33,5 +32,3 @@ protected:
 
     static bool use_etcd_v3_;
 };
-
-#endif  //HTTPSERVER_ETCD_STORAGE_H_

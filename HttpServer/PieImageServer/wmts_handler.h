@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_WMTS_HANDLER_H_
-#define HTTPSERVER_WMTS_HANDLER_H_
+#pragma once
 
 
 #include "wms_handler.h"
@@ -16,5 +15,3 @@ protected:
 
 
 };
-
-#endif //HTTPSERVER_WMTS_HANDLER_H_

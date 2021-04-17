@@ -1,5 +1,4 @@
-#ifndef PIEIMAGESERVER_AMAZON_S3_H_
-#define PIEIMAGESERVER_AMAZON_S3_H_
+#pragma once
 
 #include <string>
 #include "buffer.h"
@@ -26,5 +25,3 @@ protected:
 
 	static bool s_use_s3_;
 };
-
-#endif //PIEIMAGESERVER_AMAZON_S3_H_

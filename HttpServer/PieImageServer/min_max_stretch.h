@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_MIN_MAX_STRETCH_H_
-#define HTTPSERVER_MIN_MAX_STRETCH_H_
+#pragma once
 
 #include "stretch.h"
 #include "math.h"
@@ -111,5 +110,3 @@ public:
 };
 
 typedef std::shared_ptr<MinMaxStretch> MinMaxStretchPtr;
-
-#endif //HTTPSERVER_MIN_MAX_STRETCH_H_

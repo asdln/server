@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_URL_H_
-#define HTTPSERVER_URL_H_
+#pragma once
 
 #include <string>
 #include <unordered_map>
@@ -41,5 +40,3 @@ private:
 	std::string query_ = "";
 	std::unordered_multimap<std::string, std::string> queryKV_;
 };
-
-#endif //HTTPSERVER_URL_H_

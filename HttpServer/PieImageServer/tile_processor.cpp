@@ -631,7 +631,7 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 			delete[] pdx;
 			delete[] pdy;
 
-			delete[] pSrcData;
+			delete[] (char*)pSrcData;
 			return false;
 		}
 	}
@@ -810,7 +810,7 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 		delete[] pdy;
 	}
 
-	delete[] pSrcData;
+	delete[] (char*)pSrcData;
 	return true;
 }
 

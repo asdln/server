@@ -1,5 +1,4 @@
-#ifndef HTTPSERVER_HANDLER_H_
-#define HTTPSERVER_HANDLER_H_
+#pragma once
 
 #include <boost/beast/http.hpp>
 #include "session.h"
@@ -26,5 +25,3 @@ public:
 
 	std::shared_ptr<http::response<http::string_body>> CreateStringResponse(http::status status_code, int version, bool keep_alive, const std::string& res_string);
 };
-
-#endif //HTTPSERVER_HANDLER_H_

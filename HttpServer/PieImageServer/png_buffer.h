@@ -1,5 +1,4 @@
-#ifndef PIEIMAGESERVER_BUFFER_H_
-#define PIEIMAGESERVER_BUFFER_H_
+#pragma once
 
 #include <vector>
 #include "buffer.h"
@@ -22,5 +21,3 @@ protected:
 
 	std::vector<unsigned char> data_;
 };
-
-#endif //PIEIMAGESERVER_BUFFER_H_
