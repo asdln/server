@@ -4,7 +4,7 @@
 #include "jpeglib.h"
 
 void error_exit(j_common_ptr cinfo) {
-	fprintf(stderr, "JpgCompress error\n", "http_server");
+	//fprintf(stderr, "JpgCompress error\n", "http_server");
 }
 
 void ReadAndCompress_Test()

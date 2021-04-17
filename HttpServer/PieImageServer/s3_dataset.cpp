@@ -1,5 +1,5 @@
 #include "s3_dataset.h"
-#include<iostream>
+#include <iostream>
 #include <fstream>
 
 #include <aws/core/Aws.h>
@@ -29,7 +29,7 @@ T LinearSample(double u, double v, void* value1, void* value2, void* value3, voi
 }
 
 bool AWSS3GetObject(const Aws::String& fromBucket, const Aws::String& objectKey
-	, std::vector<unsigned char>& buffer)
+	, char** buffer, size_t size)
 {
 	Aws::Client::ClientConfiguration config;
 
@@ -55,12 +55,9 @@ bool AWSS3GetObject(const Aws::String& fromBucket, const Aws::String& objectKey
 		auto& retrieved_file = get_object_outcome.GetResultWithOwnership().GetBody();
 		size_t content_bytes = get_object_outcome.GetResultWithOwnership().GetContentLength();
 
-		if (buffer.size() < content_bytes)
-		{
-			buffer.resize(content_bytes);
-		}
+		*buffer = new char[content_bytes];
 
-		retrieved_file.read((char*)buffer.data(), content_bytes);
+		retrieved_file.read(*buffer, content_bytes);
 		return true;
 	}
 	else
@@ -73,7 +70,7 @@ bool AWSS3GetObject(const Aws::String& fromBucket, const Aws::String& objectKey
 	}
 }
 
-void LoadTileData(const std::string& path, size_t x, size_t y, size_t z, std::vector<unsigned char>& buffer)
+void LoadTileData(const std::string& path, size_t x, size_t y, size_t z, char** buffer, size_t size)
 {
 	std::string str_prefix = ".pyra/" + std::to_string(x) + "_" + std::to_string(y) + "_" + std::to_string(z) + ".bin";
 	std::string new_path = path + str_prefix;
@@ -107,7 +104,7 @@ void LoadTileData(const std::string& path, size_t x, size_t y, size_t z, std::ve
 	Aws::String src_key_name = Aws::String(temp_str.c_str() + pos + 1, temp_str.size() - pos - 1);
 	src_key_name += str_prefix;
 
-	AWSS3GetObject(src_bucket_name, src_key_name, buffer);
+	AWSS3GetObject(src_bucket_name, src_key_name, buffer, size);
 
 #endif // USE_FILE
 
@@ -190,15 +187,16 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 	int index_right = src_right / tile_size_src;
 	int index_bottom = src_bottom / tile_size_src;
 
-	std::vector<std::vector<unsigned char>> buffers;
-
+	std::vector<unsigned char * > buffers;
 	for (int n = index_top; n <= index_bottom; n++)
 	{
 		for (int m = index_left; m <= index_right; m++)
 		{
-			std::vector<unsigned char> buffer;
-			LoadTileData(file_path_, m, n, level, buffer);
-			buffers.push_back(buffer);
+			//std::vector<unsigned char> buffer;
+			unsigned char* buffer = nullptr;
+			size_t size = 0;
+			LoadTileData(file_path_, m, n, level, (char**)&buffer, size);
+			buffers.emplace_back(buffer);
 		}
 	}
 
@@ -253,7 +251,7 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 				sample_y[w] = sample_y[w] % 256;
 
 				int block_index = block_y_index * block_count_x + block_x_index;
-				unsigned char* src = buffers[block_index].data();
+				unsigned char* src = buffers[block_index];
 
 				src = src + (sample_y[w] * 256 + sample_x[w]) * pixel_bytes_bin;
 				src_data[w] = src;
@@ -276,6 +274,7 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 				{
 					unsigned char value = LinearSample<unsigned char>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
 					pSrc = &value;
+					memcpy(pDes + band * nTypeSize, pSrc, nTypeSize);
 				}
 				break;
 
@@ -283,6 +282,7 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 				{
 					unsigned short value = LinearSample<unsigned short>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
 					pSrc = &value;
+					memcpy(pDes + band * nTypeSize, pSrc, nTypeSize);
 				}
 				break;
 
@@ -290,6 +290,7 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 				{
 					short value = LinearSample<short>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
 					pSrc = &value;
+					memcpy(pDes + band * nTypeSize, pSrc, nTypeSize);
 				}
 				break;
 
@@ -297,6 +298,7 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 				{
 					unsigned int value = LinearSample<unsigned int>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
 					pSrc = &value;
+					memcpy(pDes + band * nTypeSize, pSrc, nTypeSize);
 				}
 				break;
 
@@ -304,6 +306,7 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 				{
 					int value = LinearSample<int>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
 					pSrc = &value;
+					memcpy(pDes + band * nTypeSize, pSrc, nTypeSize);
 				}
 				break;
 
@@ -311,6 +314,7 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 				{
 					float value = LinearSample<float>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
 					pSrc = &value;
+					memcpy(pDes + band * nTypeSize, pSrc, nTypeSize);
 				}
 				break;
 
@@ -318,6 +322,7 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 				{
 					double value = LinearSample<double>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
 					pSrc = &value;
+					memcpy(pDes + band * nTypeSize, pSrc, nTypeSize);
 				}
 				break;
 
@@ -325,9 +330,14 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 					break;
 				}
 
-				memcpy(pDes + band * nTypeSize, pSrc, nTypeSize);
+				
 			}
 		}
+	}
+
+	for (auto p : buffers)
+	{
+		delete[] p;
 	}
 
 	return true;

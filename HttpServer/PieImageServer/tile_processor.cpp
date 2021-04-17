@@ -126,6 +126,7 @@ bool TileProcessor::ProcessPerPixel(Dataset* ptrDataset
 							{
 								unsigned char value = LinearSample<unsigned char>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
 								pSrc = &value;
+								memcpy(buffer + bandIndex * nTypeSize, pSrc, nTypeSize);
 							}
 							break;
 
@@ -133,6 +134,7 @@ bool TileProcessor::ProcessPerPixel(Dataset* ptrDataset
 							{
 								unsigned short value = LinearSample<unsigned short>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
 								pSrc = &value;
+								memcpy(buffer + bandIndex * nTypeSize, pSrc, nTypeSize);
 							}
 							break;
 
@@ -140,6 +142,7 @@ bool TileProcessor::ProcessPerPixel(Dataset* ptrDataset
 							{
 								short value = LinearSample<short>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
 								pSrc = &value;
+								memcpy(buffer + bandIndex * nTypeSize, pSrc, nTypeSize);
 							}
 							break;
 
@@ -147,6 +150,7 @@ bool TileProcessor::ProcessPerPixel(Dataset* ptrDataset
 							{
 								unsigned int value = LinearSample<unsigned int>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
 								pSrc = &value;
+								memcpy(buffer + bandIndex * nTypeSize, pSrc, nTypeSize);
 							}
 							break;
 
@@ -154,6 +158,7 @@ bool TileProcessor::ProcessPerPixel(Dataset* ptrDataset
 							{
 								int value = LinearSample<int>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
 								pSrc = &value;
+								memcpy(buffer + bandIndex * nTypeSize, pSrc, nTypeSize);
 							}
 							break;
 
@@ -161,6 +166,7 @@ bool TileProcessor::ProcessPerPixel(Dataset* ptrDataset
 							{
 								float value = LinearSample<float>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize, false);
 								pSrc = &value;
+								memcpy(buffer + bandIndex * nTypeSize, pSrc, nTypeSize);
 							}
 							break;
 
@@ -168,14 +174,13 @@ bool TileProcessor::ProcessPerPixel(Dataset* ptrDataset
 							{
 								double value = LinearSample<double>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize, false);
 								pSrc = &value;
+								memcpy(buffer + bandIndex * nTypeSize, pSrc, nTypeSize);
 							}
 							break;
 
 							default:
 								break;
 							}
-
-							memcpy(buffer + bandIndex * nTypeSize, pSrc, nTypeSize);
 						}
 
 						delete[] pLinearBuffer;
