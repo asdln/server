@@ -141,6 +141,7 @@ bool S3Dataset::Open(const std::string& path)
 	}
 
 	type_bytes_ = GetDataTypeBytes(GetDataType());
+	return true;
 }
 
 bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int bufferWidth
