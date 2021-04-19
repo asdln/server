@@ -424,13 +424,7 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 
 		std::string string_json(buffer.begin(), buffer.end());
 
-		if (!FromJson(string_json))
-		{
-			std::cout << "error: FromJson:  " << string_json << std::endl;
-			return false;
-		}
-
-		std::cout << info_json_path_ << " loaded" << std::endl;
+		FromJson(string_json)
 	}
 
 #else
@@ -442,7 +436,10 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 		std::string string_json(buffer.begin(), buffer.end());
 
 		if (!FromJson(string_json))
+		{
+			std::cout << "error: FromJson:  " << string_json << std::endl;
 			return false;
+		}
 
 		std::cout << info_json_path_ << " loaded" << std::endl;
 	}
@@ -475,32 +472,47 @@ std::string TaskRecord::ToJson()
 bool TaskRecord::FromJson(const std::string& json)
 {
 	if (json.empty())
+	{
+		std::cout << "json is empty" << std::endl;
 		return false;
+	}
 
 	neb::CJsonObject oJson(json);
 
 	int count;
 
-	if (oJson.Get("format", format_))
-		return false;
-
-	if (oJson.Get("count", count))
-		return false;
-
-	if (count != count_)
-		return false;
-
-	for (int i = 0; i < count_; i++)
+	if (!oJson.Get("count", count))
 	{
-		TileRecord* tile_record = tile_records_[i];
+		std::cout << "json not find cout" << std::endl;
+		return false;
+	}
 
-		bool tile_finished;
-		oJson["tile_finished"].Get(i, tile_finished);
-		tile_record->finished_ = tile_finished;
+	if (!oJson.Get("format", format_))
+	{
+		std::cout << "json not find format" << std::endl;
+		return false;
+	}
 
-		int sub_tile_state;
-		oJson["sub_tile_state"].Get(i, sub_tile_state);
-		tile_record->sub_tile_state_ = sub_tile_state;
+	if (count == count_)
+	{
+		std::cout << info_json_path_ << " loaded" << std::endl;
+
+		for (int i = 0; i < count_; i++)
+		{
+			TileRecord* tile_record = tile_records_[i];
+
+			bool tile_finished;
+			oJson["tile_finished"].Get(i, tile_finished);
+			tile_record->finished_ = tile_finished;
+
+			int sub_tile_state;
+			oJson["sub_tile_state"].Get(i, sub_tile_state);
+			tile_record->sub_tile_state_ = sub_tile_state;
+		}
+	}
+	else
+	{
+		std::cout << info_json_path_ << "not loaded, because count is not equal" << std::endl;
 	}
 
 	return true;

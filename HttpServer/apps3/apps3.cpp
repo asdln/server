@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
 {
     if (1)
     {
-		return make_tile("/vsis3/pie-engine-test/NN/world.tif", 4, 4, "cn-northwest-1"
+		return make_tile("/vsis3/pie-engine-test/NN/DEM-Gloable32.tif", 4, 4, "cn-northwest-1"
 			, "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ"
 			, "s3.cn-northwest-1.amazonaws.com.cn", "pie-engine-test", 780);
     }
@@ -96,7 +96,7 @@ int main(int argc, char* argv[])
 		Aws::SDKOptions options;
 		Aws::InitAPI(options);
 
-		AWSS3PutObject_File("pie-engine-test", "NN/mosaic.tif", "cn-northwest-1"
+		AWSS3PutObject_File("pie-engine-test", "NN/DEM-Gloable32.tif", "cn-northwest-1"
 			, "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ"
 			, "/data/ln/mosaic.tif");
 
