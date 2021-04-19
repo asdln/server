@@ -85,16 +85,24 @@ int make_tile(const std::string& path, int dataset_count, int thread_count
 
 int main(int argc, char* argv[])
 {
-    return make_tile("/vsis3/pie-engine-test/NN/world.tif", 4, 4, "cn-northwest-1"
-        , "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ"
-        , "s3.cn-northwest-1.amazonaws.com.cn", "pie-engine-test", 780);
+    if (1)
+    {
+		return make_tile("/vsis3/pie-engine-test/NN/world.tif", 4, 4, "cn-northwest-1"
+			, "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ"
+			, "s3.cn-northwest-1.amazonaws.com.cn", "pie-engine-test", 780);
+    }
+    else
+    {
+		Aws::SDKOptions options;
+		Aws::InitAPI(options);
 
-	//Aws::SDKOptions options;
-	//Aws::InitAPI(options);
+		AWSS3PutObject_File("pie-engine-test", "NN/mosaic.tif", "cn-northwest-1"
+			, "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ"
+			, "/data/ln/mosaic.tif");
 
-	//AWSS3PutObject_File("pie-engine-test", "NN/mosaic.tif", "cn-northwest-1"
-	//	, "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ"
-	//	, "/home/work/mosaic.tif");
+		//AWSS3DeleteObject("NN/mosaci.tif", "pie-engine-test", "cn-northwest-1"
+		//      , "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ");
 
-	//Aws::ShutdownAPI(options);
+		Aws::ShutdownAPI(options);
+    }
 }

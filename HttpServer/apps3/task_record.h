@@ -41,10 +41,10 @@ struct TileRecord
 	std::atomic_char sub_tile_state_;
 
 	//预期的瓦片状态信息。有的不是4
-	unsigned char sub_tile_state_expected = 4;
+	unsigned char sub_tile_state_expected_ = 4;
 
 	//下一级瓦片的排列信息
-	unsigned char sub_tile_arrange = 0x00;
+	unsigned char sub_tile_arrange_ = 0x00;
 };
 
 class TaskRecord
@@ -117,6 +117,10 @@ protected:
 
 	std::string path_;
 
+	std::string format_;
+
+	std::string info_json_path_;
+
 	Aws::String src_bucket_name_;
 
 	Aws::String src_key_name_;
@@ -154,3 +158,7 @@ void ProcessLoop(TaskRecord* task_record, int& status);
 bool AWSS3PutObject_File(const Aws::String& bucketName, const Aws::String& objectName
 	, const Aws::String& region, const Aws::String& aws_secret_access_key
 	, const Aws::String& aws_access_key_id, const std::string& file_name);
+
+bool AWSS3DeleteObject(const Aws::String& objectKey,
+	const Aws::String& fromBucket, const Aws::String& region
+	, const Aws::String& aws_secret_access_key, const Aws::String& aws_access_key_id);

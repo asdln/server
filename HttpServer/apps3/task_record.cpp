@@ -17,6 +17,7 @@
 #include <aws/s3/S3Client.h>
 #include <aws/s3/model/PutObjectRequest.h>
 #include <aws/s3/model/GetObjectRequest.h>
+#include <aws/s3/model/DeleteObjectRequest.h>
 #include <aws/core/utils/stream/PreallocatedStreamBuf.h>
 #include <aws/core/auth/AWSCredentials.h>
 
@@ -45,6 +46,11 @@ bool AWSS3GetObject(const Aws::String& fromBucket , const Aws::String& objectKey
 	{
 		auto& retrieved_file = get_object_outcome.GetResultWithOwnership().GetBody();
 		size_t content_bytes = get_object_outcome.GetResultWithOwnership().GetContentLength();
+
+		if (buffer.size() < content_bytes)
+		{
+			buffer.resize(content_bytes, 0);
+		}
 
 		retrieved_file.read((char*)buffer.data(), content_bytes);
 		return true;
@@ -88,8 +94,8 @@ bool AWSS3PutObject(const Aws::String& bucketName, const Aws::String& objectName
 
 	if (outcome.IsSuccess()) {
 
-		//std::cout << "Added object '" << objectName << "' to bucket '"
-		//	<< bucketName << "'.";
+		std::cout << "Added object '" << objectName << "' to bucket '"
+			<< bucketName << "'" << std::endl;;
 		return true;
 	}
 	else
@@ -98,6 +104,42 @@ bool AWSS3PutObject(const Aws::String& bucketName, const Aws::String& objectName
 			outcome.GetError().GetMessage() << std::endl;
 
 		return false;
+	}
+}
+
+bool AWSS3DeleteObject(const Aws::String& objectKey,
+	const Aws::String& fromBucket, const Aws::String& region
+	, const Aws::String& aws_secret_access_key
+	, const Aws::String& aws_access_key_id)
+{
+	Aws::Client::ClientConfiguration config;
+	if (!region.empty())
+	{
+		config.region = region;
+	}
+
+	Aws::Auth::AWSCredentials cred(aws_access_key_id, aws_secret_access_key);
+	Aws::S3::S3Client s3_client(cred, config);
+
+	Aws::S3::Model::DeleteObjectRequest request;
+
+	request.WithKey(objectKey)
+		.WithBucket(fromBucket);
+
+	Aws::S3::Model::DeleteObjectOutcome outcome =
+		s3_client.DeleteObject(request);
+
+	if (!outcome.IsSuccess())
+	{
+		auto err = outcome.GetError();
+		std::cout << "Error: DeleteObject: " <<
+			err.GetExceptionName() << ": " << err.GetMessage() << std::endl;
+
+		return false;
+	}
+	else
+	{
+		return true;
 	}
 }
 
@@ -129,7 +171,7 @@ bool AWSS3PutObject_File(const Aws::String& bucketName, const Aws::String& objec
 	if (outcome.IsSuccess()) {
 
 		std::cout << "Added object '" << objectName << "' to bucket '"
-			<< bucketName << "'.";
+			<< bucketName << "'";
 		return true;
 	}
 	else
@@ -157,17 +199,52 @@ TaskRecord::TaskRecord(const std::string& region, const std::string& save_bucket
 
 TaskRecord::~TaskRecord()
 {
+	std::string json = ToJson();
+
+#ifdef USE_FILE
+
+	std::ofstream outFile(info_json_path_, std::ios::binary | std::ios::out);
+	if (outFile.is_open())
+	{
+		std::cout << info_json_path_ << ":  " << info_json_path_ << std::endl;
+		outFile.write(json.data(), json.size());
+		outFile.close();
+	}
+	else
+	{
+		std::cout << "json error" << std::endl;
+	}
+
+#else
+
+	std::vector<unsigned char> buffer;
+	buffer.assign(json.begin(), json.end());
+
+	if (AWSS3PutObject(save_bucket_name_, src_key_name_ + ".pyra/info.json"
+		, aws_region_, aws_secret_access_key_, aws_access_key_id_, buffer))
+	{
+		std::cout << "json saved:  " << src_key_name_ + ".pyra/info.json" << std::endl;
+	}
+
+#endif
+
 	for (size_t i = 0; i < count_; i++)
 	{
 		delete tile_records_[i];
 	}
 
 	delete[] tile_records_;
+
+	std::chrono::system_clock::duration d = std::chrono::system_clock::now().time_since_epoch();
+	long long end_sec = std::chrono::duration_cast<std::chrono::seconds>(d).count();
+
+	std::cout << "process finished, total time: " << end_sec - start_sec_ << " seconds" << std::endl;
 }
 
 bool TaskRecord::Open(const std::string& path, int dataset_count)
 {
 	path_ = path;
+	format_ = "bip";
 
 	std::string dir = path + ".pyra";
 #ifdef USE_FILE
@@ -281,8 +358,8 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 				if (index == 1)
 				{
 					//默认全部就绪。边角的地方，在读取时做特殊处理。
-					tile_record->sub_tile_state_expected = 4;
-					tile_record->sub_tile_arrange = 0x0f;
+					tile_record->sub_tile_state_expected_ = 4;
+					tile_record->sub_tile_arrange_ = 0x0f;
 					tile_record->sub_tile_state_ = 4;
 				}
 				else
@@ -301,23 +378,23 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 
 					if (ii == 0 && jj == 0)
 					{
-						tile_record->sub_tile_state_expected = 4;
-						tile_record->sub_tile_arrange = 0x0f; //1111
+						tile_record->sub_tile_state_expected_ = 4;
+						tile_record->sub_tile_arrange_ = 0x0f; //1111
 					}
 					else if (ii == 1 && jj == 1)
 					{
-						tile_record->sub_tile_state_expected = 1;
-						tile_record->sub_tile_arrange = 0x08; // 1000
+						tile_record->sub_tile_state_expected_ = 1;
+						tile_record->sub_tile_arrange_ = 0x08; // 1000
 					}
 					else if (ii == 0 && jj == 1)
 					{
-						tile_record->sub_tile_state_expected = 2;
-						tile_record->sub_tile_arrange = 0x0c; //1100
+						tile_record->sub_tile_state_expected_ = 2;
+						tile_record->sub_tile_arrange_ = 0x0c; //1100
 					}
 					else if (ii == 1 && jj == 0)
 					{
-						tile_record->sub_tile_state_expected = 2;
-						tile_record->sub_tile_arrange = 0x0a; //1010
+						tile_record->sub_tile_state_expected_ = 2;
+						tile_record->sub_tile_arrange_ = 0x0a; //1010
 					}
 				}
 			}
@@ -327,9 +404,11 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 			break;
 	}
 
-	std::string info_json_path = dir + "/info.json";
+	info_json_path_ = dir + "/info.json";
 
-	std::ifstream inFile2(info_json_path, std::ios::binary | std::ios::in);
+#ifdef USE_FILE
+
+	std::ifstream inFile2(info_json_path_, std::ios::binary | std::ios::in);
 	if (inFile2.is_open())
 	{
 		inFile2.seekg(0, std::ios_base::end);
@@ -346,10 +425,30 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 		std::string string_json(buffer.begin(), buffer.end());
 
 		if (!FromJson(string_json))
+		{
+			std::cout << "error: FromJson:  " << string_json << std::endl;
+			return false;
+		}
+
+		std::cout << info_json_path_ << " loaded" << std::endl;
+	}
+
+#else
+
+	std::vector<unsigned char> buffer;
+	if (AWSS3GetObject(save_bucket_name_, src_key_name_ + ".pyra/info.json"
+		, aws_region_, aws_secret_access_key_, aws_access_key_id_, buffer))
+	{
+		std::string string_json(buffer.begin(), buffer.end());
+
+		if (!FromJson(string_json))
 			return false;
 
-		std::cout << info_json_path << " loaded" << std::endl;
+		std::cout << info_json_path_ << " loaded" << std::endl;
 	}
+
+#endif // USE_FILE
+
 	
 	return true;
 }
@@ -357,6 +456,7 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 std::string TaskRecord::ToJson()
 {
 	neb::CJsonObject oJson;
+	oJson.Add("format", format_);
 	oJson.Add("count", count_);
 	oJson.AddEmptySubArray("tile_finished");
 	oJson.AddEmptySubArray("sub_tile_state");
@@ -380,6 +480,10 @@ bool TaskRecord::FromJson(const std::string& json)
 	neb::CJsonObject oJson(json);
 
 	int count;
+
+	if (oJson.Get("format", format_))
+		return false;
+
 	if (oJson.Get("count", count))
 		return false;
 
@@ -795,7 +899,7 @@ void DoTask(TaskRecord* task_record)
 		{
 			if (tile_record->processing_mutex_.try_lock())
 			{
-				if (tile_record->sub_tile_state_ == tile_record->sub_tile_state_expected)
+				if (tile_record->sub_tile_state_ == tile_record->sub_tile_state_expected_)
 				{
 					std::vector<unsigned char> buffer;
 					buffer.resize(256 * 256 * (size_t)band_count * type_bytes, 0);
@@ -862,8 +966,13 @@ void DoTask(TaskRecord* task_record)
 							}
 
 							GDALDataset* poDataset = tile_header->poDataset_;
-							poDataset->RasterIO(GF_Read, left, top, src_width, src_height, buffer.data()
+							CPLErr err = poDataset->RasterIO(GF_Read, left, top, src_width, src_height, buffer.data()
 								, buffer_size_x, buffer_size_y, data_type, band_count, band_map.data(), pixel_space, line_space_cp, band_space);
+
+							if (err != CE_None)
+							{
+								std::cout << CPLGetLastErrorMsg() << std::endl;
+							}
 
 							if (buffer_size_x != 256)
 							{
@@ -907,7 +1016,7 @@ void DoTask(TaskRecord* task_record)
 						std::vector<unsigned char> buffer4;
 						buffer4.resize(256 * 256 * (size_t)band_count * type_bytes, 0);
 
-						unsigned char arrange = tile_record->sub_tile_arrange;
+						unsigned char arrange = tile_record->sub_tile_arrange_;
 						
 						if (arrange & 0x08)
 						{
