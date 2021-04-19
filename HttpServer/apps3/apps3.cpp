@@ -18,7 +18,7 @@ using namespace std;
 int make_tile(const std::string& path, int dataset_count, int thread_count
     , const std::string& aws_region, const std::string& aws_secret_access_key
     , const std::string& aws_access_key_id, const std::string& aws_s3_endpoint
-    , const std::string save_bucket_name, int time_limit_sec)
+    , const std::string save_bucket_name, int time_limit_sec, int force)
 {
 
 #ifndef USE_FILE
@@ -42,7 +42,7 @@ int make_tile(const std::string& path, int dataset_count, int thread_count
 	GDALAllRegister();
 
     TaskRecord* task_record = new TaskRecord(aws_region, save_bucket_name
-        , aws_secret_access_key, aws_access_key_id, time_limit_sec);
+        , aws_secret_access_key, aws_access_key_id, time_limit_sec, force);
 
     if (!task_record->Open(path, dataset_count))
         return code_fail;
@@ -99,26 +99,69 @@ int make_tile(const std::string& path, int dataset_count, int thread_count
 
 int main(int argc, char* argv[])
 {
-    if (0)
+    if (1)
     {
-		Aws::SDKOptions options;
-		Aws::InitAPI(options);
+		if (argc != 11)
+		{
+			std::cout << "error: argc is not 11" << std::endl;
+			return code_fail;
+		}
 
-		AWSS3DeleteObject("NN/mosaic.tif.pyra/info.json", "pie-engine-test", "cn-northwest-1"
-	      , "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ");
+		char* arg1 = argv[1];
+		std::string path(arg1, strlen(arg1));
 
-		Aws::ShutdownAPI(options);
+		char* arg2 = argv[2];
+		int dataset_count = std::atoi(arg2);
 
-		return make_tile("/vsis3/pie-engine-test/NN/mosaic.tif", 4, 4, "cn-northwest-1"
-			, "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ"
-			, "s3.cn-northwest-1.amazonaws.com.cn", "pie-engine-test", 780);
+		char* arg3 = argv[3];
+		int thread_count = std::atoi(arg3);
+
+		char* arg4 = argv[4];
+		std::string aws_region(arg4, strlen(arg4));
+
+		char* arg5 = argv[5];
+		std::string aws_secret_access_key(arg5, strlen(arg5));
+
+		char* arg6 = argv[6];
+		std::string aws_access_key_id(arg6, strlen(arg6));
+
+		char* arg7 = argv[7];
+		std::string aws_s3_endpoint(arg7, strlen(arg7));
+
+		char* arg8 = argv[8];
+		std::string save_bucket_name(arg8, strlen(arg8));
+
+		char* arg9 = argv[9];
+		int time_limit_sec = std::atoi(arg9);
+
+		char* arg10 = argv[10];
+		int force = std::atoi(arg10);
+
+		//if (force != 0)
+		//{
+		//	Aws::SDKOptions options;
+		//	Aws::InitAPI(options);
+
+		//	AWSS3DeleteObject("NN/mosaic.tif.pyra/info.json", "pie-engine-test", "cn-northwest-1"
+		//		, "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ");
+
+		//	Aws::ShutdownAPI(options);
+		//}
+
+		//return make_tile("/vsis3/pie-engine-test/NN/mosaic.tif", 4, 4, "cn-northwest-1"
+		//	, "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ"
+		//	, "s3.cn-northwest-1.amazonaws.com.cn", "pie-engine-test", 780, 0);
+
+		return make_tile(path, dataset_count, thread_count, aws_region
+			, aws_secret_access_key, aws_access_key_id
+			, aws_s3_endpoint, save_bucket_name, time_limit_sec, force);
     }
 
-	if (1)
+	if (0)
 	{
 		return make_tile("d:/linux_share/DEM-Gloable32.tif", 4, 4, "cn-northwest-1"
 			, "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ"
-			, "s3.cn-northwest-1.amazonaws.com.cn", "pie-engine-test", 15);
+			, "s3.cn-northwest-1.amazonaws.com.cn", "pie-engine-test", 15, 0);
 	}
     
 	if(0)

@@ -53,7 +53,7 @@ public:
 
 	TaskRecord(const std::string& region, const std::string& save_bucket_name
 		, const std::string& aws_secret_access_key
-		, const std::string& aws_access_key_id, int time_limit_sec = 780); // 13∑÷÷”£¨60 * 13 = 780
+		, const std::string& aws_access_key_id, int time_limit_sec = 780, int force = 0); // 13∑÷÷”£¨60 * 13 = 780
 
 	~TaskRecord();
 
@@ -118,6 +118,8 @@ protected:
 	Aws::String save_bucket_name_;
 
 	std::string path_;
+
+	int force_ = 0;
 
 	std::string format_;
 

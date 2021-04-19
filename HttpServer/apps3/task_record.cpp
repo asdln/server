@@ -185,7 +185,7 @@ bool AWSS3PutObject_File(const Aws::String& bucketName, const Aws::String& objec
 
 TaskRecord::TaskRecord(const std::string& region, const std::string& save_bucket_name
 	, const std::string& aws_secret_access_key
-	, const std::string& aws_access_key_id, int time_limit_sec) : time_limit_sec_(time_limit_sec)
+	, const std::string& aws_access_key_id, int time_limit_sec, int force) : time_limit_sec_(time_limit_sec), force_(force)
 {
 	aws_region_ = Aws::String(region.c_str(), region.size());
 	save_bucket_name_ = Aws::String(save_bucket_name.c_str(), save_bucket_name.size());
@@ -383,7 +383,7 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 #ifdef USE_FILE
 
 	std::ifstream inFile2(info_json_path_, std::ios::binary | std::ios::in);
-	if (inFile2.is_open())
+	if (force_ == 0 && inFile2.is_open())
 	{
 		inFile2.seekg(0, std::ios_base::end);
 		int FileSize2 = inFile2.tellg();
@@ -397,23 +397,17 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 		inFile2.close();
 
 		std::string string_json(buffer.begin(), buffer.end());
-
 		FromJson(string_json);
 	}
 
 #else
 
 	std::vector<unsigned char> buffer;
-	if (AWSS3GetObject(save_bucket_name_, src_key_name_ + ".pyra/info.json"
+	if (force_ == 0 && AWSS3GetObject(save_bucket_name_, src_key_name_ + ".pyra/info.json"
 		, aws_region_, aws_secret_access_key_, aws_access_key_id_, buffer))
 	{
 		std::string string_json(buffer.begin(), buffer.end());
-
-		if (!FromJson(string_json))
-		{
-			std::cout << "error: FromJson:  " << string_json << std::endl;
-			return false;
-		}
+		FromJson(string_json);
 	}
 
 #endif // USE_FILE
