@@ -404,6 +404,12 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 			break;
 	}
 
+	if (count_ != count)
+	{
+		std::cout << "error: count_  :  " << std::endl;
+		return false;
+	}
+
 	info_json_path_ = dir + "/info.json";
 
 #ifdef USE_FILE
@@ -424,7 +430,11 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 
 		std::string string_json(buffer.begin(), buffer.end());
 
-		FromJson(string_json)
+		if (!FromJson(string_json))
+		{
+			std::cout << "error: FromJson:  " << string_json << std::endl;
+			return false;
+		}
 	}
 
 #else

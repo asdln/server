@@ -20,10 +20,10 @@ int make_tile(const std::string& path, int dataset_count, int thread_count
     , const std::string& aws_access_key_id, const std::string& aws_s3_endpoint
     , const std::string save_bucket_name, int time_limit_sec)
 {
+
+#ifndef USE_FILE
 	Aws::SDKOptions options;
 	Aws::InitAPI(options);
-
-    GDALAllRegister();
 
 	if (path.rfind("/vsis3/", 0) == 0) 
     {
@@ -36,6 +36,10 @@ int make_tile(const std::string& path, int dataset_count, int thread_count
     {
         return code_fail;
     }
+
+#endif // !USE_FILE
+
+	GDALAllRegister();
 
     TaskRecord* task_record = new TaskRecord(aws_region, save_bucket_name
         , aws_secret_access_key, aws_access_key_id, time_limit_sec);
@@ -59,6 +63,8 @@ int make_tile(const std::string& path, int dataset_count, int thread_count
 		{
 			thread.join();
 		}
+
+		std::cout << "thread complete" << std::endl;
 
 		for (const auto& status : process_status)
 		{
@@ -84,7 +90,10 @@ int make_tile(const std::string& path, int dataset_count, int thread_count
     delete task_record;
     task_record = nullptr;
 
+#ifndef USE_FILE
     Aws::ShutdownAPI(options);
+#endif
+
     std::cout << "success" << std::endl;
 
     return code;
@@ -92,16 +101,29 @@ int make_tile(const std::string& path, int dataset_count, int thread_count
 
 int main(int argc, char* argv[])
 {
-    if (1)
+    if (0)
     {
-		AWSS3DeleteObject("NN/DEM-Gloable32.tif.pyra/info.json", "pie-engine-test", "cn-northwest-1"
+		Aws::SDKOptions options;
+		Aws::InitAPI(options);
+
+		AWSS3DeleteObject("NN/mosaic.tif.pyra/info.json", "pie-engine-test", "cn-northwest-1"
 	      , "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ");
 
-		return make_tile("/vsis3/pie-engine-test/NN/DEM-Gloable32.tif", 4, 4, "cn-northwest-1"
+		Aws::ShutdownAPI(options);
+
+		return make_tile("/vsis3/pie-engine-test/NN/mosaic.tif", 4, 4, "cn-northwest-1"
 			, "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ"
 			, "s3.cn-northwest-1.amazonaws.com.cn", "pie-engine-test", 780);
     }
-    else
+
+	if (1)
+	{
+		return make_tile("d:/linux_share/mosaic.tif", 4, 4, "cn-northwest-1"
+			, "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ"
+			, "s3.cn-northwest-1.amazonaws.com.cn", "pie-engine-test", 780);
+	}
+    
+	if(0)
     {
 		Aws::SDKOptions options;
 		Aws::InitAPI(options);
