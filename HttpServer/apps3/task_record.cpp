@@ -440,8 +440,6 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 			std::cout << "error: FromJson:  " << string_json << std::endl;
 			return false;
 		}
-
-		std::cout << info_json_path_ << " loaded" << std::endl;
 	}
 
 #endif // USE_FILE
