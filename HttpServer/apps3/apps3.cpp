@@ -43,36 +43,43 @@ int make_tile(const std::string& path, int dataset_count, int thread_count
     if (!task_record->Open(path, dataset_count))
         return code_fail;
 
-    std::vector<int> process_status;
-    process_status.resize(thread_count, code_fail);
-
-    std::vector<std::thread> threads;
-    for (int i = 0; i < thread_count; i++)
+	int code = code_success;
+    if (!task_record->IsReady())
     {
-        threads.emplace_back(ProcessLoop, task_record, std::ref(process_status[i]));
-    }
+		std::vector<int> process_status;
+		process_status.resize(thread_count, code_fail);
 
-    for (auto& thread : threads)
-    {
-        thread.join();
-    }
+		std::vector<std::thread> threads;
+		for (int i = 0; i < thread_count; i++)
+		{
+			threads.emplace_back(ProcessLoop, task_record, std::ref(process_status[i]));
+		}
 
-    int code = code_success;
-    for (const auto& status : process_status)
-    {
-        if (status == code_fail)
-        {
-            code = code_fail;
-            std::cout << "fail" << std::endl;
-            break;
-        }
-        else if (status == code_not_finished)
-        {
-            code = code_not_finished;
-            std::cout << "not finished" << std::endl;
-            break;
-        }
+		for (auto& thread : threads)
+		{
+			thread.join();
+		}
+
+		for (const auto& status : process_status)
+		{
+			if (status == code_fail)
+			{
+				code = code_fail;
+				std::cout << "fail" << std::endl;
+				break;
+			}
+			else if (status == code_not_finished)
+			{
+				code = code_not_finished;
+				std::cout << "not finished" << std::endl;
+				break;
+			}
+		}
     }
+	else
+	{
+		std::cout << "already finished before" << std::endl;
+	}
 
     delete task_record;
     task_record = nullptr;
@@ -87,6 +94,9 @@ int main(int argc, char* argv[])
 {
     if (1)
     {
+		AWSS3DeleteObject("NN/DEM-Gloable32.tif.pyra/info.json", "pie-engine-test", "cn-northwest-1"
+	      , "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ");
+
 		return make_tile("/vsis3/pie-engine-test/NN/DEM-Gloable32.tif", 4, 4, "cn-northwest-1"
 			, "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ"
 			, "s3.cn-northwest-1.amazonaws.com.cn", "pie-engine-test", 780);
