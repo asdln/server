@@ -64,8 +64,6 @@ int make_tile(const std::string& path, int dataset_count, int thread_count
 			thread.join();
 		}
 
-		std::cout << "thread complete" << std::endl;
-
 		for (const auto& status : process_status)
 		{
 			if (status == code_fail)
@@ -94,7 +92,7 @@ int make_tile(const std::string& path, int dataset_count, int thread_count
     Aws::ShutdownAPI(options);
 #endif
 
-    std::cout << "success" << std::endl;
+    std::cout << "exit code " << code << std::endl;
 
     return code;
 }
@@ -118,9 +116,9 @@ int main(int argc, char* argv[])
 
 	if (1)
 	{
-		return make_tile("d:/linux_share/mosaic.tif", 4, 4, "cn-northwest-1"
+		return make_tile("d:/linux_share/DEM-Gloable32.tif", 4, 4, "cn-northwest-1"
 			, "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ"
-			, "s3.cn-northwest-1.amazonaws.com.cn", "pie-engine-test", 780);
+			, "s3.cn-northwest-1.amazonaws.com.cn", "pie-engine-test", 15);
 	}
     
 	if(0)

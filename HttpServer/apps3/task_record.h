@@ -75,7 +75,7 @@ public:
 
 	TileRecord* GetTileRecord(size_t col, size_t row, size_t z);
 
-	size_t GetTileRecordsCount() { return count_; }
+	size_t GetTileRecordsCount() { return tile_records_.size(); }
 
 	int GetBandCount() { return band_count_; }
 
@@ -86,6 +86,8 @@ public:
 	size_t GetImgHeight() { return img_height_; }
 
 	bool IsReady();
+
+	void GetTileStatusCount(size_t& finished, size_t& unfinished);
 
 	bool NeedReleaseDataset();
 
@@ -137,8 +139,8 @@ protected:
 
 	std::vector<std::pair<size_t, size_t>> dims_;
 
-	TileRecord** tile_records_ = nullptr;
-	size_t count_ = 0;
+	std::vector<TileRecord*> tile_records_;
+	//TileRecord** tile_records_ = nullptr;
 
 	size_t img_width_ = 0;
 	size_t img_height_ = 0;

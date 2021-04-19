@@ -201,12 +201,17 @@ TaskRecord::~TaskRecord()
 {
 	std::string json = ToJson();
 
+	size_t finished = 0;
+	size_t unfinished = 0;
+	GetTileStatusCount(finished, unfinished);
+	std::cout << "end: finished tile: " << finished << "; unfinished tile : " << unfinished << std::endl;
+
 #ifdef USE_FILE
 
 	std::ofstream outFile(info_json_path_, std::ios::binary | std::ios::out);
 	if (outFile.is_open())
 	{
-		std::cout << info_json_path_ << ":  " << info_json_path_ << std::endl;
+		std::cout << "save: " << info_json_path_ << std::endl;
 		outFile.write(json.data(), json.size());
 		outFile.close();
 	}
@@ -228,12 +233,10 @@ TaskRecord::~TaskRecord()
 
 #endif
 
-	for (size_t i = 0; i < count_; i++)
-	{
-		delete tile_records_[i];
-	}
-
-	delete[] tile_records_;
+	//for (auto record : tile_records_)
+	//{
+	//	delete record;
+	//}
 
 	std::chrono::system_clock::duration d = std::chrono::system_clock::now().time_since_epoch();
 	long long end_sec = std::chrono::duration_cast<std::chrono::seconds>(d).count();
@@ -296,9 +299,11 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 	resource_pool->Init();
 
 	int size = 256;
-
+	size_t index = 0;
+	size_t count = 0;
 	while (true)
 	{
+		index++;
 		size *= 2;
 		size_t tile_col = img_width_ % size == 0 ? img_width_ / size : img_width_ / size + 1;
 		size_t tile_row = img_height_ % size == 0 ? img_height_ / size : img_height_ / size + 1;
@@ -315,39 +320,8 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 		{
 			for (size_t i = 0; i < tile_col; i++)
 			{
-				count_++;
-			}
-		}
-
-		if (tile_col == 1 && tile_row == 1)
-			break;
-	}
-
-	std::cout << "tile count : " << count_ << std::endl;
-	tile_records_ = new TileRecord * [count_];
-
-	size = 256;
-	size_t index = 0;
-	size_t count = 0;
-	while (true)
-	{
-		index++;
-		size *= 2;
-		size_t tile_col = img_width_ % size == 0 ? img_width_ / size : img_width_ / size + 1;
-		size_t tile_row = img_height_ % size == 0 ? img_height_ / size : img_height_ / size + 1;
-
-		if (tile_col == 0)
-			tile_col = 1;
-
-		if (tile_row == 0)
-			tile_row = 1;
-
-		for (size_t j = 0; j < tile_row; j++)
-		{
-			for (size_t i = 0; i < tile_col; i++)
-			{
 				TileRecord* tile_record = new TileRecord(i, j, index);
-				tile_records_[count++] = tile_record;
+				tile_records_.push_back(tile_record);
 
 				if (j == 0 && i == 0 && index == 2)
 				{
@@ -404,12 +378,6 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 			break;
 	}
 
-	if (count_ != count)
-	{
-		std::cout << "error: count_  :  " << std::endl;
-		return false;
-	}
-
 	info_json_path_ = dir + "/info.json";
 
 #ifdef USE_FILE
@@ -430,11 +398,7 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 
 		std::string string_json(buffer.begin(), buffer.end());
 
-		if (!FromJson(string_json))
-		{
-			std::cout << "error: FromJson:  " << string_json << std::endl;
-			return false;
-		}
+		FromJson(string_json);
 	}
 
 #else
@@ -454,6 +418,10 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 
 #endif // USE_FILE
 
+	size_t finished = 0;
+	size_t unfinished = 0;
+	GetTileStatusCount(finished, unfinished);
+	std::cout << "begin: finished tile: " << finished << "; unfinished tile : " << unfinished << std::endl;
 	
 	return true;
 }
@@ -462,15 +430,13 @@ std::string TaskRecord::ToJson()
 {
 	neb::CJsonObject oJson;
 	oJson.Add("format", format_);
-	oJson.Add("count", count_);
+	oJson.Add("count", tile_records_.size());
 	oJson.AddEmptySubArray("tile_finished");
 	oJson.AddEmptySubArray("sub_tile_state");
 
-	for (int i = 0; i < count_; i++)
+	for (auto tile_record : tile_records_)
 	{
-		TileRecord* tile_record = tile_records_[i];
-
-		oJson["tile_finished"].Add(tile_record->finished_);
+		oJson["tile_finished"].Add((int)(tile_record->finished_));
 		oJson["sub_tile_state"].Add(tile_record->sub_tile_state_);
 	}
 
@@ -501,15 +467,15 @@ bool TaskRecord::FromJson(const std::string& json)
 		return false;
 	}
 
-	if (count == count_)
+	if (count == tile_records_.size())
 	{
 		std::cout << info_json_path_ << " loaded" << std::endl;
 
-		for (int i = 0; i < count_; i++)
+		for (int i = 0; i < count; i++)
 		{
 			TileRecord* tile_record = tile_records_[i];
 
-			bool tile_finished;
+			int tile_finished = 0;
 			oJson["tile_finished"].Get(i, tile_finished);
 			tile_record->finished_ = tile_finished;
 
@@ -551,13 +517,31 @@ TileRecord* TaskRecord::GetTileRecord(size_t col, size_t row, size_t z)
 
 bool TaskRecord::IsReady()
 {
-	for (size_t i = 0; i < count_; i++)
+	for (auto tile_record : tile_records_)
 	{
-		if (tile_records_[i]->finished_ == false)
+		if (tile_record->finished_ == false)
 			return false;
 	}
 
 	return true;
+}
+
+void TaskRecord::GetTileStatusCount(size_t& finished, size_t& unfinished)
+{
+	finished = 0;
+	unfinished = 0;
+
+	for (auto tile_record : tile_records_)
+	{
+		if (tile_record->finished_ == false)
+		{
+			unfinished++;
+		}
+		else
+		{
+			finished++;
+		}
+	}
 }
 
 bool TaskRecord::NeedReleaseDataset()
