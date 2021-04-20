@@ -23,18 +23,8 @@
 
 
 bool AWSS3GetObject(const Aws::String& fromBucket , const Aws::String& objectKey,
-	const Aws::String& region, const Aws::String& aws_secret_access_key
-	, const Aws::String& aws_access_key_id, std::vector<unsigned char>& buffer)
+	const Aws::S3::S3Client& s3_client, std::vector<unsigned char>& buffer)
 {
-	Aws::Client::ClientConfiguration config;
-
-	if (!region.empty())
-	{
-		config.region = region;
-	}
-
-	Aws::Auth::AWSCredentials cred(aws_access_key_id, aws_secret_access_key);
-	Aws::S3::S3Client s3_client(cred, config);
 	Aws::S3::Model::GetObjectRequest object_request;
 	object_request.SetBucket(fromBucket);
 	object_request.SetKey(objectKey);
@@ -66,19 +56,8 @@ bool AWSS3GetObject(const Aws::String& fromBucket , const Aws::String& objectKey
 }
 
 bool AWSS3PutObject(const Aws::String& bucketName, const Aws::String& objectName
-	, const Aws::String& region, const Aws::String& aws_secret_access_key
-	, const Aws::String& aws_access_key_id, std::vector<unsigned char>& buffer)
+	, const Aws::S3::S3Client& s3_client, std::vector<unsigned char>& buffer)
 {
-	Aws::Client::ClientConfiguration config;
-
-	if (!region.empty())
-	{
-		config.region = region;
-	}
-
-	Aws::Auth::AWSCredentials cred(aws_access_key_id, aws_secret_access_key);
-	Aws::S3::S3Client s3_client(cred, config);
-
 	Aws::S3::Model::PutObjectRequest request;
 	request.SetBucket(bucketName);
 	request.SetKey(objectName);
@@ -225,18 +204,28 @@ TaskRecord::~TaskRecord()
 	std::vector<unsigned char> buffer;
 	buffer.assign(json.begin(), json.end());
 
+	Aws::Client::ClientConfiguration config;
+
+	if (!aws_region_.empty())
+	{
+		config.region = aws_region_;
+	}
+
+	Aws::Auth::AWSCredentials cred(aws_access_key_id_, aws_secret_access_key_);
+	Aws::S3::S3Client s3_client(cred, config);
+
 	if (AWSS3PutObject(save_bucket_name_, src_key_name_ + ".pyra/info.json"
-		, aws_region_, aws_secret_access_key_, aws_access_key_id_, buffer))
+		, s3_client, buffer))
 	{
 		std::cout << "json saved:  " << src_key_name_ + ".pyra/info.json" << std::endl;
 	}
 
 #endif
 
-	//for (auto record : tile_records_)
-	//{
-	//	delete record;
-	//}
+	for (auto record : tile_records_)
+	{
+		delete record;
+	}
 
 	std::chrono::system_clock::duration d = std::chrono::system_clock::now().time_since_epoch();
 	long long end_sec = std::chrono::duration_cast<std::chrono::seconds>(d).count();
@@ -402,9 +391,19 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 
 #else
 
+	Aws::Client::ClientConfiguration config;
+
+	if (!aws_region_.empty())
+	{
+		config.region = aws_region_;
+	}
+
+	Aws::Auth::AWSCredentials cred(aws_access_key_id_, aws_secret_access_key_);
+	Aws::S3::S3Client s3_client(cred, config);
+
 	std::vector<unsigned char> buffer;
 	if (force_ == 0 && AWSS3GetObject(save_bucket_name_, src_key_name_ + ".pyra/info.json"
-		, aws_region_, aws_secret_access_key_, aws_access_key_id_, buffer))
+		, s3_client, buffer))
 	{
 		std::string string_json(buffer.begin(), buffer.end());
 		FromJson(string_json);
@@ -577,8 +576,7 @@ void TaskRecord::ReleaseDataset()
 }
 
 void SaveTileData(const std::string& path, const Aws::String& save_bucket_name
-	, const Aws::String& obj_key, const Aws::String& region, const Aws::String& aws_secret_access_key
-	, const Aws::String& aws_access_key_id
+	, const Aws::String& obj_key, const Aws::S3::S3Client& s3_client
 	, size_t x, size_t y, size_t z, std::vector<unsigned char>& buffer)
 {
 
@@ -617,15 +615,14 @@ void SaveTileData(const std::string& path, const Aws::String& save_bucket_name
 
 	std::string ext = ".pyra/" + std::to_string(x) + "_" + std::to_string(y) + "_" + std::to_string(z) + ".bin";
 	Aws::String obj_key_name = obj_key + Aws::String(ext.c_str(), ext.size());
-	AWSS3PutObject(save_bucket_name, obj_key_name, region, aws_secret_access_key, aws_access_key_id, buffer);
+	AWSS3PutObject(save_bucket_name, obj_key_name, s3_client, buffer);
 
 #endif
 
 }
 
 bool LoadTileData(const std::string& path, const Aws::String& bucket_name
-	, const Aws::String& obj_key, const Aws::String& region, const Aws::String& aws_secret_access_key
-	, const Aws::String& aws_access_key_id, size_t x
+	, const Aws::String& obj_key, const Aws::S3::S3Client& s3_client, size_t x
 	, size_t y, size_t z, std::vector<unsigned char>& buffer)
 {
 #ifdef USE_FILE
@@ -648,7 +645,7 @@ bool LoadTileData(const std::string& path, const Aws::String& bucket_name
 
 	std::string ext = ".pyra/" + std::to_string(x) + "_" + std::to_string(y) + "_" + std::to_string(z) + ".bin";
 	Aws::String obj_key_name = obj_key + Aws::String(ext.c_str(), ext.size());
-	return AWSS3GetObject(bucket_name, obj_key_name, region, aws_secret_access_key, aws_access_key_id, buffer);
+	return AWSS3GetObject(bucket_name, obj_key_name, s3_client, buffer);
 
 #endif // USE_FILE
 
@@ -838,30 +835,7 @@ void ResampleLinear(unsigned char* buffer1, unsigned char* buffer2
 	}
 }
 
-void ProcessLoop(TaskRecord* task_record, int& status)
-{
-	long long start_sec = task_record->GetStartSec();
-	int time_limit_sec = task_record->GetTimeLimitSec();
-
-	while (!task_record->IsReady())
-	{
-		DoTask(task_record);
-		//std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-		std::chrono::system_clock::duration d = std::chrono::system_clock::now().time_since_epoch();
-		long long now_sec = std::chrono::duration_cast<std::chrono::seconds>(d).count();
-
-		if ((now_sec - start_sec) > time_limit_sec)
-		{
-			status = code_not_finished;
-			return;
-		}
-	}
-
-	status = code_success;
-}
-
-void DoTask(TaskRecord* task_record)
+void DoTask(TaskRecord* task_record, const Aws::S3::S3Client& s3_client)
 {
 	size_t tile_records_count = task_record->GetTileRecordsCount();
 	int band_count = task_record->GetBandCount();
@@ -870,9 +844,6 @@ void DoTask(TaskRecord* task_record)
 	Aws::String src_obj_key = task_record->GetSrcKey();
 	Aws::String src_bucket = task_record->GetSrcBucket();
 	Aws::String save_bucket = task_record->GetSaveBucket();
-
-	Aws::String aws_secret_access_key = task_record->GetSecretAccessKey();
-	Aws::String aws_access_key_id = task_record->GetAccessKeyID();
 
 	std::vector<int> band_map;
 	for (int i = 0; i < band_count; i ++)
@@ -887,7 +858,7 @@ void DoTask(TaskRecord* task_record)
 	int pixel_space = band_count * type_bytes;
 	int line_space = 256 * pixel_space;
 	int band_space = type_bytes;
-	const Aws::String& region = task_record->GetRegion();
+	
 
 	for (size_t i = 0; i < tile_records_count; i++)
 	{
@@ -992,7 +963,7 @@ void DoTask(TaskRecord* task_record)
 								}
 							}
 
-							SaveTileData(path, save_bucket, src_obj_key, region, aws_secret_access_key, aws_access_key_id, tile_record->col_, tile_record->row_, tile_record->z_, buffer);
+							SaveTileData(path, save_bucket, src_obj_key, s3_client, tile_record->col_, tile_record->row_, tile_record->z_, buffer);
 							tile_record->finished_ = true;
 
 							//±ê¼ÇÉÏ²ãÍßÆ¬
@@ -1023,27 +994,27 @@ void DoTask(TaskRecord* task_record)
 						
 						if (arrange & 0x08)
 						{
-							LoadTileData(path, src_bucket, src_obj_key, region, aws_secret_access_key, aws_access_key_id, tile_record->col_ * 2, tile_record->row_ * 2, tile_record->z_ - 1, buffer1);
+							LoadTileData(path, src_bucket, src_obj_key, s3_client, tile_record->col_ * 2, tile_record->row_ * 2, tile_record->z_ - 1, buffer1);
 						}
 
 						if (arrange & 0x04)
 						{
-							LoadTileData(path, src_bucket, src_obj_key, region, aws_secret_access_key, aws_access_key_id, tile_record->col_ * 2 + 1, tile_record->row_ * 2, tile_record->z_ - 1, buffer2);
+							LoadTileData(path, src_bucket, src_obj_key, s3_client, tile_record->col_ * 2 + 1, tile_record->row_ * 2, tile_record->z_ - 1, buffer2);
 						}
 
 						if (arrange & 0x02)
 						{
-							LoadTileData(path, src_bucket, src_obj_key, region, aws_secret_access_key, aws_access_key_id, tile_record->col_ * 2, tile_record->row_ * 2 + 1, tile_record->z_ - 1, buffer3);
+							LoadTileData(path, src_bucket, src_obj_key, s3_client, tile_record->col_ * 2, tile_record->row_ * 2 + 1, tile_record->z_ - 1, buffer3);
 						}
 
 						if (arrange & 0x01)
 						{
-							LoadTileData(path, src_bucket, src_obj_key, region, aws_secret_access_key, aws_access_key_id, tile_record->col_ * 2 + 1, tile_record->row_ * 2 + 1, tile_record->z_ - 1, buffer4);
+							LoadTileData(path, src_bucket, src_obj_key, s3_client, tile_record->col_ * 2 + 1, tile_record->row_ * 2 + 1, tile_record->z_ - 1, buffer4);
 						}
 
 						//ResampleNearest(buffer1.data(), buffer2.data(), buffer3.data(), buffer4.data(), buffer.data(), pixel_space);
 						ResampleLinear(buffer1.data(), buffer2.data(), buffer3.data(), buffer4.data(), buffer.data(), band_count, type_bytes, data_type);
-						SaveTileData(path, save_bucket, src_obj_key, region, aws_secret_access_key, aws_access_key_id, tile_record->col_, tile_record->row_, tile_record->z_, buffer);
+						SaveTileData(path, save_bucket, src_obj_key, s3_client, tile_record->col_, tile_record->row_, tile_record->z_, buffer);
 
 						tile_record->finished_ = true;
 
@@ -1065,4 +1036,40 @@ void DoTask(TaskRecord* task_record)
 	}
 
 	task_record->ReleaseDataset();
+}
+
+void ProcessLoop(TaskRecord* task_record, int& status)
+{
+	Aws::String aws_secret_access_key = task_record->GetSecretAccessKey();
+	Aws::String aws_access_key_id = task_record->GetAccessKeyID();
+	const Aws::String& region = task_record->GetRegion();
+
+	Aws::Client::ClientConfiguration config;
+	if (!region.empty())
+	{
+		config.region = region;
+	}
+
+	Aws::Auth::AWSCredentials cred(aws_access_key_id, aws_secret_access_key);
+	Aws::S3::S3Client s3_client(cred, config);
+
+	long long start_sec = task_record->GetStartSec();
+	int time_limit_sec = task_record->GetTimeLimitSec();
+
+	while (!task_record->IsReady())
+	{
+		DoTask(task_record, s3_client);
+		//std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+		std::chrono::system_clock::duration d = std::chrono::system_clock::now().time_since_epoch();
+		long long now_sec = std::chrono::duration_cast<std::chrono::seconds>(d).count();
+
+		if ((now_sec - start_sec) > time_limit_sec)
+		{
+			status = code_not_finished;
+			return;
+		}
+	}
+
+	status = code_success;
 }

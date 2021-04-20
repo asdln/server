@@ -155,8 +155,6 @@ protected:
 	int time_limit_sec_ = 780;
 };
 
-void DoTask(TaskRecord* task_record);
-
 void ProcessLoop(TaskRecord* task_record, int& status);
 
 bool AWSS3PutObject_File(const Aws::String& bucketName, const Aws::String& objectName
