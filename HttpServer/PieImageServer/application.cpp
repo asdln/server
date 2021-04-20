@@ -295,7 +295,7 @@ Application::Application(int argc, char* argv[])
     std::string gdal_data_path = app_path_ + "data";
     CPLSetConfigOption("GDAL_DATA", gdal_data_path.c_str());
 
-	CPLSetConfigOption("CPL_DEBUG", "ON");
+	//CPLSetConfigOption("CPL_DEBUG", "ON");
 
 	LOG(INFO) << "GDAL_DATA : " << gdal_data_path;
 
