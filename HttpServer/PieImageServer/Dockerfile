@@ -2,7 +2,7 @@
 # Version 1.0
 
 # 算法基础镜像
-FROM osgeo/gdal:alpine-small-latest
+FROM osgeo/gdal:ubuntu-small-latest
 
 ENV LANG C.UTF-8
 ENV HOME /usr/local/image_server_quick
