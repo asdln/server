@@ -94,8 +94,8 @@ bool AWSS3PutObject(const Aws::String& bucketName, const Aws::String& objectName
 
 	if (outcome.IsSuccess()) {
 
-		std::cout << "Added object '" << objectName << "' to bucket '"
-			<< bucketName << "'" << std::endl;;
+		//std::cout << "Added object '" << objectName << "' to bucket '"
+		//	<< bucketName << "'" << std::endl;;
 		return true;
 	}
 	else
@@ -846,7 +846,7 @@ void ProcessLoop(TaskRecord* task_record, int& status)
 	while (!task_record->IsReady())
 	{
 		DoTask(task_record);
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		//std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
 		std::chrono::system_clock::duration d = std::chrono::system_clock::now().time_since_epoch();
 		long long now_sec = std::chrono::duration_cast<std::chrono::seconds>(d).count();
@@ -926,6 +926,8 @@ void DoTask(TaskRecord* task_record)
 							{
 								tile_record->finished_ = false;
 								tile_record->processing_mutex_.unlock();
+
+								std::this_thread::sleep_for(std::chrono::milliseconds(10));
 								continue;
 							}
 						}
@@ -998,6 +1000,9 @@ void DoTask(TaskRecord* task_record)
 							parent->sub_tile_state_++;
 
 							tile_header->dataset_lock_flag_mutex_.unlock();
+
+							tile_record->processing_mutex_.unlock();
+							break;
 						}
 					}
 					else
@@ -1049,6 +1054,7 @@ void DoTask(TaskRecord* task_record)
 							parent->sub_tile_state_++;
 						}
 
+						tile_record->processing_mutex_.unlock();
 						break;
 					}
 				}
