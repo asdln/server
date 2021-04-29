@@ -208,10 +208,13 @@ void CreateUID(std::string& uid)
 	uid = sGuid.str();
 }
 
-void QueryDataInfo(const std::string& request_body, std::list<std::pair<std::string, std::string>>& data_info)
+Format String2Format(const std::string& format_string);
+
+void QueryDataInfo(const std::string& request_body, std::list<std::pair<std::string, std::string>>& data_info, Format& format)
 {
 	neb::CJsonObject oJson_info;
 	neb::CJsonObject oJson(request_body);
+	std::string format_string;
 	if (oJson.Get("info", oJson_info))
 	{
 		if (oJson_info.IsArray())
@@ -236,6 +239,8 @@ void QueryDataInfo(const std::string& request_body, std::list<std::pair<std::str
 			}
 		}
 	}
+
+	format = String2Format(oJson("format"));
 }
 
 void GetLayers(const std::string& request_body, std::vector<std::string>& paths)

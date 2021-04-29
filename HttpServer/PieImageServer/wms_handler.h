@@ -30,7 +30,7 @@ public:
 protected:
 
 	//bool GetDatasets(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::list<std::pair<DatasetPtr, StylePtr>>& datasets);
-	bool GetDatasets(int epsg_code, const std::string& data_style_json, std::list<std::pair<DatasetPtr, StylePtr>>& datasets);
+	bool GetDatasets(int epsg_code, const std::string& data_style_json, std::list<std::pair<DatasetPtr, StylePtr>>& datasets, Format& format);
 
 	bool GetDataStyleString(const Url& url, const std::string& request_body, std::string& data_style_json);
 

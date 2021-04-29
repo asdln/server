@@ -35,8 +35,11 @@ int main(int argc, char* argv[])
 	//}
 
 	Aws::SDKOptions options;
-	//options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
-	Aws::InitAPI(options);
+	char* AWS_SECRET_ACCESS_KEY = std::getenv("AWS_SECRET_ACCESS_KEY");
+	if (AWS_SECRET_ACCESS_KEY != nullptr)
+	{
+		Aws::InitAPI(options);
+	}
 
 	FLAGS_log_dir = "./log/";
 	FLAGS_logbufsecs = 0;
@@ -47,6 +50,11 @@ int main(int argc, char* argv[])
 	global_app->Run();
 
 	google::ShutdownGoogleLogging();
-	Aws::ShutdownAPI(options);
+
+	if (AWS_SECRET_ACCESS_KEY != nullptr)
+	{
+		Aws::ShutdownAPI(options);
+	}
+
 	return 0;
 }

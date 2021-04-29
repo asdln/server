@@ -67,9 +67,6 @@ std::string Format2String(Format format)
 	case Format::WEBP:
 		string_fromat = "webp";
 		break;
-	case Format::AUTO:
-		string_fromat = "auto";
-		break;
 	default:
 		string_fromat = default_string_format;
 		break;
@@ -92,10 +89,6 @@ Format String2Format(const std::string& format_string)
 	{
 		return Format::WEBP;
 	}
-	else if (format_string.compare("auto") == 0)
-	{
-		return Format::AUTO;
-	}
 	else
 	{
 		return default_format;
@@ -107,7 +100,7 @@ StylePtr Style::Clone()
 	StylePtr pClone = std::make_shared<Style>();
 	pClone->uid_ = uid_;
 	pClone->version_ = version_;
-	pClone->format_ = format_;
+	//pClone->format_ = format_;
 	pClone->kind_ = kind_;
 	for (int i = 0; i < 4; i++)
 	{
@@ -124,7 +117,7 @@ StylePtr Style::CompletelyClone()
 	StylePtr pClone = std::make_shared<Style>();
 	pClone->uid_ = uid_;
 	pClone->version_ = version_;
-	pClone->format_ = format_;
+	//pClone->format_ = format_;
 	pClone->kind_ = kind_;
 	for (int i = 0; i < 4; i++)
 	{
@@ -148,8 +141,8 @@ void Style::Prepare(Dataset* dataset)
 		, bandMap_[3] <= dataset_band_count ? bandMap_[3] : dataset_band_count };
 
 
-	if (format_ == Format::JPG)
-		nBandCount = 3;
+// 	if (format_ == Format::JPG)
+// 		nBandCount = 3;
 
 	if (nBandCount != 3 && nBandCount != 4)
 	{
@@ -186,7 +179,7 @@ StylePtr StyleSerielizer::FromJsonObj(neb::CJsonObject& json_obj)
 		style->kind_ = StyleType::TRUE_COLOR;
 	}
 
-	style->format_ = String2Format(json_obj("format"));
+	//style->format_ = String2Format(json_obj("format"));
 
 	style->uid_ = json_obj("uid");
 

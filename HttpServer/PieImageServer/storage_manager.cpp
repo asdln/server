@@ -18,9 +18,10 @@ std::unordered_map<std::string, std::pair<std::string, std::list<std::string>::i
 
 bool StorageManager::AddOrUpdateDataStyle(const std::string& data_style_json, std::string& md5)
 {
+	Format format;
 	//验证data_style_json的格式是否正确
 	std::list<std::pair<std::string, std::string>> data_info;
-	QueryDataInfo(data_style_json, data_info);
+	QueryDataInfo(data_style_json, data_info, format);
 
 	if (data_info.empty())
 	{

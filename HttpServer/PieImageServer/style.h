@@ -9,21 +9,6 @@
 
 class Dataset;
 
-enum class StyleType
-{
-	NONE = 0,
-	TRUE_COLOR,
-	DEM,
-	GRAY
-};
-
-enum class Format
-{
-	JPG = 0,
-	PNG,
-	WEBP,
-	AUTO
-};
 
 //json格式样例数据：
 /*
@@ -68,14 +53,14 @@ public:
 
 	void set_code(int code) { srs_epsg_code_ = code; }
 
-	Format format() { return format_; }
+	//Format format() { return format_; }
 
 	int band_count() { return bandCount_; }
 
-	void QueryInfo(int band_count, int* band_map, Format& format, StyleType& style_type, int& epsg_code) 
+	void QueryInfo(int band_count, int* band_map, /*Format& format, */StyleType& style_type, int& epsg_code) 
 	{ 
 		band_count = bandCount_;  
-		format = format_; 
+		//format = format_; 
 		style_type = kind_; 
 		epsg_code = srs_epsg_code_; 
 		band_map[0] = bandMap_[0];
@@ -90,7 +75,7 @@ protected:
 
 	size_t version_ = 0;
 
-	Format format_ = default_format;
+	//Format format_ = default_format;
 
 	StyleType kind_ = StyleType::TRUE_COLOR;
 	int bandMap_[4] = { 1, 2, 3, 4 };

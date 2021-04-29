@@ -1,6 +1,8 @@
 #pragma once
 
 #include "tiff_dataset.h"
+#include <aws/core/Aws.h>
+#include <aws/s3/S3Client.h>
 
 class S3Dataset : public TiffDataset
 {
@@ -18,4 +20,6 @@ protected:
 	std::vector<std::pair<size_t, size_t>> dims_;
 
 	int type_bytes_ = 1;
+
+	Aws::S3::S3Client s3_client_;
 };

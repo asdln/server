@@ -2,8 +2,6 @@
 #include <iostream>
 #include <fstream>
 
-#include <aws/core/Aws.h>
-#include <aws/s3/S3Client.h>
 #include <aws/s3/model/PutObjectRequest.h>
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/core/utils/stream/PreallocatedStreamBuf.h>
@@ -28,21 +26,9 @@ T LinearSample(double u, double v, void* value1, void* value2, void* value3, voi
 	return tvalue;
 }
 
-bool AWSS3GetObject(const Aws::String& fromBucket, const Aws::String& objectKey
+bool AWSS3GetObject(const Aws::S3::S3Client& s3_client, const Aws::String& fromBucket, const Aws::String& objectKey
 	, char** buffer, size_t size)
 {
-	Aws::Client::ClientConfiguration config;
-
-
-	if (g_aws_access_key_id.empty())
-	{
-		std::cout << "error: getenv(\"AWS_ACCESS_KEY_ID\")" << g_aws_access_key_id << std::endl;
-	}
-
-	config.region = g_aws_region;
-
-	Aws::Auth::AWSCredentials cred(g_aws_access_key_id, g_aws_secret_access_key);
-	Aws::S3::S3Client s3_client(cred, config);
 	Aws::S3::Model::GetObjectRequest object_request;
 	object_request.SetBucket(fromBucket);
 	object_request.SetKey(objectKey);
@@ -70,7 +56,7 @@ bool AWSS3GetObject(const Aws::String& fromBucket, const Aws::String& objectKey
 	}
 }
 
-void LoadTileData(const std::string& path, size_t x, size_t y, size_t z, char** buffer, size_t size)
+void LoadTileData(const Aws::S3::S3Client& s3_client, const std::string& path, size_t x, size_t y, size_t z, char** buffer, size_t size)
 {
 	std::string str_prefix = ".pyra/" + std::to_string(x) + "_" + std::to_string(y) + "_" + std::to_string(z) + ".bin";
 	std::string new_path = path + str_prefix;
@@ -104,7 +90,7 @@ void LoadTileData(const std::string& path, size_t x, size_t y, size_t z, char** 
 	Aws::String src_key_name = Aws::String(temp_str.c_str() + pos + 1, temp_str.size() - pos - 1);
 	src_key_name += str_prefix;
 
-	AWSS3GetObject(src_bucket_name, src_key_name, buffer, size);
+	AWSS3GetObject(s3_client, src_bucket_name, src_key_name, buffer, size);
 
 #endif // USE_FILE
 
@@ -138,6 +124,28 @@ bool S3Dataset::Open(const std::string& path)
 	}
 
 	type_bytes_ = GetDataTypeBytes(GetDataType());
+
+	try
+	{
+		Aws::Client::ClientConfiguration config;
+
+		if (g_aws_access_key_id.empty())
+		{
+			std::cout << "error: getenv(\"AWS_ACCESS_KEY_ID\")" << g_aws_access_key_id << std::endl;
+		}
+
+		config.region = g_aws_region;
+
+		Aws::Auth::AWSCredentials cred(g_aws_access_key_id, g_aws_secret_access_key);
+		s3_client_ = Aws::S3::S3Client(cred, config);
+	}
+	catch (...)
+	{
+		std::cout << "s3 client failed" << std::endl;
+		return false;
+	}
+
+
 	return true;
 }
 
@@ -195,7 +203,7 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 			//std::vector<unsigned char> buffer;
 			unsigned char* buffer = nullptr;
 			size_t size = 0;
-			LoadTileData(file_path_, m, n, level, (char**)&buffer, size);
+			LoadTileData(s3_client_, file_path_, m, n, level, (char**)&buffer, size);
 			buffers.emplace_back(buffer);
 		}
 	}

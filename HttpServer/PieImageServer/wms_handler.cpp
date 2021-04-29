@@ -134,10 +134,10 @@ bool WMSHandler::GetDataStyleString(const Url& url, const std::string& request_b
 	return true;
 }
 
-bool WMSHandler::GetDatasets(int epsg_code, const std::string& data_style_json, std::list<std::pair<DatasetPtr, StylePtr>>& datasets)
+bool WMSHandler::GetDatasets(int epsg_code, const std::string& data_style_json, std::list<std::pair<DatasetPtr, StylePtr>>& datasets, Format& format)
 {
 	std::list<std::pair<std::string, std::string>> data_info;
-	QueryDataInfo(data_style_json, data_info);
+	QueryDataInfo(data_style_json, data_info, format);
 
 	for (auto info : data_info)
 	{
@@ -201,10 +201,11 @@ bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, in
 
 	if (buffer == nullptr)
 	{
+		Format format = Format::WEBP;
 		std::list<std::pair<DatasetPtr, StylePtr>> datasets;
-		GetDatasets(epsg_code, data_style, datasets);
+		GetDatasets(epsg_code, data_style, datasets, format);
 
-		buffer = TileProcessor::GetCombinedData(datasets, env, tile_width, tile_height);
+		buffer = TileProcessor::GetCombinedData(datasets, env, tile_width, tile_height, format);
 		if (use_cache && AmazonS3::GetUseS3() && buffer != nullptr)
 		{
 			amason_s3.PutS3Object(md5, buffer);

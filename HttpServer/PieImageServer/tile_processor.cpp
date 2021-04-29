@@ -814,7 +814,8 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 	return true;
 }
 
-BufferPtr TileProcessor::GetCombinedData(const std::list<std::pair<DatasetPtr, StylePtr>>& datasets, const Envelop& env, int tile_width, int tile_height)
+BufferPtr TileProcessor::GetCombinedData(const std::list<std::pair<DatasetPtr, StylePtr>>& datasets
+	, const Envelop& env, int tile_width, int tile_height, Format& format)
 {
 	if (datasets.empty())
 		return nullptr;
@@ -840,7 +841,7 @@ BufferPtr TileProcessor::GetCombinedData(const std::list<std::pair<DatasetPtr, S
 		Style* style = content.second.get();
 		bool bRes = GetTileData(dataset, style, env, tile_width, tile_height, &render_buffer, &mask_buffer, render_color_count);
 
-		Format format = style->format();
+		//Format format = style->format();
 		int band_count = style->band_count();
 
 		//根据mask的值，添加透明通道的值。
@@ -887,13 +888,27 @@ BufferPtr TileProcessor::GetCombinedData(const std::list<std::pair<DatasetPtr, S
 		}
 	}
 
-	Format format = Format::WEBP;
 	BufferPtr buffer = nullptr;
-
 	if (render_buffer_final != nullptr)
 	{
-		WebpCompress webpCompress;
-		buffer = webpCompress.DoCompress(render_buffer_final, tile_width, tile_height);
+		switch (format)
+		{ 
+		case Format::WEBP:
+		{
+			WebpCompress webpCompress;
+			buffer = webpCompress.DoCompress(render_buffer_final, tile_width, tile_height);
+		}
+			break;
+
+		case Format::PNG:
+		{
+			PngCompress pngCompress;
+			buffer = pngCompress.DoCompress(render_buffer_final, tile_width, tile_height);
+		}
+			break;
+		default:
+			break;
+		}
 	}
 
 	//if (format == Format::JPG)
@@ -940,7 +955,7 @@ bool TileProcessor::GetTileData(Dataset* dataset, Style* style, const Envelop& e
 	int epsg_code;
 
 	style->Prepare(tiffDataset);
-	style->QueryInfo(band_count, band_map, format, style_type, epsg_code);
+	style->QueryInfo(band_count, band_map, /*format,*/ style_type, epsg_code);
 
 	//const char* pWKT = "PROJCS[\"WGS_1984_Web_Mercator\",GEOGCS[\"GCS_WGS_1984_Major_Auxiliary_Sphere\",DATUM[\"WGS_1984_Major_Auxiliary_Sphere\",SPHEROID[\"WGS_1984_Major_Auxiliary_Sphere\",6378137.0,0.0]],PRIMEM[\"Greenwich\",0.0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Mercator_1SP\"],PARAMETER[\"False_Easting\",0.0],PARAMETER[\"False_Northing\",0.0],PARAMETER[\"Central_Meridian\",0.0],PARAMETER[\"latitude_of_origin\",0.0],UNIT[\"Meter\",1.0]]";
 	//OGRSpatialReference* pDefaultSpatialReference = (OGRSpatialReference*)OSRNewSpatialReference(0/*pWKT*/);
