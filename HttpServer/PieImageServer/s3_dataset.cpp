@@ -7,24 +7,15 @@
 #include <aws/core/utils/stream/PreallocatedStreamBuf.h>
 #include <aws/core/auth/AWSCredentials.h>
 
+#define GOOGLE_GLOG_DLL_DECL 
+#define GLOG_NO_ABBREVIATED_SEVERITIES
+#include "glog/logging.h"
+
 Aws::String g_aws_region;
 
 Aws::String g_aws_secret_access_key;
 
 Aws::String g_aws_access_key_id;
-
-template<typename T>
-T LinearSample(double u, double v, void* value1, void* value2, void* value3, void* value4, bool bAdjust = true)
-{
-	double value = (1.0 - u) * (1 - v) * *((T*)value1) + (1.0 - u) * v * *((T*)value2) + u * (1.0 - v) * *((T*)value3) + u * v * *((T*)value4);
-
-	if (bAdjust)
-		value += 0.5;
-
-	T tvalue = value;
-
-	return tvalue;
-}
 
 bool AWSS3GetObject(const Aws::S3::S3Client& s3_client, const Aws::String& fromBucket, const Aws::String& objectKey
 	, char** buffer, size_t size)
@@ -56,7 +47,7 @@ bool AWSS3GetObject(const Aws::S3::S3Client& s3_client, const Aws::String& fromB
 	}
 }
 
-void LoadTileData(const Aws::S3::S3Client& s3_client, const std::string& path, size_t x, size_t y, size_t z, char** buffer, size_t size)
+bool LoadTileData(const Aws::S3::S3Client& s3_client, const std::string& path, const Aws::String& src_bucket_name, const Aws::String& src_key_name, size_t x, size_t y, size_t z, char** buffer, size_t size)
 {
 	std::string str_prefix = ".pyra/" + std::to_string(x) + "_" + std::to_string(y) + "_" + std::to_string(z) + ".bin";
 	std::string new_path = path + str_prefix;
@@ -64,6 +55,9 @@ void LoadTileData(const Aws::S3::S3Client& s3_client, const std::string& path, s
 #ifdef USE_FILE
 
 	std::ifstream inFile2(new_path, std::ios::binary | std::ios::in);
+	if (!inFile2.is_open())
+		return false;
+
 	inFile2.seekg(0, std::ios_base::end);
 	int FileSize2 = inFile2.tellg();
 
@@ -74,23 +68,26 @@ void LoadTileData(const Aws::S3::S3Client& s3_client, const std::string& path, s
 	inFile2.read((char*)buffer.data(), FileSize2);
 	inFile2.close();
 
+	return true;
+
 #else
 
-	std::string temp_str = path;
-	if (temp_str.rfind("/vsis3/", 0) != 0)
-	{
-		std::cout << "error: path not begin with \"/vsis3/\"" << std::endl;
-		return;
-	}
+	//std::string temp_str = path;
+	//if (temp_str.rfind("/vsis3/", 0) != 0)
+	//{
+	//	std::cout << "error: path not begin with \"/vsis3/\"" << std::endl;
+	//	return false;
+	//}
 
-	temp_str = std::string(temp_str.c_str() + 7, temp_str.size() - 7);
-	int pos = temp_str.find("/");
+	//temp_str = std::string(temp_str.c_str() + 7, temp_str.size() - 7);
+	//int pos = temp_str.find("/");
 
-	Aws::String src_bucket_name = Aws::String(temp_str.c_str(), pos);
-	Aws::String src_key_name = Aws::String(temp_str.c_str() + pos + 1, temp_str.size() - pos - 1);
-	src_key_name += str_prefix;
+	//Aws::String src_bucket_name = Aws::String(temp_str.c_str(), pos);
+	//Aws::String src_key_name = Aws::String(temp_str.c_str() + pos + 1, temp_str.size() - pos - 1);
+	Aws::String key_name = src_key_name;
+	key_name += str_prefix;
 
-	AWSS3GetObject(s3_client, src_bucket_name, src_key_name, buffer, size);
+	return AWSS3GetObject(s3_client, src_bucket_name, key_name, buffer, size);
 
 #endif // USE_FILE
 
@@ -145,8 +142,71 @@ bool S3Dataset::Open(const std::string& path)
 		return false;
 	}
 
+	//std::string temp_str = path;
+	//if (temp_str.rfind("/vsis3/", 0) != 0)
+	//{
+	//	std::cout << "error: path not begin with \"/vsis3/\"" << std::endl;
+	//	return false;
+	//}
+
+	//temp_str = std::string(temp_str.c_str() + 7, temp_str.size() - 7);
+	//int pos = temp_str.find("/");
+
+	//s3_bucket_name_ = Aws::String(temp_str.c_str(), pos);
+	//s3_key_name_ = Aws::String(temp_str.c_str() + pos + 1, temp_str.size() - pos - 1);
 
 	return true;
+}
+
+void S3Dataset::SetS3CacheKey(const std::string& s3cachekey)
+{
+	if (s3cachekey.empty())
+	{
+		s3_bucket_name_.clear();
+		s3_key_name_.clear();
+		return;
+	}
+
+	std::string s3cachekey_temp = s3cachekey;
+
+	//去掉最前面的/和最后面的/	
+	{
+		int pos = s3cachekey.find('/');
+		if (pos == 0)
+		{
+			s3cachekey_temp = s3cachekey.substr(1, s3cachekey.size() - 1);
+		}
+
+		int rpos = s3cachekey.rfind('/');
+		if (rpos == s3cachekey.size() - 1)
+		{
+			s3cachekey_temp = s3cachekey.substr(0, s3cachekey.size() - 1);
+		}
+	}
+
+	int pos = s3cachekey_temp.find('/');
+	if (pos == std::string::npos)
+	{
+		s3_bucket_name_ = Aws::String(s3cachekey_temp.c_str(), s3cachekey_temp.size());
+		s3_key_name_ = "";
+	}
+	else
+	{
+		std::string save_bucket = s3cachekey_temp.substr(0, pos);
+		std::string save_key = s3cachekey_temp.substr(pos + 1, s3cachekey_temp.size() - pos - 1);
+
+		s3_bucket_name_ = Aws::String(save_bucket.c_str(), save_bucket.size());
+		s3_key_name_ = Aws::String(save_key.c_str(), save_key.size());
+	}
+
+	size_t rpos = file_path_.rfind('/');
+	if (rpos != std::string::npos)
+	{
+		std::string file_name = file_path_.substr(rpos + 1, file_path_.size() - rpos - 1);
+		s3_key_name_ += '/';
+		s3_key_name_ += Aws::String(file_name.c_str(), file_name.size());
+	}
+
 }
 
 bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int bufferWidth
@@ -155,8 +215,9 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 {
 	int level = 1;
 	double scale = std::min((double)width / bufferWidth, (double)height / bufferHeight);
-	if (scale <= 2.0)
+	if (scale <= 2.0 || s3_bucket_name_.empty())
 	{
+		//std::cout << "<<tiffdataset_read";
 		return TiffDataset::Read(nx, ny, width, height, pData, bufferWidth, bufferHeight
 			, dataType, nBandCount, pBandMap, pixSpace, lineSapce, bandSpace, psExtraArg);
 	}
@@ -203,7 +264,23 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 			//std::vector<unsigned char> buffer;
 			unsigned char* buffer = nullptr;
 			size_t size = 0;
-			LoadTileData(s3_client_, file_path_, m, n, level, (char**)&buffer, size);
+
+			//如果不成功，则读原始数据
+			bool res = LoadTileData(s3_client_, file_path_, s3_bucket_name_, s3_key_name_, m, n, level, (char**)&buffer, size);
+			if (false == res)
+			{
+				for (auto p : buffers)
+				{
+					if (p != nullptr)
+						delete[] p;
+				}
+
+				LOG(ERROR) << "error: can not load s3 tile data, use origin tiff instead";
+
+				return TiffDataset::Read(nx, ny, width, height, pData, bufferWidth, bufferHeight
+					, dataType, nBandCount, pBandMap, pixSpace, lineSapce, bandSpace, psExtraArg);
+			}
+
 			buffers.emplace_back(buffer);
 		}
 	}
@@ -270,82 +347,85 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 			unsigned char* value3 = src_data[2];
 			unsigned char* value4 = src_data[3];
 
-			void* pSrc = nullptr;
 			unsigned char* pDes = (unsigned char*)pData + (bufferWidth * j + i) * type_bytes_ * nBandCount;
+			double p1 = (1.0 - u) * (1.0 - v);
+			double p2 = (1.0 - u) * v;
+			double p3 = u * (1.0 - v);
+			double p4 = u * v;
 
 			for (int band = 0; band < nBandCount; band++)
 			{
 				int bandIndex = pBandMap[band] - 1;
+				int offset = bandIndex * nTypeSize;
 				switch (dataType)
 				{
 				case DT_Byte:
 				{
-					unsigned char value = LinearSample<unsigned char>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
-					pSrc = &value;
-					memcpy(pDes + band * nTypeSize, pSrc, nTypeSize);
+					unsigned char value = p1 * *(value1 + offset) + p2 * *(value2 + offset)
+						+ p3 * *(value3 + offset) + p4 * *(value4 + offset) + 0.5;
+					memcpy(pDes + band * nTypeSize, &value, nTypeSize);
 				}
 				break;
 
 				case DT_UInt16:
 				{
-					unsigned short value = LinearSample<unsigned short>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
-					pSrc = &value;
-					memcpy(pDes + band * nTypeSize, pSrc, nTypeSize);
+					unsigned short value = p1 * *((unsigned short*)(value1 + offset)) + p2 * *((unsigned short*)(value2 + offset))
+						+ p3 * *((unsigned short*)(value3 + offset)) + p4 * *((unsigned short*)(value4 + offset)) + 0.5;
+					memcpy(pDes + band * nTypeSize, &value, nTypeSize);
 				}
 				break;
 
 				case DT_Int16:
 				{
-					short value = LinearSample<short>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
-					pSrc = &value;
-					memcpy(pDes + band * nTypeSize, pSrc, nTypeSize);
+					short value = p1 * *((short*)(value1 + offset)) + p2 * *((short*)(value2 + offset))
+						+ p3 * *((short*)(value3 + offset)) + p4 * *((short*)(value4 + offset)) + 0.5;
+					memcpy(pDes + band * nTypeSize, &value, nTypeSize);
 				}
 				break;
 
 				case DT_UInt32:
 				{
-					unsigned int value = LinearSample<unsigned int>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
-					pSrc = &value;
-					memcpy(pDes + band * nTypeSize, pSrc, nTypeSize);
+					unsigned int value = p1 * *((unsigned int*)(value1 + offset)) + p2 * *((unsigned int*)(value2 + offset))
+						+ p3 * *((unsigned int*)(value3 + offset)) + p4 * *((unsigned int*)(value4 + offset)) + 0.5;
+					memcpy(pDes + band * nTypeSize, &value, nTypeSize);
 				}
 				break;
 
 				case DT_Int32:
 				{
-					int value = LinearSample<int>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
-					pSrc = &value;
-					memcpy(pDes + band * nTypeSize, pSrc, nTypeSize);
+					int value = p1 * *((int*)(value1 + offset)) + p2 * *((int*)(value2 + offset))
+						+ p3 * *((int*)(value3 + offset)) + p4 * *((int*)(value4 + offset)) + 0.5;
+					memcpy(pDes + band * nTypeSize, &value, nTypeSize);
 				}
 				break;
 
 				case DT_Float32:
 				{
-					float value = LinearSample<float>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
-					pSrc = &value;
-					memcpy(pDes + band * nTypeSize, pSrc, nTypeSize);
+					float value = p1 * *((float*)(value1 + offset)) + p2 * *((float*)(value2 + offset))
+						+ p3 * *((float*)(value3 + offset)) + p4 * *((float*)(value4 + offset)) + 0.5;
+					memcpy(pDes + band * nTypeSize, &value, nTypeSize);
 				}
 				break;
 
 				case DT_Float64:
 				{
-					double value = LinearSample<double>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
-					pSrc = &value;
-					memcpy(pDes + band * nTypeSize, pSrc, nTypeSize);
+					double value = p1 * *((double*)(value1 + offset)) + p2 * *((double*)(value2 + offset))
+						+ p3 * *((double*)(value3 + offset)) + p4 * *((double*)(value4 + offset)) + 0.5;
+					memcpy(pDes + band * nTypeSize, &value, nTypeSize);
 				}
 				break;
 
 				default:
 					break;
 				}
-
-				
 			}
 		}
 	}
 
 	for (auto p : buffers)
 	{
-		delete[] p;
+		if (p != nullptr)
+			delete[] p;
 	}
 
 	return true;

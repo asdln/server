@@ -103,7 +103,7 @@ public:
 
 	const Aws::String& GetSaveBucket() { return save_bucket_name_; }
 
-	const Aws::String& GetSrcKey() { return src_key_name_; }
+	const Aws::String& GetSaveKey() { return save_key_name_; }
 
 	const Aws::String& GetAccessKeyID() { return aws_access_key_id_; }
 
@@ -117,6 +117,8 @@ protected:
 
 	Aws::String save_bucket_name_;
 
+	Aws::String save_key_name_;
+
 	std::string path_;
 
 	int force_ = 0;
@@ -126,8 +128,6 @@ protected:
 	std::string info_json_path_;
 
 	Aws::String src_bucket_name_;
-
-	Aws::String src_key_name_;
 
 	Aws::String aws_region_;
 

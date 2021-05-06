@@ -1,6 +1,6 @@
 #include "wms_handler.h"
 #include "style_manager.h"
-#include "tiff_dataset.h"
+#include "s3_dataset.h"
 #include "resource_pool.h"
 #include "storage_manager.h"
 #include "image_group_manager.h"
@@ -136,17 +136,27 @@ bool WMSHandler::GetDataStyleString(const Url& url, const std::string& request_b
 
 bool WMSHandler::GetDatasets(int epsg_code, const std::string& data_style_json, std::list<std::pair<DatasetPtr, StylePtr>>& datasets, Format& format)
 {
+	std::vector<std::string> exts;
 	std::list<std::pair<std::string, std::string>> data_info;
-	QueryDataInfo(data_style_json, data_info, format);
+	QueryDataInfo(data_style_json, data_info, exts, format);
 
+	int i = -1;
 	for (auto info : data_info)
 	{
+		i++;
+		const std::string& ext = exts[i];
 		const std::string& path = info.first;
 		std::string style_string = info.second;
 
 		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(path));
 		if (tiffDataset == nullptr)
 			continue;
+
+		std::shared_ptr<S3Dataset> s3Dataset = std::dynamic_pointer_cast<S3Dataset>(tiffDataset);
+		if (s3Dataset != nullptr)
+		{
+			s3Dataset->SetS3CacheKey(ext);
+		}
 
 		StylePtr style_clone = StyleManager::GetStyle(style_string, tiffDataset);
 		style_clone->set_code(epsg_code);

@@ -118,63 +118,70 @@ bool TileProcessor::ProcessPerPixel(Dataset* ptrDataset
 						unsigned char* value3 = pLinearBuffer + nDataPixelBytes;
 						unsigned char* value4 = pLinearBuffer + 3 * nDataPixelBytes;
 
+						double p1 = (1.0 - u) * (1.0 - v);
+						double p2 = (1.0 - u) * v;
+						double p3 = u * (1.0 - v);
+						double p4 = u * v;
+
 						for (int bandIndex = 0; bandIndex < nBandCount; bandIndex++)
 						{
+							int offset = bandIndex * nTypeSize;
+
 							switch (eTpye)
 							{
-							case DataType::DT_Byte:
+							case DT_Byte:
 							{
-								unsigned char value = LinearSample<unsigned char>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
-								pSrc = &value;
-								memcpy(buffer + bandIndex * nTypeSize, pSrc, nTypeSize);
+								unsigned char value = p1 * *(value1 + offset) + p2 * *(value2 + offset)
+									+ p3 * *(value3 + offset) + p4 * *(value4 + offset) + 0.5;
+								memcpy(buffer + offset, &value, nTypeSize);
 							}
 							break;
 
-							case DataType::DT_UInt16:
+							case DT_UInt16:
 							{
-								unsigned short value = LinearSample<unsigned short>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
-								pSrc = &value;
-								memcpy(buffer + bandIndex * nTypeSize, pSrc, nTypeSize);
+								unsigned short value = p1 * *((unsigned short*)(value1 + offset)) + p2 * *((unsigned short*)(value2 + offset))
+									+ p3 * *((unsigned short*)(value3 + offset)) + p4 * *((unsigned short*)(value4 + offset)) + 0.5;
+								memcpy(buffer + offset, &value, nTypeSize);
 							}
 							break;
 
-							case DataType::DT_Int16:
+							case DT_Int16:
 							{
-								short value = LinearSample<short>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
-								pSrc = &value;
-								memcpy(buffer + bandIndex * nTypeSize, pSrc, nTypeSize);
+								short value = p1 * *((short*)(value1 + offset)) + p2 * *((short*)(value2 + offset))
+									+ p3 * *((short*)(value3 + offset)) + p4 * *((short*)(value4 + offset)) + 0.5;
+								memcpy(buffer + offset, &value, nTypeSize);
 							}
 							break;
 
-							case DataType::DT_UInt32:
+							case DT_UInt32:
 							{
-								unsigned int value = LinearSample<unsigned int>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
-								pSrc = &value;
-								memcpy(buffer + bandIndex * nTypeSize, pSrc, nTypeSize);
+								unsigned int value = p1 * *((unsigned int*)(value1 + offset)) + p2 * *((unsigned int*)(value2 + offset))
+									+ p3 * *((unsigned int*)(value3 + offset)) + p4 * *((unsigned int*)(value4 + offset)) + 0.5;
+								memcpy(buffer + offset, &value, nTypeSize);
 							}
 							break;
 
-							case DataType::DT_Int32:
+							case DT_Int32:
 							{
-								int value = LinearSample<int>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
-								pSrc = &value;
-								memcpy(buffer + bandIndex * nTypeSize, pSrc, nTypeSize);
+								int value = p1 * *((int*)(value1 + offset)) + p2 * *((int*)(value2 + offset))
+									+ p3 * *((int*)(value3 + offset)) + p4 * *((int*)(value4 + offset)) + 0.5;
+								memcpy(buffer + offset, &value, nTypeSize);
 							}
 							break;
 
-							case DataType::DT_Float32:
+							case DT_Float32:
 							{
-								float value = LinearSample<float>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize, false);
-								pSrc = &value;
-								memcpy(buffer + bandIndex * nTypeSize, pSrc, nTypeSize);
+								float value = p1 * *((float*)(value1 + offset)) + p2 * *((float*)(value2 + offset))
+									+ p3 * *((float*)(value3 + offset)) + p4 * *((float*)(value4 + offset)) + 0.5;
+								memcpy(buffer + offset, &value, nTypeSize);
 							}
 							break;
 
-							case DataType::DT_Float64:
+							case DT_Float64:
 							{
-								double value = LinearSample<double>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize, false);
-								pSrc = &value;
-								memcpy(buffer + bandIndex * nTypeSize, pSrc, nTypeSize);
+								double value = p1 * *((double*)(value1 + offset)) + p2 * *((double*)(value2 + offset))
+									+ p3 * *((double*)(value3 + offset)) + p4 * *((double*)(value4 + offset)) + 0.5;
+								memcpy(buffer + offset, &value, nTypeSize);
 							}
 							break;
 
@@ -724,64 +731,75 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 						unsigned char* value3 = (unsigned char*)pSrcData + (nDesWid * nRowPos + nColPos + 1) * nDataPixelBytes;
 						unsigned char* value4 = (unsigned char*)pSrcData + (nDesWid * (nRowPos + 1) + nColPos + 1) * nDataPixelBytes;
 
+						double p1 = (1.0 - u) * (1.0 - v);
+						double p2 = (1.0 - u) * v;
+						double p3 = u * (1.0 - v);
+						double p4 = u * v;
+
 						for (int bandIndex = 0; bandIndex < nBandCount; bandIndex++)
 						{
+							int offset = bandIndex * nTypeSize;
 							switch (ePixelType)
 							{
 							case DT_Byte:
 							{
-								unsigned char value = LinearSample<unsigned char>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
-								pSrc = &value;
+								unsigned char value = p1 * *(value1 + offset) + p2 * v * *(value2 + offset)
+									+ p3 * *(value3 + offset) + p4 * *(value4 + offset) + 0.5;
+								memcpy(pDes + offset, &value, nTypeSize);
 							}
 							break;
 
 							case DT_UInt16:
 							{
-								unsigned short value = LinearSample<unsigned short>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
-								pSrc = &value;
+								unsigned short value = p1 * *((unsigned short*)(value1 + offset)) + p2 * *((unsigned short*)(value2 + offset))
+									+ p3 * *((unsigned short*)(value3 + offset)) + p4 * *((unsigned short*)(value4 + offset)) + 0.5;
+								memcpy(pDes + offset, &value, nTypeSize);
 							}
 							break;
 
 							case DT_Int16:
 							{
-								short value = LinearSample<short>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
-								pSrc = &value;
+								short value = p1 * *((short*)(value1 + offset)) + p2 * *((short*)(value2 + offset))
+									+ p3 * *((short*)(value3 + offset)) + p4 * *((short*)(value4 + offset)) + 0.5;
+								memcpy(pDes + offset, &value, nTypeSize);
 							}
 							break;
 
 							case DT_UInt32:
 							{
-								unsigned int value = LinearSample<unsigned int>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
-								pSrc = &value;
+								unsigned int value = p1 * *((unsigned int*)(value1 + offset)) + p2 * *((unsigned int*)(value2 + offset))
+									+ p3 * *((unsigned int*)(value3 + offset)) + p4 * *((unsigned int*)(value4 + offset)) + 0.5;
+								memcpy(pDes + offset, &value, nTypeSize);
 							}
 							break;
 
 							case DT_Int32:
 							{
-								int value = LinearSample<int>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
-								pSrc = &value;
+								int value = p1 * *((int*)(value1 + offset)) + p2 * *((int*)(value2 + offset))
+									+ p3 * *((int*)(value3 + offset)) + p4 * *((int*)(value4 + offset)) + 0.5;
+								memcpy(pDes + offset, &value, nTypeSize);
 							}
 							break;
 
 							case DT_Float32:
 							{
-								float value = LinearSample<float>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
-								pSrc = &value;
+								float value = p1 * *((float*)(value1 + offset)) + p2 * *((float*)(value2 + offset))
+									+ p3 * *((float*)(value3 + offset)) + p4 * *((float*)(value4 + offset)) + 0.5;
+								memcpy(pDes + offset, &value, nTypeSize);
 							}
 							break;
 
 							case DT_Float64:
 							{
-								double value = LinearSample<double>(u, v, value1 + bandIndex * nTypeSize, value2 + bandIndex * nTypeSize, value3 + bandIndex * nTypeSize, value4 + bandIndex * nTypeSize);
-								pSrc = &value;
+								double value = p1 * *((double*)(value1 + offset)) + p2 * *((double*)(value2 + offset))
+									+ p3 * *((double*)(value3 + offset)) + p4 * *((double*)(value4 + offset)) + 0.5;
+								memcpy(pDes + offset, &value, nTypeSize);
 							}
 							break;
 
 							default:
 								break;
 							}
-
-							memcpy(pDes + bandIndex * nTypeSize, pSrc, nTypeSize);
 						}
 					}
 					else

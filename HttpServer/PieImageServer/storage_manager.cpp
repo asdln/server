@@ -20,8 +20,9 @@ bool StorageManager::AddOrUpdateDataStyle(const std::string& data_style_json, st
 {
 	Format format;
 	//验证data_style_json的格式是否正确
+	std::vector<std::string> exts;
 	std::list<std::pair<std::string, std::string>> data_info;
-	QueryDataInfo(data_style_json, data_info, format);
+	QueryDataInfo(data_style_json, data_info, exts, format);
 
 	if (data_info.empty())
 	{

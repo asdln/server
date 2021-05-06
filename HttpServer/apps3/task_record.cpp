@@ -167,7 +167,37 @@ TaskRecord::TaskRecord(const std::string& region, const std::string& save_bucket
 	, const std::string& aws_access_key_id, int time_limit_sec, int force) : time_limit_sec_(time_limit_sec), force_(force)
 {
 	aws_region_ = Aws::String(region.c_str(), region.size());
-	save_bucket_name_ = Aws::String(save_bucket_name.c_str(), save_bucket_name.size());
+	std::string save_bucket_name_temp = save_bucket_name;
+	
+	//去掉最前面的/和最后面的/	
+	{
+		int pos = save_bucket_name_temp.find('/');
+		if (pos == 0)
+		{
+			save_bucket_name_temp = save_bucket_name_temp.substr(1, save_bucket_name_temp.size() - 1);
+		}
+
+		int rpos = save_bucket_name_temp.rfind('/');
+		if (rpos == save_bucket_name_temp.size() - 1)
+		{
+			save_bucket_name_temp = save_bucket_name_temp.substr(0, save_bucket_name_temp.size() - 1);
+		}
+	}
+
+	int pos = save_bucket_name_temp.find('/');
+	if (pos == std::string::npos)
+	{
+		save_bucket_name_ = Aws::String(save_bucket_name_temp.c_str(), save_bucket_name_temp.size());
+		save_key_name_ = "";
+	}
+	else
+	{
+		std::string save_bucket = save_bucket_name_temp.substr(0, pos);
+		std::string save_key = save_bucket_name_temp.substr(pos + 1, save_bucket_name_temp.size() - pos - 1);
+
+		save_bucket_name_ = Aws::String(save_bucket.c_str(), save_bucket.size());
+		save_key_name_ = Aws::String(save_key.c_str(), save_key.size());
+	}
 
 	aws_access_key_id_ = Aws::String(aws_access_key_id.c_str(), aws_access_key_id.size());
 	aws_secret_access_key_ = Aws::String(aws_secret_access_key.c_str(), aws_secret_access_key.size());
@@ -214,10 +244,10 @@ TaskRecord::~TaskRecord()
 	Aws::Auth::AWSCredentials cred(aws_access_key_id_, aws_secret_access_key_);
 	Aws::S3::S3Client s3_client(cred, config);
 
-	if (AWSS3PutObject(save_bucket_name_, src_key_name_ + ".pyra/info.json"
+	if (AWSS3PutObject(save_bucket_name_, save_key_name_ + ".pyra/info.json"
 		, s3_client, buffer))
 	{
-		std::cout << "json saved:  " << src_key_name_ + ".pyra/info.json" << std::endl;
+		std::cout << "json saved:  " << save_key_name_ + ".pyra/info.json" << std::endl;
 	}
 
 #endif
@@ -261,7 +291,13 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 
 	src_bucket_name_ = Aws::String(temp_str.c_str(), pos);
 
-	src_key_name_ = Aws::String(temp_str.c_str() + pos + 1, temp_str.size() - pos - 1);
+	size_t rpos = temp_str.rfind('/');
+	if (rpos != std::string::npos)
+	{
+		std::string file_name = temp_str.substr(rpos + 1, temp_str.size() - rpos - 1);
+		save_key_name_ += '/';
+		save_key_name_ += Aws::String(file_name.c_str(), file_name.size());
+	}
 
 #endif // USE_FILE
 
@@ -402,7 +438,7 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 	Aws::S3::S3Client s3_client(cred, config);
 
 	std::vector<unsigned char> buffer;
-	if (force_ == 0 && AWSS3GetObject(save_bucket_name_, src_key_name_ + ".pyra/info.json"
+	if (force_ == 0 && AWSS3GetObject(save_bucket_name_, save_key_name_ + ".pyra/info.json"
 		, s3_client, buffer))
 	{
 		std::string string_json(buffer.begin(), buffer.end());
@@ -841,7 +877,7 @@ void DoTask(TaskRecord* task_record, const Aws::S3::S3Client& s3_client)
 	int band_count = task_record->GetBandCount();
 	GDALDataType data_type = task_record->GetDataType();
 	std::string path = task_record->GetPath();
-	Aws::String src_obj_key = task_record->GetSrcKey();
+	Aws::String save_obj_key = task_record->GetSaveKey();
 	Aws::String src_bucket = task_record->GetSrcBucket();
 	Aws::String save_bucket = task_record->GetSaveBucket();
 
@@ -963,7 +999,7 @@ void DoTask(TaskRecord* task_record, const Aws::S3::S3Client& s3_client)
 								}
 							}
 
-							SaveTileData(path, save_bucket, src_obj_key, s3_client, tile_record->col_, tile_record->row_, tile_record->z_, buffer);
+							SaveTileData(path, save_bucket, save_obj_key, s3_client, tile_record->col_, tile_record->row_, tile_record->z_, buffer);
 							tile_record->finished_ = true;
 
 							//标记上层瓦片
@@ -994,27 +1030,27 @@ void DoTask(TaskRecord* task_record, const Aws::S3::S3Client& s3_client)
 						
 						if (arrange & 0x08)
 						{
-							LoadTileData(path, src_bucket, src_obj_key, s3_client, tile_record->col_ * 2, tile_record->row_ * 2, tile_record->z_ - 1, buffer1);
+							LoadTileData(path, src_bucket, save_obj_key, s3_client, tile_record->col_ * 2, tile_record->row_ * 2, tile_record->z_ - 1, buffer1);
 						}
 
 						if (arrange & 0x04)
 						{
-							LoadTileData(path, src_bucket, src_obj_key, s3_client, tile_record->col_ * 2 + 1, tile_record->row_ * 2, tile_record->z_ - 1, buffer2);
+							LoadTileData(path, src_bucket, save_obj_key, s3_client, tile_record->col_ * 2 + 1, tile_record->row_ * 2, tile_record->z_ - 1, buffer2);
 						}
 
 						if (arrange & 0x02)
 						{
-							LoadTileData(path, src_bucket, src_obj_key, s3_client, tile_record->col_ * 2, tile_record->row_ * 2 + 1, tile_record->z_ - 1, buffer3);
+							LoadTileData(path, src_bucket, save_obj_key, s3_client, tile_record->col_ * 2, tile_record->row_ * 2 + 1, tile_record->z_ - 1, buffer3);
 						}
 
 						if (arrange & 0x01)
 						{
-							LoadTileData(path, src_bucket, src_obj_key, s3_client, tile_record->col_ * 2 + 1, tile_record->row_ * 2 + 1, tile_record->z_ - 1, buffer4);
+							LoadTileData(path, src_bucket, save_obj_key, s3_client, tile_record->col_ * 2 + 1, tile_record->row_ * 2 + 1, tile_record->z_ - 1, buffer4);
 						}
 
 						//ResampleNearest(buffer1.data(), buffer2.data(), buffer3.data(), buffer4.data(), buffer.data(), pixel_space);
 						ResampleLinear(buffer1.data(), buffer2.data(), buffer3.data(), buffer4.data(), buffer.data(), band_count, type_bytes, data_type);
-						SaveTileData(path, save_bucket, src_obj_key, s3_client, tile_record->col_, tile_record->row_, tile_record->z_, buffer);
+						SaveTileData(path, save_bucket, save_obj_key, s3_client, tile_record->col_, tile_record->row_, tile_record->z_, buffer);
 
 						tile_record->finished_ = true;
 

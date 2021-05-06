@@ -150,7 +150,8 @@ bool GetMd5(std::string& str_md5, const char* const buffer, size_t buffer_size);
 
 void CreateUID(std::string& uid);
 
-void QueryDataInfo(const std::string& request_body, std::list<std::pair<std::string, std::string>>& data_info, Format& format);
+void QueryDataInfo(const std::string& request_body, std::list<std::pair<std::string, std::string>>& data_info
+	, std::vector<std::string>& exts, Format& format);
 
 void GetLayers(const std::string& request_body, std::vector<std::string>& paths);
 

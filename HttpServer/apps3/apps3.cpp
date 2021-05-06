@@ -15,6 +15,9 @@
 
 using namespace std;
 
+//  "/vsis3/pie-engine-test/NN/DEM-Gloable32.tif"
+// save_bucket_name = "pie-engine-test/NN"
+
 int make_tile(const std::string& path, int dataset_count, int thread_count
     , const std::string& aws_region, const std::string& aws_secret_access_key
     , const std::string& aws_access_key_id, const std::string& aws_s3_endpoint
@@ -159,9 +162,9 @@ int main(int argc, char* argv[])
 
 	if (0)
 	{
-		return make_tile("d:/linux_share/DEM-Gloable32.tif", 4, 4, "cn-northwest-1"
+		return make_tile("/vsis3/pie-engine-test/NN/mosaic.tif", 4, 4, "cn-northwest-1"
 			, "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ"
-			, "s3.cn-northwest-1.amazonaws.com.cn", "pie-engine-test", 15, 0);
+			, "s3.cn-northwest-1.amazonaws.com.cn", "/pie-engine-test/NN/YY/TT/", 15, 0);
 	}
     
 	if(0)
