@@ -12,7 +12,10 @@
 #include "task_record.h"
 #include <thread>
 #include <fstream>
+#include <aws/lambda-runtime/runtime.h>
+#include "CJsonObject.hpp"
 
+using namespace aws::lambda_runtime;
 using namespace std;
 
 //  "/vsis3/pie-engine-test/NN/DEM-Gloable32.tif"
@@ -100,9 +103,68 @@ int make_tile(const std::string& path, int dataset_count, int thread_count
     return code;
 }
 
+static invocation_response my_handler(invocation_request const& req)
+{
+	std::string json = req.payload;
+	neb::CJsonObject oJson(json);
+
+	std::string path;
+	oJson.Get("path", path);
+
+	int dataset_count = 4;
+	oJson.Get("dataset_count", dataset_count);
+
+	int thread_count = 4;
+	oJson.Get("thread_count", thread_count);
+
+	std::string aws_region;
+	oJson.Get("aws_region", aws_region);
+
+	std::string aws_secret_access_key;
+	oJson.Get("aws_secret_access_key", aws_secret_access_key);
+
+	std::string aws_access_key_id;
+	oJson.Get("aws_access_key_id", aws_access_key_id);
+
+	std::string aws_s3_endpoint;
+	oJson.Get("aws_s3_endpoint", aws_s3_endpoint);
+
+	std::string save_bucket_name;
+	oJson.Get("save_bucket_name", save_bucket_name);
+
+	int time_limit_sec = 780;
+	oJson.Get("time_limit_sec", time_limit_sec);
+
+	int force = 0;
+	oJson.Get("force", force);
+
+	int res = make_tile(path, dataset_count, thread_count, aws_region
+		, aws_secret_access_key, aws_access_key_id
+		, aws_s3_endpoint, save_bucket_name, time_limit_sec, force);
+
+
+	if (res == -1)
+	{
+		return invocation_response::failure("{\"code\":-1, \"info\":\"function make_tile return -1\"}"/*error_message*/,
+			"application/json" /*error_type*/);
+	}
+	else
+	{
+		std::string code = std::to_string(res);
+		std::string res_json = "{\"code\":" + code + ",\"info\":\"ok\"}";
+
+		return invocation_response::success(res_json /*payload*/,
+			"application/json" /*MIME type*/);
+	}
+}
+
+
 int main(int argc, char* argv[])
 {
-    if (1)
+	run_handler(my_handler);
+	return 0;
+
+    if (0)
     {
 		if (argc != 11)
 		{
