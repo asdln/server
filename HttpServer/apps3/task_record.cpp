@@ -20,6 +20,11 @@
 #include <aws/s3/model/DeleteObjectRequest.h>
 #include <aws/core/utils/stream/PreallocatedStreamBuf.h>
 #include <aws/core/auth/AWSCredentials.h>
+#include <aws/core/auth/AWSCredentialsProvider.h>
+
+#define USE_LAMBDA
+
+char const TAG[] = "LAMBDA_ALLOC";
 
 
 bool AWSS3GetObject(const Aws::String& fromBucket , const Aws::String& objectKey,
@@ -95,10 +100,23 @@ bool AWSS3DeleteObject(const Aws::String& objectKey,
 	if (!region.empty())
 	{
 		config.region = region;
+
+#ifdef USE_LAMBDA
+		config.caFile = "/etc/pki/tls/certs/ca-bundle.crt";
+#endif
 	}
+
+#ifdef USE_LAMBDA
+
+	auto credentialsProvider = Aws::MakeShared<Aws::Auth::EnvironmentAWSCredentialsProvider>(TAG);
+	Aws::S3::S3Client s3_client(credentialsProvider, config);
+
+#else
 
 	Aws::Auth::AWSCredentials cred(aws_access_key_id, aws_secret_access_key);
 	Aws::S3::S3Client s3_client(cred, config);
+
+#endif
 
 	Aws::S3::Model::DeleteObjectRequest request;
 
@@ -131,10 +149,23 @@ bool AWSS3PutObject_File(const Aws::String& bucketName, const Aws::String& objec
 	if (!region.empty())
 	{
 		config.region = region;
+
+#ifdef USE_LAMBDA
+		config.caFile = "/etc/pki/tls/certs/ca-bundle.crt";
+#endif
 	}
+
+#ifdef USE_LAMBDA
+
+	auto credentialsProvider = Aws::MakeShared<Aws::Auth::EnvironmentAWSCredentialsProvider>(TAG);
+	Aws::S3::S3Client s3_client(credentialsProvider, config);
+
+#else
 
 	Aws::Auth::AWSCredentials cred(aws_access_key_id, aws_secret_access_key);
 	Aws::S3::S3Client s3_client(cred, config);
+
+#endif
 
 	Aws::S3::Model::PutObjectRequest request;
 	request.SetBucket(bucketName);
@@ -239,10 +270,23 @@ TaskRecord::~TaskRecord()
 	if (!aws_region_.empty())
 	{
 		config.region = aws_region_;
+
+#ifdef USE_LAMBDA
+		config.caFile = "/etc/pki/tls/certs/ca-bundle.crt";
+#endif
 	}
 
-	Aws::Auth::AWSCredentials cred(aws_access_key_id_, aws_secret_access_key_);
+#ifdef USE_LAMBDA
+
+	auto credentialsProvider = Aws::MakeShared<Aws::Auth::EnvironmentAWSCredentialsProvider>(TAG);
+	Aws::S3::S3Client s3_client(credentialsProvider, config);
+
+#else
+
+	Aws::Auth::AWSCredentials cred(aws_access_key_id, aws_secret_access_key);
 	Aws::S3::S3Client s3_client(cred, config);
+
+#endif
 
 	if (AWSS3PutObject(save_bucket_name_, save_key_name_ + ".pyra/info.json"
 		, s3_client, buffer))
@@ -432,10 +476,23 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 	if (!aws_region_.empty())
 	{
 		config.region = aws_region_;
+
+#ifdef USE_LAMBDA
+		config.caFile = "/etc/pki/tls/certs/ca-bundle.crt";
+#endif
 	}
 
-	Aws::Auth::AWSCredentials cred(aws_access_key_id_, aws_secret_access_key_);
+#ifdef USE_LAMBDA
+
+	auto credentialsProvider = Aws::MakeShared<Aws::Auth::EnvironmentAWSCredentialsProvider>(TAG);
+	Aws::S3::S3Client s3_client(credentialsProvider, config);
+
+#else
+
+	Aws::Auth::AWSCredentials cred(aws_access_key_id, aws_secret_access_key);
 	Aws::S3::S3Client s3_client(cred, config);
+
+#endif
 
 	std::vector<unsigned char> buffer;
 	if (force_ == 0 && AWSS3GetObject(save_bucket_name_, save_key_name_ + ".pyra/info.json"
@@ -1084,10 +1141,23 @@ void ProcessLoop(TaskRecord* task_record, int& status)
 	if (!region.empty())
 	{
 		config.region = region;
+
+#ifdef USE_LAMBDA
+		config.caFile = "/etc/pki/tls/certs/ca-bundle.crt";
+#endif
 	}
+
+#ifdef USE_LAMBDA
+
+	auto credentialsProvider = Aws::MakeShared<Aws::Auth::EnvironmentAWSCredentialsProvider>(TAG);
+	Aws::S3::S3Client s3_client(credentialsProvider, config);
+
+#else
 
 	Aws::Auth::AWSCredentials cred(aws_access_key_id, aws_secret_access_key);
 	Aws::S3::S3Client s3_client(cred, config);
+
+#endif
 
 	long long start_sec = task_record->GetStartSec();
 	int time_limit_sec = task_record->GetTimeLimitSec();

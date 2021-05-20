@@ -34,8 +34,13 @@ int make_tile(const std::string& path, int dataset_count, int thread_count
 	if (path.rfind("/vsis3/", 0) == 0) 
     {
 		CPLSetConfigOption("AWS_REGION", aws_region.c_str());
-		CPLSetConfigOption("AWS_SECRET_ACCESS_KEY", aws_secret_access_key.c_str());
-		CPLSetConfigOption("AWS_ACCESS_KEY_ID", aws_access_key_id.c_str());
+
+		if (aws_secret_access_key.empty() == false && aws_access_key_id.empty() == false)
+		{
+			CPLSetConfigOption("AWS_SECRET_ACCESS_KEY", aws_secret_access_key.c_str());
+			CPLSetConfigOption("AWS_ACCESS_KEY_ID", aws_access_key_id.c_str());
+		}
+
 		CPLSetConfigOption("AWS_S3_ENDPOINT", aws_s3_endpoint.c_str());
 	}
     else
@@ -120,11 +125,11 @@ static invocation_response my_handler(invocation_request const& req)
 	std::string aws_region;
 	oJson.Get("aws_region", aws_region);
 
-	std::string aws_secret_access_key;
-	oJson.Get("aws_secret_access_key", aws_secret_access_key);
+	std::string aws_secret_access_key = "";
+	//oJson.Get("aws_secret_access_key", aws_secret_access_key);
 
-	std::string aws_access_key_id;
-	oJson.Get("aws_access_key_id", aws_access_key_id);
+	std::string aws_access_key_id = "";
+	//oJson.Get("aws_access_key_id", aws_access_key_id);
 
 	std::string aws_s3_endpoint;
 	oJson.Get("aws_s3_endpoint", aws_s3_endpoint);
