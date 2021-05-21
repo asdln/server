@@ -177,6 +177,9 @@
     <ClCompile Include="s3_dataset.cpp">
       <Filter>源文件\dataset</Filter>
     </ClCompile>
+    <ClCompile Include="memory_pool.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="utility.h">
@@ -304,6 +307,9 @@
     </ClInclude>
     <ClInclude Include="s3_dataset.h">
       <Filter>头文件\dataset</Filter>
+    </ClInclude>
+    <ClInclude Include="memory_pool.h">
+      <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

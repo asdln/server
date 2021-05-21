@@ -33,6 +33,7 @@ SET(SRC_LIST main.cpp
     histogram_equalize_stretch.cpp
     jpg_buffer.cpp
     listener.cpp
+    memory_pool.cpp
     min_max_stretch.cpp
     percent_min_max_stretch.cpp
     png_buffer.cpp

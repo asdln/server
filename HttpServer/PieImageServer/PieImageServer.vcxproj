@@ -168,6 +168,7 @@
     <ClCompile Include="image_group_manager.cpp" />
     <ClCompile Include="jpg_buffer.cpp" />
     <ClCompile Include="listener.cpp" />
+    <ClCompile Include="memory_pool.cpp" />
     <ClCompile Include="percent_min_max_stretch.cpp" />
     <ClCompile Include="png_buffer.cpp" />
     <ClCompile Include="png_compress.cpp" />
@@ -213,6 +214,7 @@
     <ClInclude Include="image_group_manager.h" />
     <ClInclude Include="jpg_buffer.h" />
     <ClInclude Include="listener.h" />
+    <ClInclude Include="memory_pool.h" />
     <ClInclude Include="percent_min_max_stretch.h" />
     <ClInclude Include="png_buffer.h" />
     <ClInclude Include="png_compress.h" />

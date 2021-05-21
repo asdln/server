@@ -18,7 +18,7 @@ Aws::String g_aws_secret_access_key;
 Aws::String g_aws_access_key_id;
 
 bool AWSS3GetObject(const Aws::S3::S3Client& s3_client, const Aws::String& fromBucket, const Aws::String& objectKey
-	, char** buffer, size_t size)
+	, char** buffer, MemoryPool* pool)
 {
 	Aws::S3::Model::GetObjectRequest object_request;
 	object_request.SetBucket(fromBucket);
@@ -32,7 +32,8 @@ bool AWSS3GetObject(const Aws::S3::S3Client& s3_client, const Aws::String& fromB
 		auto& retrieved_file = get_object_outcome.GetResultWithOwnership().GetBody();
 		size_t content_bytes = get_object_outcome.GetResultWithOwnership().GetContentLength();
 
-		*buffer = new char[content_bytes];
+		//*buffer = new char[content_bytes];
+		*buffer = (char*)pool->malloc(content_bytes);
 
 		retrieved_file.read(*buffer, content_bytes);
 		return true;
@@ -47,7 +48,9 @@ bool AWSS3GetObject(const Aws::S3::S3Client& s3_client, const Aws::String& fromB
 	}
 }
 
-bool LoadTileData(const Aws::S3::S3Client& s3_client, const std::string& path, const Aws::String& src_bucket_name, const Aws::String& src_key_name, size_t x, size_t y, size_t z, char** buffer, size_t size)
+bool LoadTileData(const Aws::S3::S3Client& s3_client, const std::string& path
+	, const Aws::String& src_bucket_name, const Aws::String& src_key_name
+	, size_t x, size_t y, size_t z, char** buffer, MemoryPool* pool)
 {
 	std::string str_prefix = ".pyra/" + std::to_string(x) + "_" + std::to_string(y) + "_" + std::to_string(z) + ".bin";
 	std::string new_path = path + str_prefix;
@@ -87,7 +90,7 @@ bool LoadTileData(const Aws::S3::S3Client& s3_client, const std::string& path, c
 	Aws::String key_name = src_key_name;
 	key_name += str_prefix;
 
-	return AWSS3GetObject(s3_client, src_bucket_name, key_name, buffer, size);
+	return AWSS3GetObject(s3_client, src_bucket_name, key_name, buffer, pool);
 
 #endif // USE_FILE
 
@@ -263,16 +266,14 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 		{
 			//std::vector<unsigned char> buffer;
 			unsigned char* buffer = nullptr;
-			size_t size = 0;
 
 			//如果不成功，则读原始数据
-			bool res = LoadTileData(s3_client_, file_path_, s3_bucket_name_, s3_key_name_, m, n, level, (char**)&buffer, size);
+			bool res = LoadTileData(s3_client_, file_path_, s3_bucket_name_, s3_key_name_, m, n, level, (char**)&buffer, mem_pool_);
 			if (false == res)
 			{
 				for (auto p : buffers)
 				{
-					if (p != nullptr)
-						delete[] p;
+					mem_pool_->free(p);
 				}
 
 				LOG(ERROR) << "error: can not load s3 tile data, use origin tiff instead";
@@ -424,8 +425,9 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 
 	for (auto p : buffers)
 	{
-		if (p != nullptr)
-			delete[] p;
+		mem_pool_->free(p);
+// 		if (p != nullptr)
+// 			delete[] p;
 	}
 
 	return true;

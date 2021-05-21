@@ -6,6 +6,7 @@
 
 TiffDataset::~TiffDataset()
 {
+	delete mem_pool_;
 	Close();
 }
 

@@ -42,6 +42,8 @@ public:
 
     virtual int GetEPSG() override;
 
+    virtual MemoryPool* GetMemoryPool() override{ return mem_pool_;}
+
     bool IsUseRPC() { return m_bUsePRC; }
 
     ~TiffDataset();
@@ -52,6 +54,8 @@ protected:
 
 
 protected:
+
+    MemoryPool* mem_pool_ = new MemoryPool;
 
     GDALDataset* poDataset_ = nullptr;
 

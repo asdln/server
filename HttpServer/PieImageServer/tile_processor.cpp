@@ -12,19 +12,6 @@
 #include "resource_pool.h"
 #include "style.h"
 
-template<typename T>
-T LinearSample(double u, double v, void* value1, void* value2, void* value3, void* value4, bool bAdjust = true)
-{
-	double value = (1.0 - u) * (1 - v) * *((T*)value1) + (1.0 - u) * v * *((T*)value2) + u * (1.0 - v) * *((T*)value3) + u * v * *((T*)value4);
-
-	if (bAdjust)
-		value += 0.5;
-
-	T tvalue = value;
-
-	return tvalue;
-}
-
 bool IsIntersect(const Envelop& ptrMapEnv, const Envelop& ptrLayerEnv, bool bTag = 1)
 {
 	return false;
@@ -46,6 +33,7 @@ bool TileProcessor::ProcessPerPixel(Dataset* ptrDataset
 {
 	Envelop ptrEnvDataset = ptrDataset->GetExtent();
 	OGRSpatialReference* ptrDSSRef = ptrDataset->GetSpatialReference();
+	MemoryPool* pool = ptrDataset->GetMemoryPool();
 
 	double dScreenResolutionX = ptrEnvelope.GetWidth() / (double)nWidth;
 	double dScreenResolutionY = ptrEnvelope.GetHeight() / (double)nHeight;
@@ -110,7 +98,8 @@ bool TileProcessor::ProcessPerPixel(Dataset* ptrDataset
 						double u = dx1 - nx1;
 						double v = dy1 - ny1;
 
-						unsigned char* pLinearBuffer = new unsigned char[4 * nDataPixelBytes];
+						//unsigned char* pLinearBuffer = new unsigned char[4 * nDataPixelBytes];
+						unsigned char* pLinearBuffer = pool->malloc(4 * nDataPixelBytes);
 						ptrDataset->Read(nx1, ny1, 2, 2, pLinearBuffer, 2, 2, eTpye, nBandCount, bandMap);
 
 						unsigned char* value1 = pLinearBuffer;
@@ -190,8 +179,9 @@ bool TileProcessor::ProcessPerPixel(Dataset* ptrDataset
 							}
 						}
 
-						delete[] pLinearBuffer;
-						pLinearBuffer = nullptr;
+						pool->free(pLinearBuffer);
+// 						delete[] pLinearBuffer;
+// 						pLinearBuffer = nullptr;
 					}
 					else
 					{
@@ -277,7 +267,8 @@ bool TileProcessor::SimpleProject(Dataset* pDataset, int nBandCount, int bandMap
 		memset(pMaskData, 0, (size_t)width * height);
 
 		int nBufferSize = nBufferWidth * nBufferHeight * GetDataTypeBytes(DataType) * nBandCount;
-		char* pTempBuffer = new char[nBufferSize];
+		//char* pTempBuffer = new char[nBufferSize];
+		char* pTempBuffer = (char*)(pDataset->GetMemoryPool()->malloc(nBufferSize));
 		memset(pTempBuffer, 255, nBufferSize);
 
 		pDataset->Read(dAdjustLeft, dAdjustTop, srcWidth, srcHeight, pTempBuffer, dBufferWid, dBufferHei, DataType, nBandCount, bandMap, 3, 3 * nBufferWidth, 1);
@@ -313,7 +304,8 @@ bool TileProcessor::SimpleProject(Dataset* pDataset, int nBandCount, int bandMap
 		}
 
 		//memcpy(pData, pTempBuffer, width * height * GetPixelDataTypeSize(pixelType));
-		delete[] pTempBuffer;
+		//delete[] pTempBuffer;
+		pDataset->GetMemoryPool()->free((unsigned char*)pTempBuffer);
 	}
 	else
 	{
@@ -563,8 +555,9 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 	}
 
 	//SysDataSource::PixelBufferPtr ptrPixelBuffer;
-
-	void* pSrcData = new char[GetDataTypeBytes(ePixelType) * nDesWid * nDesHei * nBandCount];
+	MemoryPool* pool = pDataset->GetMemoryPool();
+	void* pSrcData = pool->malloc(GetDataTypeBytes(ePixelType) * nDesWid * nDesHei * nBandCount);
+	//void* pSrcData = new char[GetDataTypeBytes(ePixelType) * nDesWid * nDesHei * nBandCount];
 
 	//QString pszItem = pDataset->GetMetadataItem("INTERLEAVE", "IMAGE_STRUCTURE");
 	//if (pszItem == "BAND" || pszItem == "LINE") // 如果是bsq或者bil格式，则按波段分别读取
@@ -614,8 +607,11 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 	{
 		CoordinateTransformation coordTrans(ptrVisSRef, ptrDSSRef);
 
-		pdx = new double[nWidth * nHeight];
-		pdy = new double[nWidth * nHeight];
+		//pdx = new double[nWidth * nHeight];
+		//pdy = new double[nWidth * nHeight];
+
+		pdx = (double*)(pool->malloc(nWidth * nHeight * sizeof(double)));
+		pdy = (double*)(pool->malloc(nWidth * nHeight * sizeof(double)));
 
 		dy = envelope.GetYMax() - dbHalfCellY;
 		double dXminTemp = envelope.GetXMin();
@@ -635,10 +631,14 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 
 		if (!coordTrans.Transform(nWidth * nHeight, pdx, pdy, 0))
 		{
-			delete[] pdx;
-			delete[] pdy;
+// 			delete[] pdx;
+// 			delete[] pdy;
 
-			delete[] (char*)pSrcData;
+			pool->free((unsigned char*)pdx);
+			pool->free((unsigned char*)pdy);
+
+			//delete[] (char*)pSrcData;
+			pool->free((unsigned char*)pSrcData);
 			return false;
 		}
 	}
@@ -709,12 +709,14 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 					int nImagePosX = dImagePosX;
 					int nImagePosY = dImagePosY;
 
-					unsigned char* buffer = new unsigned char[nDataPixelBytes];
+					//unsigned char* buffer = new unsigned char[nDataPixelBytes];
+					unsigned char* buffer = pool->malloc(nDataPixelBytes);
 					pDataset->Read(nImagePosX, nImagePosY, 1, 1, buffer, 1, 1, ePixelType, nBandCount, bandMap);
 
 					unsigned char* pDes = pData + (nWidth * RowIndex + ColIndex) * nDataPixelBytes;
 					memcpy(pDes, buffer, nDataPixelBytes);
-					delete[] buffer;
+					//delete[] buffer;
+					pool->free(buffer);
 				}
 				else
 				{
@@ -824,11 +826,15 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 
 	if (bDynPrjTrans)
 	{
-		delete[] pdx;
-		delete[] pdy;
+// 		delete[] pdx;
+// 		delete[] pdy;
+
+		pool->free((unsigned char*)pdx);
+		pool->free((unsigned char*)pdy);
 	}
 
-	delete[] (char*)pSrcData;
+	//delete[] (char*)pSrcData;
+	pool->free((unsigned char*)pSrcData);
 	return true;
 }
 
@@ -838,6 +844,7 @@ BufferPtr TileProcessor::GetCombinedData(const std::list<std::pair<DatasetPtr, S
 	if (datasets.empty())
 		return nullptr;
 
+	MemoryPool* pool_final = nullptr;
 	unsigned char* render_buffer_final = nullptr;
 	unsigned char* mask_buffer_final = nullptr;
 
@@ -879,6 +886,8 @@ BufferPtr TileProcessor::GetCombinedData(const std::list<std::pair<DatasetPtr, S
 		{
 			render_buffer_final = render_buffer;
 			mask_buffer_final = mask_buffer;
+
+			pool_final = dataset->GetMemoryPool();
 		}
 		else
 		{
@@ -899,10 +908,14 @@ BufferPtr TileProcessor::GetCombinedData(const std::list<std::pair<DatasetPtr, S
 			}
 
 			if (render_buffer)
-				delete[] render_buffer;
+			{
+				dataset->GetMemoryPool()->free(render_buffer);
+			}
 
 			if (mask_buffer)
-				delete[] mask_buffer;
+			{
+				dataset->GetMemoryPool()->free(mask_buffer);
+			}
 		}
 	}
 
@@ -949,10 +962,14 @@ BufferPtr TileProcessor::GetCombinedData(const std::list<std::pair<DatasetPtr, S
 	//}
 
 	if (render_buffer_final)
-		delete[] render_buffer_final;
+	{
+		pool_final->free(render_buffer_final);
+	}
 
 	if (mask_buffer_final)
-		delete[] mask_buffer_final;
+	{
+		pool_final->free(mask_buffer_final);
+	}
 
 	return buffer;
 }
@@ -995,12 +1012,14 @@ bool TileProcessor::GetTileData(Dataset* dataset, Style* style, const Envelop& e
 	bool bRes = true;
 	const size_t nSize = (size_t)tile_width * tile_height * render_color_count * pixel_bytes;
 
-	*buffer_out = new unsigned char[nSize];
+	MemoryPool* pool = dataset->GetMemoryPool();
+
+	*buffer_out = pool->malloc(nSize);;
 	unsigned char* buff = *buffer_out;
 	unsigned char* mask_buffer = nullptr;
 	memset(buff, 255, nSize);
 
-	*mask_buff = new unsigned char[(size_t)tile_width * tile_height];
+	*mask_buff = pool->malloc((size_t)tile_width * tile_height);
 	mask_buffer = *mask_buff;
 	memset(mask_buffer, 255, (size_t)tile_width * tile_height);
 

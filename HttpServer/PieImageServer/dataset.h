@@ -3,6 +3,7 @@
 #include <memory>
 #include "utility.h"
 #include "histogram.h"
+#include "memory_pool.h"
 
 class OGRSpatialReference;
 
@@ -42,6 +43,8 @@ public:
 	virtual const std::string& file_path() = 0;
 
 	virtual int GetEPSG() = 0;
+
+	virtual MemoryPool* GetMemoryPool() = 0;
 
 	virtual ~Dataset() {};
 };

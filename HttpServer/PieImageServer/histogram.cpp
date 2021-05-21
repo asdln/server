@@ -442,7 +442,8 @@ HistogramPtr ComputerHistogram(Dataset* dataset, int band, bool complete_statist
 		no_data_value = external_no_data_value;
 	}
 
-	pData = new char[GetDataTypeBytes(data_type) * (long)lSize];
+	//pData = new char[GetDataTypeBytes(data_type) * (long)lSize];
+	pData = dataset->GetMemoryPool()->malloc(GetDataTypeBytes(data_type) * (long)lSize);
 
 	dataset->Read(0, 0, dReadWidth, dReadHeight, pData, lTempX, lTempY, data_type, 1, &band);
 	CalFitHistogram(pData, data_type, lTempX, lTempY, have_no_data, no_data_value,
@@ -457,7 +458,8 @@ HistogramPtr ComputerHistogram(Dataset* dataset, int band, bool complete_statist
 
 	histogram->SetStep(dStep);
 	histogram->SetClassCount(hist_class);
-	delete[] (char*)pData;
+	//delete[] (char*)pData;
+	dataset->GetMemoryPool()->free((unsigned char*)pData);
 
 	return histogram;
 }
