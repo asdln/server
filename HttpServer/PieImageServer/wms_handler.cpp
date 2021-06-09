@@ -202,11 +202,9 @@ bool WMSHandler::GetDatasets(int epsg_code, const std::string& data_style_json, 
 bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, int tile_height, int epsg_code, const std::string& data_style, const std::string& amazon_md5, std::shared_ptr<HandleResult> result)
 {
 	BufferPtr buffer = nullptr;
-	AmazonS3 amason_s3;
-	std::string md5;
 	if (use_cache && AmazonS3::GetUseS3())
 	{
-		buffer = amason_s3.GetS3Object(amazon_md5);
+		buffer = AmazonS3::GetS3Object(amazon_md5);
 	}
 
 	if (buffer == nullptr)
@@ -218,7 +216,7 @@ bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, in
 		buffer = TileProcessor::GetCombinedData(datasets, env, tile_width, tile_height, format);
 		if (use_cache && AmazonS3::GetUseS3() && buffer != nullptr)
 		{
-			amason_s3.PutS3Object(md5, buffer);
+			AmazonS3::PutS3Object(amazon_md5, buffer);
 		}
 	}
 

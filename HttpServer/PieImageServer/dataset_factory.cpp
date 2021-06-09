@@ -45,8 +45,8 @@ std::shared_ptr<Dataset> DatasetFactory::OpenDataset(const std::string& path)
 			return p;
 		else
 		{
-			return nullptr;
 			LOG(ERROR) << "can not open data:" << path;
+			return nullptr;
 		}
 	}
 	else
@@ -57,8 +57,10 @@ std::shared_ptr<Dataset> DatasetFactory::OpenDataset(const std::string& path)
 			return p;
 		else
 		{
-			return nullptr;
 			LOG(ERROR) << "can not open data:" << path;
+			return nullptr;
 		}
 	}
+
+	return nullptr;
 }

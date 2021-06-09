@@ -184,7 +184,8 @@ Application::Application(int argc, char* argv[])
 
 	program.add_argument("--use_amazon_s3")
 		.help("use amazon s3 as image cache")
-		.default_value(false);
+		.default_value(false)
+		.implicit_value(true);
 
 	program.add_argument("--amazon_s3_bucket_name")
 		.help("amazon s3 bucket name for caching")
@@ -244,6 +245,13 @@ Application::Application(int argc, char* argv[])
 		if (bucket_name.empty())
 		{
 			LOG(ERROR) << "amazon s3 bucket name is empty, use --amazon_s3_bucket_name flag";
+			exit(0);
+		}
+
+		AmazonS3::init();
+
+		if (!AmazonS3::CreateBucket())
+		{
 			exit(0);
 		}
 	}
