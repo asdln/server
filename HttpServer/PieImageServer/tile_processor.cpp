@@ -745,7 +745,7 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 							{
 							case DT_Byte:
 							{
-								unsigned char value = p1 * *(value1 + offset) + p2 * v * *(value2 + offset)
+								unsigned char value = p1 * *(value1 + offset) + p2 * *(value2 + offset)
 									+ p3 * *(value3 + offset) + p4 * *(value4 + offset) + 0.5;
 								memcpy(pDes + offset, &value, nTypeSize);
 							}
