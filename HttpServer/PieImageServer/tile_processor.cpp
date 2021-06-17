@@ -94,6 +94,21 @@ bool TileProcessor::ProcessPerPixel(Dataset* ptrDataset
 
 					if (ePixelType < DataType::DT_CInt16 && m_resampType == RasterResamplingType::BILINEAR_INTERPOLATION && nx1 + 1 < nRasterWid && ny1 + 1 < nRasterHei)
 					{
+						//双线性重采样，需要修正0.5个像素。举例：0.8按照双线性，第二个像素占0.8权重，第一个像素占0.2权重
+						//实际应该是第一个像素占1.0-(0.8-0.5)=0.7,第二个像素占0.3
+
+						dx1 -= 0.5;
+						dy1 -= 0.5;
+
+						if (dx1 < 0.0)
+							dx1 = 0.0;
+
+						if (dy1 < 0.0)
+							dy1 = 0.0;
+
+						nx1 = dx1;
+						ny1 = dy1;
+
 						void* pSrc = nullptr;
 						double u = dx1 - nx1;
 						double v = dy1 - ny1;
@@ -725,6 +740,21 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 
 					if (ePixelType < DT_CInt16 && resampType == BILINEAR_INTERPOLATION && nColPos + 1 < nDesWid && nRowPos + 1 < nDesHei)
 					{
+						//双线性重采样，需要修正0.5个像素。举例：0.8按照双线性，第二个像素占0.8权重，第一个像素占0.2权重
+						//实际应该是第一个像素占1.0-(0.8-0.5)=0.7,第二个像素占0.3
+
+						dColPos -= 0.5;
+						dRowPos -= 0.5;
+
+						if (dColPos < 0.0)
+							dColPos = 0.0;
+
+						if (dRowPos < 0.0)
+							dRowPos = 0.0;
+
+						nColPos = dColPos;
+						nRowPos = dRowPos;
+
 						double u = dColPos - nColPos;
 						double v = dRowPos - nRowPos;
 
