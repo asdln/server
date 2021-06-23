@@ -68,6 +68,10 @@ bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, con
 		{
 			return GetLayInfo(request_body, result);
 		}
+		else if (request.compare("GetEnvelope") == 0)
+		{
+			return GetEnvlope(request_body, result);
+		}
 
 		return false;
 	}

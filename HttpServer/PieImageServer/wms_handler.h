@@ -18,6 +18,9 @@ public:
 
 	bool GetLayInfo(const std::string& request_body, std::shared_ptr<HandleResult> result);
 
+	//·µ»Ø¾­Î³¶È·¶Î§
+	bool GetEnvlope(const std::string& request_body, std::shared_ptr<HandleResult> result);
+
 	//{"user":"admin", "group":"group1", "images":["c:/1.tif", "c:/2.tif", "c:/3.tif"]}
 	bool AddImages(const std::string& request_body, std::shared_ptr<HandleResult> result);
 

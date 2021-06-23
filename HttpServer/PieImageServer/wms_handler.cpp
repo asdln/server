@@ -5,6 +5,7 @@
 #include "storage_manager.h"
 #include "image_group_manager.h"
 #include "amazon_s3.h"
+#include "coordinate_transformation.h"
 
 bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
@@ -38,6 +39,10 @@ bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, cons
 		else if (request.compare("GetLayInfo") == 0)
 		{
 			return GetLayInfo(request_body, result);
+		}
+		else if (request.compare("GetEnvelope") == 0)
+		{
+			return GetEnvlope(request_body, result);
 		}
 	}
 
@@ -348,6 +353,62 @@ bool WMSHandler::GetLayInfo(const std::string& request_body, std::shared_ptr<Han
 	auto string_body = CreateStringResponse(http::status::ok, result->version(), result->keep_alive(), json);
 	result->set_string_body(string_body);
 	
+	return true;
+}
+
+bool WMSHandler::GetEnvlope(const std::string& request_body, std::shared_ptr<HandleResult> result)
+{
+	std::vector<std::string> layers;
+	GetLayers(request_body, layers);
+
+	if (layers.empty())
+		return false;
+
+	std::vector<std::pair<Envelop, int>> envs;
+	for (auto& path : layers)
+	{
+		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(path));
+		if (tiffDataset != nullptr)
+		{
+			int epsg = tiffDataset->GetEPSG();
+			if (epsg != 4326)
+			{
+				Envelop dst;
+				const Envelop env = tiffDataset->GetExtent();
+
+				OGRSpatialReference* ptrDSSRef = ResourcePool::GetInstance()->GetSpatialReference(4326);
+				CoordinateTransformation transformation2(tiffDataset->GetSpatialReference(), ptrDSSRef);
+				bool res = transformation2.Transform(env, dst);
+				if (res)
+				{
+					envs.emplace_back(std::make_pair(dst, 4326));
+				}
+				else
+				{
+					Envelop env;
+					env.PutCoords(0, 0, 0, 0);
+					envs.emplace_back(std::make_pair(env, -1));
+				}
+			}
+			else
+			{
+				envs.emplace_back(std::make_pair(tiffDataset->GetExtent(), tiffDataset->GetEPSG()));
+			}
+		}
+		else
+		{
+			Envelop env;
+			env.PutCoords(0, 0, 0, 0);
+			envs.emplace_back(std::make_pair(env, -1));
+		}
+	}
+
+	std::string json;
+	GetGeojson(envs, json);
+
+	auto string_body = CreateStringResponse(http::status::ok, result->version(), result->keep_alive(), json);
+	result->set_string_body(string_body);
+
 	return true;
 }
 
