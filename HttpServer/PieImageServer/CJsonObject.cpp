@@ -439,7 +439,7 @@ bool CJsonObject::Parse(const std::string& strJson)
     m_pKeyTravers = m_pJsonData;
     if (m_pJsonData == NULL)
     {
-        m_strErrMsg = std::string("prase json string error at ") + cJSON_GetErrorPtr();
+        //m_strErrMsg = std::string("prase json string error at ") + cJSON_GetErrorPtr();
         return(false);
     }
     return(true);
@@ -907,7 +907,7 @@ bool CJsonObject::Add(const std::string& strKey, const CJsonObject& oJsonObject)
     cJSON* pJsonStruct = cJSON_Parse(oJsonObject.ToString().c_str());
     if (pJsonStruct == NULL)
     {
-        m_strErrMsg = std::string("prase json string error at ") + cJSON_GetErrorPtr();
+        //m_strErrMsg = std::string("prase json string error at ") + cJSON_GetErrorPtr();
         return(false);
     }
     cJSON_AddItemToObject(pFocusData, strKey.c_str(), pJsonStruct);
@@ -1412,7 +1412,7 @@ bool CJsonObject::Replace(const std::string& strKey, const CJsonObject& oJsonObj
     cJSON* pJsonStruct = cJSON_Parse(oJsonObject.ToString().c_str());
     if (pJsonStruct == NULL)
     {
-        m_strErrMsg = std::string("prase json string error at ") + cJSON_GetErrorPtr();
+        //m_strErrMsg = std::string("prase json string error at ") + cJSON_GetErrorPtr();
         return(false);
     }
     cJSON_ReplaceItemInObject(pFocusData, strKey.c_str(), pJsonStruct);
@@ -2192,7 +2192,7 @@ bool CJsonObject::Add(const CJsonObject& oJsonObject)
     cJSON* pJsonStruct = cJSON_Parse(oJsonObject.ToString().c_str());
     if (pJsonStruct == NULL)
     {
-        m_strErrMsg = std::string("prase json string error at ") + cJSON_GetErrorPtr();
+        //m_strErrMsg = std::string("prase json string error at ") + cJSON_GetErrorPtr();
         return(false);
     }
     int iArraySizeBeforeAdd = cJSON_GetArraySize(pFocusData);
@@ -2631,7 +2631,7 @@ bool CJsonObject::AddAsFirst(const CJsonObject& oJsonObject)
     cJSON* pJsonStruct = cJSON_Parse(oJsonObject.ToString().c_str());
     if (pJsonStruct == NULL)
     {
-        m_strErrMsg = std::string("prase json string error at ") + cJSON_GetErrorPtr();
+        //m_strErrMsg = std::string("prase json string error at ") + cJSON_GetErrorPtr();
         return(false);
     }
     int iArraySizeBeforeAdd = cJSON_GetArraySize(pFocusData);
@@ -3098,7 +3098,7 @@ bool CJsonObject::Replace(int iWhich, const CJsonObject& oJsonObject)
     cJSON* pJsonStruct = cJSON_Parse(oJsonObject.ToString().c_str());
     if (pJsonStruct == NULL)
     {
-        m_strErrMsg = std::string("prase json string error at ") + cJSON_GetErrorPtr();
+        //m_strErrMsg = std::string("prase json string error at ") + cJSON_GetErrorPtr();
         return(false);
     }
     cJSON_ReplaceItemInArray(pFocusData, iWhich, pJsonStruct);

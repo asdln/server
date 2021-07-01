@@ -19,6 +19,10 @@ CoordinateTransformation::CoordinateTransformation(OGRSpatialReference* pSrc, OG
 	{
 		need_tranverse_after_ = true;
 	}
+	else if (!pDst->IsGeographic() && !pSrc->IsGeographic()) //暂时如此，不知道是否通用
+	{
+		need_tranverse_after_ = true;
+	}
 
 	pOGRCoordinateTransformation_ = OGRCreateCoordinateTransformation(pSrc, pDst);
 }
