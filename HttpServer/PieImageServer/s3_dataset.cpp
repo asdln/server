@@ -6,6 +6,7 @@
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/core/utils/stream/PreallocatedStreamBuf.h>
 #include <aws/core/auth/AWSCredentials.h>
+#include "gdal_priv.h"
 
 #define GOOGLE_GLOG_DLL_DECL 
 #define GLOG_NO_ABBREVIATED_SEVERITIES
@@ -98,6 +99,9 @@ bool LoadTileData(const Aws::S3::S3Client& s3_client, const std::string& path
 
 bool S3Dataset::Open(const std::string& path)
 {
+	//清理一下。否则s3新上传的数据打不开
+	VSICurlClearCache();
+
 	if (!TiffDataset::Open(path))
 		return false;
 
