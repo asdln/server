@@ -144,9 +144,6 @@
     <ClCompile Include="application.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="histogram.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="percent_min_max_stretch.cpp">
       <Filter>源文件\stretch</Filter>
     </ClCompile>
@@ -179,6 +176,9 @@
     </ClCompile>
     <ClCompile Include="memory_pool.cpp">
       <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="histogram.cpp">
+      <Filter>源文件\stretch</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -272,9 +272,6 @@
     <ClInclude Include="application.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="histogram.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="percent_min_max_stretch.h">
       <Filter>头文件\stretch</Filter>
     </ClInclude>
@@ -310,6 +307,9 @@
     </ClInclude>
     <ClInclude Include="memory_pool.h">
       <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="histogram.h">
+      <Filter>头文件\stretch</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
