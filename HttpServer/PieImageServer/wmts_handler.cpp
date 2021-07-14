@@ -72,6 +72,10 @@ bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, con
 		{
 			return GetEnvlope(request_body, result);
 		}
+		else if (request.compare("GetImageInfo") == 0)
+		{
+			return GetImageInfo(request_body, result);
+		}
 
 		return false;
 	}

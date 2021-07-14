@@ -18,6 +18,8 @@ public:
 
 	bool GetLayInfo(const std::string& request_body, std::shared_ptr<HandleResult> result);
 
+	bool GetImageInfo(const std::string& request_body, std::shared_ptr<HandleResult> result);
+
 	//·µ»Ø¾­Î³¶È·¶Î§
 	bool GetEnvlope(const std::string& request_body, std::shared_ptr<HandleResult> result);
 

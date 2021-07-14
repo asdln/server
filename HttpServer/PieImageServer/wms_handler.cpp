@@ -44,6 +44,10 @@ bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, cons
 		{
 			return GetEnvlope(request_body, result);
 		}
+		else if (request.compare("GetImageInfo") == 0)
+		{
+			return GetImageInfo(request_body, result);
+		}
 	}
 
 	return GetMap(doc_root, url, request_body, result);
@@ -353,6 +357,69 @@ bool WMSHandler::GetLayInfo(const std::string& request_body, std::shared_ptr<Han
 	auto string_body = CreateStringResponse(http::status::ok, result->version(), result->keep_alive(), json);
 	result->set_string_body(string_body);
 	
+	return true;
+}
+
+bool WMSHandler::GetImageInfo(const std::string& request_body, std::shared_ptr<HandleResult> result)
+{
+	std::vector<std::string> layers;
+	GetLayers(request_body, layers);
+
+	if (layers.empty())
+		return false;
+
+	neb::CJsonObject oJson;
+
+	std::vector<std::pair<Envelop, int>> envs;
+	for (auto& path : layers)
+	{
+		neb::CJsonObject oJson_img;
+		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(path));
+		if (tiffDataset != nullptr)
+		{
+			int band_count = tiffDataset->GetBandCount();
+			oJson_img.Add("band_count", band_count);
+
+			const Envelop& env = tiffDataset->GetExtent();
+
+			neb::CJsonObject oJson_env;
+			oJson_env.Add("left", env.GetXMin());
+			oJson_env.Add("right", env.GetXMax());
+			oJson_env.Add("top", env.GetYMax());
+			oJson_env.Add("bottom", env.GetYMin());
+
+			oJson_env.Add("epsg", tiffDataset->GetEPSG());
+			oJson_img.Add("envelope", oJson_env);
+
+			neb::CJsonObject oJson_bands;
+			for (int i = 0; i < band_count; i++)
+			{
+				neb::CJsonObject ojson_band;
+				ojson_band.Add("name", "B" + std::to_string(i + 1));
+
+				double min, max, mean, std_dev;
+				HistogramPtr histogram = ResourcePool::GetInstance()->GetHistogram(tiffDataset.get(), i + 1, false, 0.0);
+				histogram->QueryStats(min, max, mean, std_dev);
+				ojson_band.Add("min", min);
+				ojson_band.Add("max", max);
+
+				oJson_bands.Add(ojson_band);
+			}
+
+			oJson_img.Add("bands", oJson_bands);
+			oJson.Add(oJson_img);
+		}
+		else
+		{
+			oJson.AddNull();
+		}
+	}
+
+	std::string json = oJson.ToString();
+
+	auto string_body = CreateStringResponse(http::status::ok, result->version(), result->keep_alive(), json);
+	result->set_string_body(string_body);
+
 	return true;
 }
 
