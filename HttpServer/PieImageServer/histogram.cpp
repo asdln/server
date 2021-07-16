@@ -467,11 +467,11 @@ HistogramPtr ComputerHistogram(Dataset* dataset, int band, bool complete_statist
 	}
 	else
 	{
-		//对于较大的数据，只取有限的block，以加速统计
-		int block_count = 36;
-
 		int block_x, block_y;
 		dataset->GetBlockSize(block_x, block_y);
+
+		//对于较大的数据，只取有限的block，以加速统计
+		int block_count = /*360*/256 * 256 * 36 / block_x / block_y;
 
 		double dStep = 1.0;
 
@@ -484,8 +484,9 @@ HistogramPtr ComputerHistogram(Dataset* dataset, int band, bool complete_statist
 		double dfMean = 0.0, std_dev = 0.0;
 		double dfMin = 0.0, dfMax = 0.0;
 
-		int src_block_x_count = m_nSizeX % block_x == 0 ? m_nSizeX / block_x : m_nSizeX / block_x + 1;
-		int src_block_y_count = m_nSizeY % block_y == 0 ? m_nSizeY / block_y : m_nSizeY / block_y + 1;
+		//只计算完整的block
+		int src_block_x_count = m_nSizeX / block_x;
+		int src_block_y_count = m_nSizeY / block_y;
 		int src_block_count = src_block_x_count * src_block_y_count;
 
 		int sample_block = std::min(src_block_count, block_count);
@@ -494,7 +495,7 @@ HistogramPtr ComputerHistogram(Dataset* dataset, int band, bool complete_statist
 		pData = dataset->GetMemoryPool()->malloc(GetDataTypeBytes(data_type) * (size_t)block_x * block_y * sample_block);
 
 		unsigned char* buffer_temp = pData;
-		double step = (double)src_block_y_count / sample_block;
+		double step = (double)src_block_count / sample_block;
 		for (int i = 0; i < sample_block; i++)
 		{
 			int current_block = i * step;
