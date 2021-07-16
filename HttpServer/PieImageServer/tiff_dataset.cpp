@@ -154,6 +154,12 @@ int TiffDataset::GetRasterYSize()
 	return -1;
 }
 
+void TiffDataset::GetBlockSize(int& x, int& y)
+{
+	GDALRasterBand* poBand1 = poDataset_->GetRasterBand(1);
+	poBand1->GetBlockSize(&x, &y);
+}
+
 const Envelop& TiffDataset::GetExtent()
 {
 	return envelope_;

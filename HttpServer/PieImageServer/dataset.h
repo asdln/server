@@ -24,6 +24,8 @@ public:
 
 	virtual int GetRasterYSize() = 0;
 
+	virtual void GetBlockSize(int& x, int& y) = 0;
+
 	virtual const Envelop& GetExtent() = 0;
 
 	virtual bool World2Pixel(double dProjX, double dProjY, double& dCol, double& dRow) = 0;

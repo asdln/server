@@ -24,6 +24,8 @@ public:
 
     virtual int GetRasterYSize() override;
 
+    virtual void GetBlockSize(int& x, int& y) override;
+
     virtual const Envelop& GetExtent() override;
 
     virtual bool World2Pixel(double dProjX, double dProjY, double& dCol, double& dRow) override;

@@ -389,52 +389,11 @@ HistogramPtr ComputerHistogram(Dataset* dataset, int band, bool complete_statist
 	int m_nSizeX = dataset->GetRasterXSize();
 	int m_nSizeY = dataset->GetRasterYSize();
 
+	DataType data_type = dataset->GetDataType();
 	int hist_window_size = global_app->StatisticSize();
-
-	double dXFactor = hist_window_size / (float)m_nSizeX;
-	double dYFactor = hist_window_size / (float)m_nSizeY;
-	double dFactor = dXFactor < dYFactor ? dXFactor : dYFactor;
-	if (dFactor >= 1.0)
-	{
-		dFactor = 1.0;
-	}
-
-	double dReadWidth, dReadHeight;
-	dReadWidth = m_nSizeX;
-	dReadHeight = m_nSizeY;
-
-	long lTempX = (long)(m_nSizeX * dFactor + 0.5);
-	long lTempY = (long)(m_nSizeY * dFactor + 0.5);
-
-	if (complete_statistic)
-	{
-		lTempX = dReadWidth;
-		lTempY = dReadHeight;
-	}
-
-	if (lTempX <= 0)
-		lTempX = 1;
-
-	if (lTempY <= 0)
-		lTempY = 1;
-
-	long lSize = lTempX * lTempY;
-
-	double dfMean = 0.0, std_dev = 0.0;
-	double dfMin = 0.0, dfMax = 0.0;
-
-	void* pData = nullptr;
-	double dStep = 1.0;
 
 	int have_no_data = 0;
 	double no_data_value = dataset->GetNoDataValue(band, &have_no_data);
-	DataType data_type = dataset->GetDataType();
-
-	int hist_class = CalcClassCount(data_type);
-	double* pdHistogram = nullptr;
-	//创建直方图
-	pdHistogram = new double [hist_class];
-	memset(pdHistogram, 0, sizeof(double) * hist_class);
 
 	if (use_external_no_data)
 	{
@@ -442,26 +401,127 @@ HistogramPtr ComputerHistogram(Dataset* dataset, int band, bool complete_statist
 		no_data_value = external_no_data_value;
 	}
 
-	//pData = new char[GetDataTypeBytes(data_type) * (long)lSize];
-	pData = dataset->GetMemoryPool()->malloc(GetDataTypeBytes(data_type) * (long)lSize);
-
-	dataset->Read(0, 0, dReadWidth, dReadHeight, pData, lTempX, lTempY, data_type, 1, &band);
-	CalFitHistogram(pData, data_type, lTempX, lTempY, have_no_data, no_data_value,
-		dStep, dfMin, dfMax, dfMean, std_dev, pdHistogram, hist_class);
-	
-	HistogramPtr histogram = std::make_shared<Histogram>();
-	histogram->SetStats(dfMin, dfMax, dfMean, std_dev);
-	if (pdHistogram != nullptr)
+	if (m_nSizeX * m_nSizeY < 2000 * 2000)
 	{
-		histogram->SetHistogram(pdHistogram);
+		double dXFactor = hist_window_size / (float)m_nSizeX;
+		double dYFactor = hist_window_size / (float)m_nSizeY;
+		double dFactor = dXFactor < dYFactor ? dXFactor : dYFactor;
+		if (dFactor >= 1.0)
+		{
+			dFactor = 1.0;
+		}
+
+		double dReadWidth, dReadHeight;
+		dReadWidth = m_nSizeX;
+		dReadHeight = m_nSizeY;
+
+		long lTempX = (long)(m_nSizeX * dFactor + 0.5);
+		long lTempY = (long)(m_nSizeY * dFactor + 0.5);
+
+		if (complete_statistic)
+		{
+			lTempX = dReadWidth;
+			lTempY = dReadHeight;
+		}
+
+		if (lTempX <= 0)
+			lTempX = 1;
+
+		if (lTempY <= 0)
+			lTempY = 1;
+
+		long lSize = lTempX * lTempY;
+
+		double dfMean = 0.0, std_dev = 0.0;
+		double dfMin = 0.0, dfMax = 0.0;
+
+		void* pData = nullptr;
+		double dStep = 1.0;
+
+		int hist_class = CalcClassCount(data_type);
+		double* pdHistogram = nullptr;
+		//创建直方图
+		pdHistogram = new double[hist_class];
+		memset(pdHistogram, 0, sizeof(double) * hist_class);
+
+		//pData = new char[GetDataTypeBytes(data_type) * (long)lSize];
+		pData = dataset->GetMemoryPool()->malloc(GetDataTypeBytes(data_type) * (long)lSize);
+
+		dataset->Read(0, 0, dReadWidth, dReadHeight, pData, lTempX, lTempY, data_type, 1, &band);
+		CalFitHistogram(pData, data_type, lTempX, lTempY, have_no_data, no_data_value,
+			dStep, dfMin, dfMax, dfMean, std_dev, pdHistogram, hist_class);
+
+		HistogramPtr histogram = std::make_shared<Histogram>();
+		histogram->SetStats(dfMin, dfMax, dfMean, std_dev);
+		if (pdHistogram != nullptr)
+		{
+			histogram->SetHistogram(pdHistogram);
+		}
+
+		histogram->SetStep(dStep);
+		histogram->SetClassCount(hist_class);
+		//delete[] (char*)pData;
+		dataset->GetMemoryPool()->free((unsigned char*)pData);
+
+		return histogram;
 	}
+	else
+	{
+		//对于较大的数据，只取有限的block，以加速统计
+		int block_count = 36;
 
-	histogram->SetStep(dStep);
-	histogram->SetClassCount(hist_class);
-	//delete[] (char*)pData;
-	dataset->GetMemoryPool()->free((unsigned char*)pData);
+		int block_x, block_y;
+		dataset->GetBlockSize(block_x, block_y);
 
-	return histogram;
+		double dStep = 1.0;
+
+		int hist_class = CalcClassCount(data_type);
+		double* pdHistogram = nullptr;
+		//创建直方图
+		pdHistogram = new double[hist_class];
+		memset(pdHistogram, 0, sizeof(double) * hist_class);
+
+		double dfMean = 0.0, std_dev = 0.0;
+		double dfMin = 0.0, dfMax = 0.0;
+
+		int src_block_x_count = m_nSizeX % block_x == 0 ? m_nSizeX / block_x : m_nSizeX / block_x + 1;
+		int src_block_y_count = m_nSizeY % block_y == 0 ? m_nSizeY / block_y : m_nSizeY / block_y + 1;
+		int src_block_count = src_block_x_count * src_block_y_count;
+
+		int sample_block = std::min(src_block_count, block_count);
+
+		unsigned char* pData = nullptr;
+		pData = dataset->GetMemoryPool()->malloc(GetDataTypeBytes(data_type) * (size_t)block_x * block_y * sample_block);
+
+		unsigned char* buffer_temp = pData;
+		double step = (double)src_block_y_count / sample_block;
+		for (int i = 0; i < sample_block; i++)
+		{
+			int current_block = i * step;
+			int bx = current_block % src_block_x_count;
+			int by = current_block / src_block_x_count;
+
+			dataset->Read(bx * block_x, by * block_y, block_x, block_y, buffer_temp, block_x, block_y, data_type, 1, &band);
+			buffer_temp += GetDataTypeBytes(data_type) * (size_t)block_x * block_y;
+		}
+
+		CalFitHistogram(pData, data_type, block_x * block_y * sample_block, 1, have_no_data, no_data_value,
+			dStep, dfMin, dfMax, dfMean, std_dev, pdHistogram, hist_class);
+
+		HistogramPtr histogram = std::make_shared<Histogram>();
+		histogram->SetStats(dfMin, dfMax, dfMean, std_dev);
+		if (pdHistogram != nullptr)
+		{
+			histogram->SetHistogram(pdHistogram);
+		}
+
+		histogram->SetStep(dStep);
+		histogram->SetClassCount(hist_class);
+		//delete[] (char*)pData;
+		dataset->GetMemoryPool()->free((unsigned char*)pData);
+
+		return histogram;
+	}
 }
 
 Histogram::Histogram(void)

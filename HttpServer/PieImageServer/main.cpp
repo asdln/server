@@ -9,11 +9,23 @@
 #include <iostream>
 #include <boost/pool/pool.hpp>
 #include <aws/core/Aws.h>
+#include <signal.h>
 
 using namespace boost;
 
+void sig_handler(int sig)
+{
+	if (sig == SIGINT)
+	{
+		std::cout << "ctrl+c has been keydownd" << std::endl;
+		exit(0);
+	}
+}
+
 int main(int argc, char* argv[])
 {
+	signal(SIGINT, sig_handler);
+
 	//if (argc != 5)
 	//{
 	//	std::cerr <<
