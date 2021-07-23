@@ -2,9 +2,11 @@
 
 #include "jpeglib.h"
 #include "jpg_buffer.h"
+#include <iostream>
 
 void error_exit(j_common_ptr cinfo) {
-	fprintf(stderr, "JpgCompress error\n", "http_server");
+	std::cout << "JpgCompress error" << std::endl;
+	//fprintf(stderr, "JpgCompress error\n", "http_server");
 }
 
 void JpgCompress::DoCompress(void* srcbuffer, int nSrcWidth, int nSrcHeight, std::vector<unsigned char>& output)

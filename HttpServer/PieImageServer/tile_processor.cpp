@@ -886,6 +886,8 @@ BufferPtr TileProcessor::GetCombinedData(const std::list<std::pair<DatasetPtr, S
 
 	//默认带透明度
 	int render_color_count = 4;
+	if (format == Format::JPG)
+		render_color_count = 3;
 
 	for (auto content : datasets)
 	{
@@ -900,7 +902,7 @@ BufferPtr TileProcessor::GetCombinedData(const std::list<std::pair<DatasetPtr, S
 		int band_count = style->band_count();
 
 		//根据mask的值，添加透明通道的值。
-		if (bRes && band_count == 3)
+		if (bRes && band_count == 3 && format != Format::JPG)
 		{
 			for (int j = (tile_width * tile_height) - 1; j >= 0; j--)
 			{
@@ -921,7 +923,7 @@ BufferPtr TileProcessor::GetCombinedData(const std::list<std::pair<DatasetPtr, S
 		}
 		else
 		{
-			if (bRes)
+			if (bRes && format != Format::JPG)
 			{
 				for (int i = 0; i < size; i++)
 				{
@@ -967,6 +969,12 @@ BufferPtr TileProcessor::GetCombinedData(const std::list<std::pair<DatasetPtr, S
 			buffer = pngCompress.DoCompress(render_buffer_final, tile_width, tile_height);
 		}
 			break;
+		case Format::JPG:
+		{
+			JpgCompress jpgCompress;
+			buffer = jpgCompress.DoCompress(render_buffer_final, tile_width, tile_height);
+		}
+		break;
 		default:
 			break;
 		}

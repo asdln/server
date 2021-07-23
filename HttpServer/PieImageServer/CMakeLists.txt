@@ -38,6 +38,7 @@ SET(SRC_LIST main.cpp
     percent_min_max_stretch.cpp
     png_buffer.cpp
     png_compress.cpp
+    jpg_compress.cpp
     resource_pool.cpp
     session.cpp
     standard_deviation_stretch.cpp
@@ -68,6 +69,7 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME} -lboost_filesystem)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -lgdal)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -lwebp)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -lpng)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} -ljpeg)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -letcd-cpp-api)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -lcpprest)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -laws-cpp-sdk-core)
