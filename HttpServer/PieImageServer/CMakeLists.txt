@@ -26,6 +26,7 @@ SET(SRC_LIST main.cpp
     dataset.cpp
     dataset_factory.cpp
     etcd_storage.cpp
+    file_cache.cpp
     handler.cpp
     handle_result.cpp
     handler_mapping.cpp
