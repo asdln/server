@@ -6,6 +6,7 @@
 #include "image_group_manager.h"
 #include "amazon_s3.h"
 #include "coordinate_transformation.h"
+#include "file_cache.h"
 
 bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
@@ -211,9 +212,21 @@ bool WMSHandler::GetDatasets(int epsg_code, const std::string& data_style_json, 
 bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, int tile_height, int epsg_code, const std::string& data_style, const std::string& amazon_md5, std::shared_ptr<HandleResult> result)
 {
 	BufferPtr buffer = nullptr;
-	if (use_cache && AmazonS3::GetUseS3())
+	std::mutex* p_mutex = nullptr;
+	if (use_cache && (AmazonS3::GetUseS3() || FileCache::GetUseFileCache()))
 	{
-		buffer = AmazonS3::GetS3Object(amazon_md5);
+        //加锁，因为有可能出现多个请求写同一个图片的情况
+		p_mutex = ResourcePool::GetInstance()->AcquireCacheMutex(amazon_md5);
+		p_mutex->lock();
+
+		if (AmazonS3::GetUseS3())
+		{
+			buffer = AmazonS3::GetS3Object(amazon_md5);
+		}
+		else
+		{
+			buffer = FileCache::Read(amazon_md5);
+		}
 	}
 
 	if (buffer == nullptr)
@@ -223,10 +236,23 @@ bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, in
 		GetDatasets(epsg_code, data_style, datasets, format);
 
 		buffer = TileProcessor::GetCombinedData(datasets, env, tile_width, tile_height, format);
-		if (use_cache && AmazonS3::GetUseS3() && buffer != nullptr)
+		if (use_cache && (AmazonS3::GetUseS3() || FileCache::GetUseFileCache()) && buffer != nullptr)
 		{
-			AmazonS3::PutS3Object(amazon_md5, buffer);
+			if (AmazonS3::GetUseS3())
+			{
+				AmazonS3::PutS3Object(amazon_md5, buffer);
+			}
+			else
+			{
+				FileCache::Write(amazon_md5, buffer);
+			}
 		}
+	}
+
+	if (use_cache && (AmazonS3::GetUseS3() || FileCache::GetUseFileCache()))
+	{
+		p_mutex->unlock();
+		ResourcePool::GetInstance()->ReleaseCacheMutex(amazon_md5);
 	}
 
 	if (buffer != nullptr)
@@ -297,7 +323,7 @@ bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, cons
 	bool use_cache = QueryIsUseCache(url);
 
 	std::string md5;
-	if (use_cache && AmazonS3::GetUseS3())
+	if (use_cache && (AmazonS3::GetUseS3() || FileCache::GetUseFileCache()))
 	{
 		std::string amazon_data_style = data_style + env_string + std::to_string(tile_width) + std::to_string(tile_height) + std::to_string(epsg_code);
 		GetMd5(md5, amazon_data_style.c_str(), amazon_data_style.size());

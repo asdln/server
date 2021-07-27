@@ -180,6 +180,9 @@
     <ClCompile Include="histogram.cpp">
       <Filter>源文件\stretch</Filter>
     </ClCompile>
+    <ClCompile Include="file_cache.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="utility.h">
@@ -310,6 +313,9 @@
     </ClInclude>
     <ClInclude Include="histogram.h">
       <Filter>头文件\stretch</Filter>
+    </ClInclude>
+    <ClInclude Include="file_cache.h">
+      <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

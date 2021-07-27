@@ -6,6 +6,7 @@
 #include "resource_pool.h"
 #include "storage_manager.h"
 #include "amazon_s3.h"
+#include "file_cache.h"
 
 //if(buffer != nullptr)
 //{
@@ -106,7 +107,7 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, co
 	bool use_cache = QueryIsUseCache(url);
 
 	std::string md5;
-	if (use_cache && AmazonS3::GetUseS3())
+	if (use_cache && (AmazonS3::GetUseS3() || FileCache::GetUseFileCache()))
 	{
 		std::string amazon_data_style = data_style + std::to_string(nx) + std::to_string(ny) + std::to_string(nz) + std::to_string(epsg_code);
 		GetMd5(md5, amazon_data_style.c_str(), amazon_data_style.size());

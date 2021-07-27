@@ -33,6 +33,10 @@ public:
 
 	static void DestroyInstance();
 
+	std::mutex* AcquireCacheMutex(const std::string& md5);
+
+	void ReleaseCacheMutex(const std::string& md5);
+
 	std::shared_ptr<Dataset> GetDataset(const std::string& path);
 
 	OGRSpatialReference* GetSpatialReference(int epsg_code);
@@ -53,6 +57,10 @@ private:
 
 
 private:
+
+	std::mutex cache_mutex_;
+	std::list<std::mutex*> list_cache_mutex_;
+	std::unordered_map<std::string, std::pair<std::mutex*, int>> map_cache_mutex_;
 
 	static ResourcePool* instance_;
 

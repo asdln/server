@@ -35,6 +35,49 @@ void ResourcePool::DestroyInstance()
 void ResourcePool::SetDatasetPoolMaxCount(int count)
 {
 	dataset_pool_max_count_ = count;
+
+	for (int i = 0; i < dataset_pool_max_count_; i++)
+	{
+		std::mutex* pmutex = new std::mutex;
+		list_cache_mutex_.push_back(pmutex);
+	}
+}
+
+std::mutex* ResourcePool::AcquireCacheMutex(const std::string& md5)
+{
+	std::lock_guard<std::mutex> guard(cache_mutex_);
+
+	std::unordered_map<std::string, std::pair<std::mutex*, int>>::iterator itr = map_cache_mutex_.find(md5);
+	if (itr != map_cache_mutex_.end())
+	{
+		itr->second.second++;
+		return itr->second.first;
+	}
+	else
+	{
+		std::mutex* pmutex = list_cache_mutex_.back();
+		list_cache_mutex_.pop_back();
+
+		map_cache_mutex_.emplace(md5, std::make_pair(pmutex, 1));
+		return pmutex;
+	}
+}
+
+void ResourcePool::ReleaseCacheMutex(const std::string& md5)
+{
+	std::lock_guard<std::mutex> guard(cache_mutex_);
+	std::unordered_map<std::string, std::pair<std::mutex*, int>>::iterator itr = map_cache_mutex_.find(md5);
+
+	if (itr == map_cache_mutex_.end())
+		return;
+
+	itr->second.second--;
+
+	if (itr->second.second == 0)
+	{
+		list_cache_mutex_.emplace_back(itr->second.first);
+		map_cache_mutex_.erase(itr);
+	}
 }
 
 std::shared_ptr<Dataset> ResourcePool::GetDataset(const std::string& path)

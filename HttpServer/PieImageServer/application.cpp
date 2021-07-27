@@ -27,6 +27,7 @@
 #include "resource_pool.h"
 #include "argparse.hpp"
 #include "amazon_s3.h"
+#include "file_cache.h"
 
 #define GOOGLE_GLOG_DLL_DECL 
 #define GLOG_NO_ABBREVIATED_SEVERITIES
@@ -187,6 +188,10 @@ Application::Application(int argc, char* argv[])
 		.default_value(false)
 		.implicit_value(true);
 
+	program.add_argument("--file_cache_dir")
+		.help("file cache dir")
+		.default_value(std::string(""));
+
 	program.add_argument("--amazon_s3_bucket_name")
 		.help("amazon s3 bucket name for caching")
 		.default_value(std::string(""));
@@ -235,6 +240,8 @@ Application::Application(int argc, char* argv[])
     EtcdStorage::port_v2_ = program.get<std::string>("--etcd_v2_port");
 
 	bool use_s3 = program.get<bool>("--use_amazon_s3");
+	std::string file_cache_dir = program.get<std::string>("--file_cache_dir");
+
 	AmazonS3::SetUseS3(use_s3);
 	std::string bucket_name;
 	if (use_s3)
@@ -254,6 +261,12 @@ Application::Application(int argc, char* argv[])
 		{
 			exit(0);
 		}
+	}
+
+	if (!file_cache_dir.empty())
+	{
+		FileCache::SetUseFileCache(true);
+		FileCache::SetSavePath(file_cache_dir);
 	}
 
 #ifndef ETCD_V2
@@ -371,6 +384,11 @@ Application::Application(int argc, char* argv[])
 	if (use_s3)
 	{
 		LOG(INFO) << "amazon s3 bucket name: " << bucket_name;
+	}
+
+	if (!file_cache_dir.empty())
+	{
+		LOG(INFO) << "file cache directory: " << file_cache_dir;
 	}
 
 	InitBandMap();
