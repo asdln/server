@@ -14,6 +14,16 @@ public:
 
 	static bool GetDataStyle(const std::string& md5, std::string& data_style_json);
 
+	static bool AddOrUpdateStyle(const std::string& style_json, std::string& md5);
+
+	static bool GetStyle(const std::string& md5, std::string& style_json);
+
+protected:
+
+	static bool AddOrUpdateMd5(const std::string& json, std::string& md5);
+
+	static bool FindFromMd5(const std::string& md5, std::string& data_style_json);
+
 protected:
 
 	//static std::map<std::string/*md5*/, std::string/*infoµÄjson´®*/> s_data_style_map_;

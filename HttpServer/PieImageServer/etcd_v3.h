@@ -16,11 +16,13 @@ public:
 
 	bool Delete(const std::string& key);
 
+	const std::string GetPrefix() { return prefix_; }
+
 protected:
 
 	std::string address_;  //http://127.0.0.1:4001
 
-    std::string prefix_ = "/pie_image_server";
+    std::string prefix_ = "/pie_image_server/";
 };
 
 #endif

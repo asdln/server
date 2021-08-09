@@ -125,11 +125,12 @@ std::shared_ptr<http::response<http::string_body>> Handler::CreateStringResponse
 	string_body->set(http::field::content_type, "application/json");
 	string_body->keep_alive(keep_alive);
 	string_body->body() = res_string;
-	string_body->prepare_payload();
 
 	string_body->set(http::field::access_control_allow_origin, "*");
-	string_body->set(http::field::access_control_allow_methods, "POST, GET, OPTIONS, DELETE");
+	string_body->set(http::field::access_control_allow_methods, "POST, PUT, GET, OPTIONS, DELETE");
 	string_body->set(http::field::access_control_allow_credentials, "true");
+
+	string_body->prepare_payload();
 
 	return string_body;
 }

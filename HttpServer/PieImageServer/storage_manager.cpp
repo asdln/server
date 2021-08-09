@@ -2,6 +2,7 @@
 
 #include "utility.h"
 #include "etcd_storage.h"
+#include "CJsonObject.hpp"
 
 #define GOOGLE_GLOG_DLL_DECL 
 #define GLOG_NO_ABBREVIATED_SEVERITIES
@@ -30,7 +31,36 @@ bool StorageManager::AddOrUpdateDataStyle(const std::string& data_style_json, st
 		return false;
 	}
 
-	GetMd5(md5, data_style_json.c_str(), data_style_json.size());
+	return AddOrUpdateMd5(data_style_json, md5);
+}
+
+bool StorageManager::GetDataStyle(const std::string& md5, std::string& data_style_json)
+{
+	return FindFromMd5(md5, data_style_json);
+}
+
+bool StorageManager::AddOrUpdateStyle(const std::string& style_json, std::string& md5)
+{
+	neb::CJsonObject oJson(style_json);
+	neb::CJsonObject oJson_style;
+
+	//简单验证一下格式
+	if (!oJson.Get("style", oJson_style))
+		return false;
+
+	AddOrUpdateMd5(style_json, md5);
+
+	return true;
+}
+
+bool StorageManager::GetStyle(const std::string& md5, std::string& style_json)
+{
+	return FindFromMd5(md5, style_json);
+}
+
+bool StorageManager::AddOrUpdateMd5(const std::string& json_str, std::string& md5)
+{
+	GetMd5(md5, json_str.c_str(), json_str.size());
 
 	//std::shared_lock<std::shared_mutex> lock(s_mutex_);
 	std::unique_lock<std::shared_mutex> lock(s_mutex_);
@@ -47,7 +77,7 @@ bool StorageManager::AddOrUpdateDataStyle(const std::string& data_style_json, st
 		}
 
 		s_LRU_list.push_front(md5);
-		s_LRU_data_style_map[md5] = make_pair(data_style_json, s_LRU_list.begin());
+		s_LRU_data_style_map[md5] = make_pair(json_str, s_LRU_list.begin());
 	}
 	else
 	{
@@ -58,7 +88,7 @@ bool StorageManager::AddOrUpdateDataStyle(const std::string& data_style_json, st
 	EtcdStorage etcd_storage;
 	if (etcd_storage.IsUseEtcd())
 	{
-		return etcd_storage.SetValue(md5, data_style_json);
+		return etcd_storage.SetValue(md5, json_str);
 	}
 	else
 	{
@@ -66,7 +96,7 @@ bool StorageManager::AddOrUpdateDataStyle(const std::string& data_style_json, st
 	}
 }
 
-bool StorageManager::GetDataStyle(const std::string& md5, std::string& data_style_json)
+bool StorageManager::FindFromMd5(const std::string& md5, std::string& data_style_json)
 {
 	{
 		//读锁
@@ -124,6 +154,6 @@ bool StorageManager::GetDataStyle(const std::string& md5, std::string& data_styl
 		}
 	}
 
-	LOG(ERROR) << "unknown error";
+	LOG(ERROR) << "ln_debug: FindFromMd5 failed";
 	return false;
 }

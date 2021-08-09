@@ -24,6 +24,8 @@ public:
 
     virtual int GetRasterYSize() override;
 
+    virtual GDALColorTable* GetColorTable(int band) override;
+
     virtual void GetBlockSize(int& x, int& y) override;
 
     virtual const Envelop& GetExtent() override;

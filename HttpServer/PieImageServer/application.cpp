@@ -33,6 +33,32 @@
 #define GLOG_NO_ABBREVIATED_SEVERITIES
 #include "glog/logging.h"
 
+#include "etcd_v3.h"
+#include "image_group_manager.h"
+#include "CJsonObject.hpp"
+
+#ifndef ETCD_V2
+#include "etcd/Client.hpp"
+#include "etcd/Watcher.hpp"
+#include "etcd/kv.pb.h"
+
+std::unique_ptr<etcd::Watcher> image_group_watcher;
+
+void printResponse(etcd::Response response)
+{
+	//etcd::Response response = response_task.get(); // can throw
+	if (!response.is_ok())
+	{
+		LOG(ERROR) << "operation failed, details: " << response.error_message();
+		return;
+	}
+
+	std::string value = response.value().as_string();
+	std::cout << "ln_debug: watcher:\t" << value << std::endl;
+}
+
+#endif
+
 namespace fs = boost::filesystem;
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
@@ -160,6 +186,34 @@ int get_process_path(char *process_path){
 }
 #endif
 
+#ifndef ETCD_V2
+
+void wait_for_connection(etcd::Client& client) {
+	// wait until the client connects to etcd server 
+	// `head` API is only available in version later than 0.2.1
+	while (!client.head().get().is_ok()) {
+		sleep(1);
+	}
+}
+
+void initialize_watcher(const std::string& endpoints,
+	const std::string& prefix,
+	std::function<void(etcd::Response)> callback,
+	std::unique_ptr<etcd::Watcher>& watcher) {
+	etcd::Client client(endpoints);
+	wait_for_connection(client);
+	watcher.reset(new etcd::Watcher(client, prefix, callback));
+	watcher->Wait([endpoints, prefix, callback,
+		/*watcher_ref*/ /* keep the shared_ptr alive */ &watcher](bool cancelled) {
+			if (cancelled) {
+				return;
+			}
+			initialize_watcher(endpoints, prefix, callback, watcher);
+		});
+}
+
+#endif
+
 Application::Application(int argc, char* argv[])
 {
 	argparse::ArgumentParser program("server");
@@ -274,13 +328,35 @@ Application::Application(int argc, char* argv[])
     EtcdStorage::use_etcd_v3_ = program.get<bool>("--use_etcd_v3");
     EtcdStorage::address_v3_ = program.get<std::string>("--etcd_v3_address");
 
+	//设置etcd watcher
+// 	if(0/*EtcdStorage::use_etcd_v3_*/)
+// 	{
+// 		std::cout << "initializing etcd image group watcher..." << std::endl;
+// 		EtcdV3 etcdv3(EtcdStorage::address_v3_);
+// 		std::string endpoints = EtcdStorage::address_v3_;
+// 		std::function<void(etcd::Response)> callback = printResponse;
+// 		std::string prefix = /*"/test/key"*/etcdv3.GetPrefix() + ImageGroupManager::GetPrefix();
+// 		prefix = prefix.substr(0, prefix.size() - 1);
+// 
+// 		std::cout << "watcher key: " + prefix << std::endl;
+// 
+// 		// the watcher initialized in this way will auto re-connect to etcd
+// 		
+// 		//initialize_watcher(endpoints, prefix, callback, image_group_watcher);
+// 		{
+// 			static etcd::Watcher watcher(endpoints, prefix, printResponse);
+// 		}
+// 
+// 		std::cout << "etcd image group watcher initialized " << std::endl;
+// 	}
+
 #endif
 
 	std::cout << program << std::endl << std::endl;
 
     if(EtcdStorage::use_etcd_v2_ && EtcdStorage::use_etcd_v3_)
     {
-        EtcdStorage::use_etcd_v3_ = false;
+        EtcdStorage::use_etcd_v2_ = false;
     }
 	
 
@@ -494,6 +570,72 @@ void Application::InitBandMap()
 
 void Application::Run()
 {
+	std::shared_ptr<std::thread> etcd_group_layer_reader_thread;
+
+#ifndef ETCD_V2
+ 	if (EtcdStorage::use_etcd_v3_)
+ 	{
+		etcd_group_layer_reader_thread = std::make_shared<std::thread>([] {
+
+			EtcdV3 etcdv3(EtcdStorage::address_v3_);
+			etcd::Client etcd(EtcdStorage::address_v3_);
+
+			std::string prefix = /*"/test/key"*/etcdv3.GetPrefix() + ImageGroupManager::GetPrefix();
+			prefix = prefix.substr(0, prefix.size() - 1);
+			int prefix_size = prefix.size() + 1; // + 1 要算上 “/”
+
+			while (true)
+			{
+				try
+				{
+					std::unordered_map<std::string, std::list<std::string>> group_image_map;
+
+					std::this_thread::sleep_for(std::chrono::seconds(10));
+					etcd::Response resp = etcd.ls(prefix).get();
+
+					for (int i = 0; i < resp.keys().size(); ++i)
+					{
+						std::string key_raw = resp.key(i);
+						std::string group = key_raw.substr(prefix_size, key_raw.size() - prefix_size);
+						group = ImageGroupManager::GetPrefix() + group;
+
+						neb::CJsonObject oJson(resp.value(i).as_string());
+						if (oJson.IsArray())
+						{
+							//直接添加，不去掉重复
+							std::list<std::string> images_list;
+							int array_size = oJson.GetArraySize();
+
+							for (int i = 0; i < array_size; i++)
+							{
+								std::string path;
+								oJson.Get(i, path);
+								images_list.emplace_back(path);
+							}
+
+							group_image_map.emplace(std::make_pair(group, images_list));
+						}
+
+// 						std::cout << resp.key(i);
+// 						std::cout << " = " << resp.value(i).as_string() << std::endl;
+// 						std::cout << group << std::endl;
+					}
+
+					{
+						std::unique_lock<std::shared_mutex> lock(ImageGroupManager::s_etcd_cache_mutex_);
+						ImageGroupManager::s_etcd_cache_group_image_map_.swap(group_image_map);
+					}
+
+				}
+				catch (...)
+				{
+				}
+			}
+
+		});
+	}
+#endif
+
 	// The io_context is required for all I/O
 	net::io_context ioc{ threads_ };
 

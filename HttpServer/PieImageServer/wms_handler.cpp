@@ -7,6 +7,7 @@
 #include "amazon_s3.h"
 #include "coordinate_transformation.h"
 #include "file_cache.h"
+#include "etcd_storage.h"
 
 bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
@@ -21,6 +22,10 @@ bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, cons
 		{
 			return UpdateDataStyle(request_body, result);
 		}
+		else if (request.compare("UpdateStyle") == 0)
+		{
+			return UpdateStyle(request_body, result);
+		}
 		else if (request.compare("ClearAllDatasets") == 0)
 		{
 			return ClearAllDatasets(request_body, result);
@@ -32,6 +37,14 @@ bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, cons
 		else if (request.compare("GetImages") == 0)
 		{
 			return GetImages(request_body, result);
+		}
+		else if (request.compare("SetImages") == 0)
+		{
+			return SetImages(request_body, result);
+		}
+		else if (request.compare("GetGroups") == 0)
+		{
+			return GetGroups(result);
 		}
 		else if (request.compare("ClearImages") == 0)
 		{
@@ -110,7 +123,7 @@ bool WMSHandler::ClearAllDatasets(const std::string& request_body, std::shared_p
 		msg->set(http::field::content_type, "image/jpeg");
 
 		msg->set(http::field::access_control_allow_origin, "*");
-		msg->set(http::field::access_control_allow_methods, "POST, GET, OPTIONS, DELETE");
+		msg->set(http::field::access_control_allow_methods, "POST, PUT, GET, OPTIONS, DELETE");
 		msg->set(http::field::access_control_allow_credentials, "true");
 
 		msg->content_length(result->buffer()->size());
@@ -144,11 +157,65 @@ bool WMSHandler::GetDataStyleString(const Url& url, const std::string& request_b
 	return true;
 }
 
-bool WMSHandler::GetDatasets(int epsg_code, const std::string& data_style_json, std::list<std::pair<DatasetPtr, StylePtr>>& datasets, Format& format)
+bool WMSHandler::GetStyleString(const Url& url, const std::string& request_body, std::string& style_json
+	, std::list<std::string>& paths, std::string& cachekey, Format& format)
+{
+	std::string layerID;
+	if (url.QueryValue("layer", layerID))
+	{
+		if (EtcdStorage::IsUseEtcdV3())
+		{
+			layerID = ImageGroupManager::GetPrefix() + layerID;
+			std::unique_lock<std::shared_mutex> lock(ImageGroupManager::s_etcd_cache_mutex_);
+			std::unordered_map<std::string, std::list<std::string>>::iterator itr = ImageGroupManager::s_etcd_cache_group_image_map_.find(layerID);
+			if (itr != ImageGroupManager::s_etcd_cache_group_image_map_.end())
+			{
+				paths = itr->second;
+			}
+		}
+		else
+		{
+			ImageGroupManager::GetImages(layerID, paths);
+		}
+
+		std::string style_key;
+		if (url.QueryValue("style", style_key))
+		{
+			url.QueryValue("s3cachekey", cachekey);
+			std::string format_str;
+			url.QueryValue("format", format_str);
+			format = String2Format(format_str);
+
+			if (!style_key.empty() && !StorageManager::GetStyle(style_key, style_json))
+				return false;
+		}
+	}
+	else
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool WMSHandler::GetDatasets(int epsg_code, const std::string& data_style_json, bool one_to_one
+	, const std::list<std::string>& data_paths, std::list<std::pair<DatasetPtr, StylePtr>>& datasets, Format& format, std::string cachekey)
 {
 	std::vector<std::string> exts;
 	std::list<std::pair<std::string, std::string>> data_info;
-	QueryDataInfo(data_style_json, data_info, exts, format);
+
+	if (one_to_one)
+	{
+		QueryDataInfo(data_style_json, data_info, exts, format);
+	}
+	else
+	{
+		for (const auto& data_path : data_paths)
+		{
+			data_info.emplace_back(std::make_pair(data_path, data_style_json));
+			exts.emplace_back(cachekey);
+		}
+	}
 
 	int i = -1;
 	for (auto info : data_info)
@@ -209,7 +276,9 @@ bool WMSHandler::GetDatasets(int epsg_code, const std::string& data_style_json, 
 // 	return true;
 // }
 
-bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, int tile_height, int epsg_code, const std::string& data_style, const std::string& amazon_md5, std::shared_ptr<HandleResult> result)
+bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, int tile_height, int epsg_code
+	, const std::string& data_style, const std::string& amazon_md5, bool one_to_one
+	, const std::list<std::string>& data_paths, std::string cachekey, Format format, std::shared_ptr<HandleResult> result)
 {
 	BufferPtr buffer = nullptr;
 	std::mutex* p_mutex = nullptr;
@@ -231,10 +300,11 @@ bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, in
 
 	if (buffer == nullptr)
 	{
-		Format format = Format::WEBP;
+		
 		std::list<std::pair<DatasetPtr, StylePtr>> datasets;
-		GetDatasets(epsg_code, data_style, datasets, format);
 
+		GetDatasets(epsg_code, data_style, one_to_one, data_paths, datasets, format, cachekey);
+		
 		buffer = TileProcessor::GetCombinedData(datasets, env, tile_width, tile_height, format);
 		if (use_cache && (AmazonS3::GetUseS3() || FileCache::GetUseFileCache()) && buffer != nullptr)
 		{
@@ -273,7 +343,7 @@ bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, in
 		msg->set(http::field::content_type, "image/jpeg");
 
 		msg->set(http::field::access_control_allow_origin, "*");
-		msg->set(http::field::access_control_allow_methods, "POST, GET, OPTIONS, DELETE");
+		msg->set(http::field::access_control_allow_methods, "POST, PUT, GET, OPTIONS, DELETE");
 		msg->set(http::field::access_control_allow_credentials, "true");
 
 		msg->content_length(result->buffer()->size());
@@ -316,20 +386,35 @@ bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, cons
 	int tile_width = QueryTileWidth(url);
 	int tile_height = QueryTileHeight(url);
 
-	std::string data_style;
-	if (!GetDataStyleString(url, request_body, data_style))
-		return false;
+	//style和path是否是一对一。如果url里有layer参数，则是多对一，即一个layer里的多个数据集对应同一个style
+	bool one_to_one = true;
 
-	bool use_cache = QueryIsUseCache(url);
+	std::list<std::string> data_paths;
+	std::string cachekey;
+	Format format = Format::WEBP;
 
-	std::string md5;
-	if (use_cache && (AmazonS3::GetUseS3() || FileCache::GetUseFileCache()))
+	std::string json_str;
+	if (GetStyleString(url, request_body, json_str, data_paths, cachekey, format))
 	{
-		std::string amazon_data_style = data_style + env_string + std::to_string(tile_width) + std::to_string(tile_height) + std::to_string(epsg_code);
-		GetMd5(md5, amazon_data_style.c_str(), amazon_data_style.size());
+		one_to_one = false;
+
+	}
+	else if (!GetDataStyleString(url, request_body, json_str))
+	{
+		return false;
 	}
 
-	return GetHandleResult(use_cache, env, tile_width, tile_height, epsg_code, data_style, md5, result);
+	std::string md5;
+	bool use_cache = false;
+// 	bool use_cache = QueryIsUseCache(url);
+// 
+// 	if (use_cache && (AmazonS3::GetUseS3() || FileCache::GetUseFileCache()))
+// 	{
+// 		std::string amazon_data_style = json_str + env_string + std::to_string(tile_width) + std::to_string(tile_height) + std::to_string(epsg_code);
+// 		GetMd5(md5, amazon_data_style.c_str(), amazon_data_style.size());
+// 	}
+
+	return GetHandleResult(use_cache, env, tile_width, tile_height, epsg_code, json_str, md5, one_to_one, data_paths, cachekey, format, result);
 }
 
 bool WMSHandler::UpdateDataStyle(const std::string& request_body, std::shared_ptr<HandleResult> result)
@@ -346,6 +431,29 @@ bool WMSHandler::UpdateDataStyle(const std::string& request_body, std::shared_pt
 	else
 	{
 		res_string_body = "UpdateDataStyle failed";
+		status_code = http::status::internal_server_error;
+	}
+
+	auto string_body = CreateStringResponse(status_code, result->version(), result->keep_alive(), res_string_body);
+	result->set_string_body(string_body);
+
+	return true;
+}
+
+bool WMSHandler::UpdateStyle(const std::string& request_body, std::shared_ptr<HandleResult> result)
+{
+	std::string res_string_body;
+	http::status status_code = http::status::ok;
+
+	std::string md5;
+	if (StorageManager::AddOrUpdateStyle(request_body, md5))
+	{
+		res_string_body = md5;
+		status_code = http::status::ok;
+	}
+	else
+	{
+		res_string_body = "UpdateStyle failed";
 		status_code = http::status::internal_server_error;
 	}
 
@@ -508,10 +616,42 @@ bool WMSHandler::GetEnvlope(const std::string& request_body, std::shared_ptr<Han
 bool WMSHandler::AddImages(const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
 	http::status status_code = http::status::ok;
-	std::string res_string_body = request_body;
+	std::string res_string_body = "ok";
 	if (!ImageGroupManager::AddImages(request_body))
 	{
 		res_string_body = "add images failed";
+		status_code = http::status::internal_server_error;
+	}
+
+	auto string_body = CreateStringResponse(status_code, result->version(), result->keep_alive(), res_string_body);
+	result->set_string_body(string_body);
+
+	return true;
+}
+
+bool WMSHandler::GetGroups(std::shared_ptr<HandleResult> result)
+{
+	http::status status_code = http::status::ok;
+	std::string res_string_body = "ok";
+	if (!ImageGroupManager::GetAllGroup(res_string_body))
+	{
+		res_string_body = "null";
+		status_code = http::status::internal_server_error;
+	}
+
+	auto string_body = CreateStringResponse(status_code, result->version(), result->keep_alive(), res_string_body);
+	result->set_string_body(string_body);
+
+	return true;
+}
+
+bool WMSHandler::SetImages(const std::string& request_body, std::shared_ptr<HandleResult> result)
+{
+	http::status status_code = http::status::ok;
+	std::string res_string_body = "ok";
+	if (!ImageGroupManager::SetImages(request_body))
+	{
+		res_string_body = "set images failed";
 		status_code = http::status::internal_server_error;
 	}
 
@@ -527,7 +667,7 @@ bool WMSHandler::GetImages(const std::string& request_body, std::shared_ptr<Hand
 	std::string res_string_body;
 	if (!ImageGroupManager::GetImages(request_body, res_string_body))
 	{
-		res_string_body = "get images failed";
+		res_string_body = "null";
 		status_code = http::status::internal_server_error;
 	}
 
@@ -543,7 +683,7 @@ bool WMSHandler::ClearImages(const std::string& request_body, std::shared_ptr<Ha
 	std::string res_string_body = "OK";
 	if (!ImageGroupManager::ClearImages(request_body))
 	{
-		res_string_body = "get images failed";
+		res_string_body = "ClearImages failed";
 		status_code = http::status::internal_server_error;
 	}
 

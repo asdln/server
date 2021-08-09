@@ -1,0 +1,46 @@
+262870713489.dkr.ecr.cn-northwest-1.amazonaws.com.cn/pie-engine-image-server:img-server-aws-etcd3-gdal3-devel-2.0
+
+docker pull osgeo/gdal:ubuntu-small-3.3.1
+
+tar -zxvf ./cmake-3.21.1.tar.gz
+cd cmake-3.21.1
+./bootstrap
+make
+make install
+
+
+cd boost_1_76_0
+vi project-config.jam  using python : 2.7 : "/usr/include/python2.7" ;
+ ./bootstrap.sh --with-python=python2.7
+./b2 install
+
+apt-get install libssl-dev
+apt-get install libgrpc-dev
+apt install libgrpc++-dev
+apt install libprotobuf-dev
+apt install protobuf-compiler-grpc
+git clone https://github.com/microsoft/cpprestsdk.git
+cd cpprestsdk
+ mkdir build && cd build
+cmake .. -DCPPREST_EXCLUDE_WEBSOCKETS=ON
+make -j4 && make install
+
+git clone https://github.com/etcd-cpp-apiv3/etcd-cpp-apiv3.git
+cd etcd-cpp-apiv3
+mkdir build && cd build
+cmake ..
+make -j4 && make install
+
+git clone https://github.com/google/glog.git
+cd glog
+cmake -S . -B build -G "Unix Makefiles"
+cmake --build build
+cmake --build build --target install
+
+git clone --recurse-submodules https://github.com/aws/aws-sdk-cpp
+或者cd aws-sdk-cpp
+git checkout main
+git pull origin main
+git submodule update --init --recursive
+apt-get install libcurl4-openssl-dev
+make -j4 && make install

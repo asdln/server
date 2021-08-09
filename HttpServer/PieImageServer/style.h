@@ -43,11 +43,16 @@ public:
 
 	void Prepare(Dataset* dataset);
 
+	void Apply(void* data, unsigned char* mask_buffer, int size
+		, int band_count, int* band_map, Dataset* dataset, int render_color_count);
+
 	StylePtr Clone();
 
 	StylePtr CompletelyClone();
 
-	StretchPtr GetStretch() { return stretch_; }
+	void set_stretch(std::shared_ptr<Stretch> stretch) { stretch_ = stretch; }
+
+	StretchPtr get_stretch() { return stretch_; }
 
 	int code() { return srs_epsg_code_; }
 
@@ -55,9 +60,17 @@ public:
 
 	//Format format() { return format_; }
 
+	void set_band_map(int* band_map, int band_count);
+
+	void set_band_count(int band_count) { bandCount_ = band_count; }
+
 	int band_count() { return bandCount_; }
 
-	void QueryInfo(int band_count, int* band_map, /*Format& format, */StyleType& style_type, int& epsg_code) 
+	void set_kind(StyleType kind) { kind_ = kind; }
+
+	StyleType get_kind() { return kind_; }
+
+	void QueryInfo(int& band_count, int* band_map, /*Format& format, */StyleType& style_type, int& epsg_code) 
 	{ 
 		band_count = bandCount_;  
 		//format = format_; 

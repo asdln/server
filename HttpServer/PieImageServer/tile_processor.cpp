@@ -902,7 +902,7 @@ BufferPtr TileProcessor::GetCombinedData(const std::list<std::pair<DatasetPtr, S
 		int band_count = style->band_count();
 
 		//根据mask的值，添加透明通道的值。
-		if (bRes && band_count == 3 && format != Format::JPG)
+		if (bRes && /*band_count == 3 &&*/ format != Format::JPG && style->get_kind() != StyleType::PALETTE)
 		{
 			for (int j = (tile_width * tile_height) - 1; j >= 0; j--)
 			{
@@ -935,6 +935,20 @@ BufferPtr TileProcessor::GetCombinedData(const std::list<std::pair<DatasetPtr, S
 						render_buffer_final[index + 1] = render_buffer[index + 1];
 						render_buffer_final[index + 2] = render_buffer[index + 2];
 						render_buffer_final[index + 3] = render_buffer[index + 3];
+					}
+				}
+			}
+			else if (bRes /*&& format == Format::JPG*/)
+			{
+				for (int i = 0; i < size; i++)
+				{
+					if (mask_buffer[i] != 0)
+					{
+						int index = i * render_color_count;
+						render_buffer_final[index] = render_buffer[index];
+						render_buffer_final[index + 1] = render_buffer[index + 1];
+						render_buffer_final[index + 2] = render_buffer[index + 2];
+						//render_buffer_final[index + 3] = render_buffer[index + 3];
 					}
 				}
 			}
@@ -1077,7 +1091,7 @@ bool TileProcessor::GetTileData(Dataset* dataset, Style* style, const Envelop& e
 		return false;
 	}
 
-	style->GetStretch()->DoStretch(buff, mask_buffer, tile_width * tile_height, band_count, band_map, tiffDataset);
+	style->Apply(buff, mask_buffer, tile_width * tile_height, band_count, band_map, tiffDataset, render_color_count);
 	return true;
 }
 

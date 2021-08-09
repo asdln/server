@@ -6,6 +6,7 @@
 #include "memory_pool.h"
 
 class OGRSpatialReference;
+class GDALColorTable;
 
 class Dataset
 {
@@ -23,6 +24,8 @@ public:
 	virtual int GetRasterXSize() = 0;
 
 	virtual int GetRasterYSize() = 0;
+
+	virtual GDALColorTable* GetColorTable(int band) = 0;
 
 	virtual void GetBlockSize(int& x, int& y) = 0;
 

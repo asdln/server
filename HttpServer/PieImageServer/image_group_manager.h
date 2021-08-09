@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include <set>
+#include <list>
 #include <unordered_map>
 #include <shared_mutex>
 
@@ -13,19 +13,39 @@ public:
 
 	static bool GetImages(const std::string& request_body, std::string& image_paths_json);
 
+	static bool GetImages(const std::string& group, std::list<std::string>& image_paths);
+
+	static bool SetImages(const std::string& request_body);
+
 	static bool ClearImages(const std::string& request_body);
 
-protected:
+	static bool GetAllGroup(std::string& groups);
 
-	static bool AddImages(const std::string& user, const std::string& group, const std::set<std::string>& image_paths);
-
-	static bool GetImages(const std::string& user, const std::string& group, std::string& images_json);
-
-	static bool ClearImages(const std::string& user, const std::string& group);
+	static const std::string& GetPrefix() { return image_group_prefix_; }
 
 protected:
+
+	static void GetAllGroupsInternal(std::list<std::string>& groups);
+
+	static bool AddImagesInternal(const std::string& group, const std::list<std::string>& image_paths);
+
+	static bool SetImagesInternal(const std::string& group, const std::list<std::string>& image_paths);
+
+	static bool GetImagesInternal(const std::string& group, std::string& images_json);
+
+	static bool ClearImagesInternal(const std::string& group);
+
+public:
+
+	static std::unordered_map<std::string, std::list<std::string>> s_etcd_cache_group_image_map_;
+
+	static std::shared_mutex s_etcd_cache_mutex_;
+
+protected:
+
+	static std::string image_group_prefix_;
 
 	static std::shared_mutex s_mutex_;
 
-	static std::unordered_map<std::string, std::set<std::string>> s_user_group_image_map_;
+	static std::unordered_map<std::string, std::list<std::string>> s_user_group_image_map_;
 };

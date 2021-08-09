@@ -8,6 +8,7 @@
 #define GOOGLE_GLOG_DLL_DECL 
 #define GLOG_NO_ABBREVIATED_SEVERITIES
 #include "glog/logging.h"
+#include "gdal_priv.h"
 
 Format default_format = Format::WEBP;
 std::string default_string_format = "webp";
@@ -20,6 +21,9 @@ std::string StyleType2String(StyleType style_type)
 	{
 	case StyleType::TRUE_COLOR:
 		str_style = "trueColor";
+		break;
+	case StyleType::PALETTE:
+		str_style = "palette";
 		break;
 	case StyleType::DEM:
 		str_style = "dem";
@@ -40,6 +44,10 @@ StyleType String2StyleType(const std::string& str_style)
 	if (str_style.compare("trueColor") == 0)
 	{
 		return StyleType::TRUE_COLOR;
+	}
+	else if (str_style.compare("palette") == 0)
+	{
+		return StyleType::PALETTE;
 	}
 	else if (str_style.compare("dem") == 0)
 	{
@@ -108,7 +116,14 @@ StylePtr Style::Clone()
 	}
 	pClone->bandCount_ = bandCount_;
 	pClone->srs_epsg_code_ = srs_epsg_code_;
-	pClone->stretch_ = stretch_->Clone();
+
+	pClone->stretch_ = nullptr;
+
+	if (stretch_)
+	{
+		pClone->stretch_ = stretch_->Clone();
+	}
+	
 	return pClone;
 }
 
@@ -125,8 +140,15 @@ StylePtr Style::CompletelyClone()
 	}
 	pClone->bandCount_ = bandCount_;
 	pClone->srs_epsg_code_ = srs_epsg_code_;
-	pClone->stretch_ = stretch_->Clone();
-	pClone->stretch_->need_refresh_ = stretch_->need_refresh_; //完全拷贝，"刷新标记"也拷贝
+
+	pClone->stretch_ = nullptr;
+
+	if (stretch_)
+	{
+		pClone->stretch_ = stretch_->Clone();
+		pClone->stretch_->need_refresh_ = stretch_->need_refresh_; //完全拷贝，"刷新标记"也拷贝
+	}
+		
 	return pClone;
 }
 
@@ -140,13 +162,15 @@ void Style::Prepare(Dataset* dataset)
 		, bandMap_[2] <= dataset_band_count ? bandMap_[2] : dataset_band_count
 		, bandMap_[3] <= dataset_band_count ? bandMap_[3] : dataset_band_count };
 
-
 // 	if (format_ == Format::JPG)
 // 		nBandCount = 3;
 
-	if (nBandCount != 3 && nBandCount != 4)
+	if (kind_ == StyleType::TRUE_COLOR)
 	{
-		nBandCount = 3;
+		if (nBandCount != 3 && nBandCount != 4)
+		{
+			nBandCount = 3;
+		}
 	}
 
 	bandCount_ = nBandCount;
@@ -155,9 +179,60 @@ void Style::Prepare(Dataset* dataset)
 		bandMap_[i] = bandMap[i];
 	}
 
-	stretch_->Prepare(bandCount_, bandMap_, dataset);
+	if(stretch_)
+		stretch_->Prepare(bandCount_, bandMap_, dataset);
 }
 
+void Style::Apply(void* data, unsigned char* mask_buffer, int size, int band_count, int* band_map, Dataset* dataset, int render_color_count)
+{
+	//色彩映射表不做拉伸
+	if (kind_ != StyleType::PALETTE && stretch_ != nullptr)
+	{
+		stretch_->DoStretch(data, mask_buffer, size, band_count, band_map, dataset);
+	}
+	else if (kind_ == StyleType::PALETTE)
+	{
+		bool band_4 = render_color_count == 4;
+		GDALColorTable* poColorTable = dataset->GetColorTable(1);
+		//if (poColorTable && dataset->GetDataType() == DT_Byte)
+		{
+			unsigned char* buffer = (unsigned char*)data;
+			for (int i = size - 1; i >= 0; i--)
+			{
+				if (mask_buffer[i] != 0)
+				{
+					const GDALColorEntry* poColorEntry = poColorTable->GetColorEntry(buffer[i]);
+
+					buffer[i * render_color_count] = poColorEntry->c1;
+					buffer[i * render_color_count + 1] = poColorEntry->c2;
+					buffer[i * render_color_count + 2] = poColorEntry->c3;
+
+					if(band_4)
+						buffer[i * render_color_count + 3] = poColorEntry->c4;
+				}
+				else
+				{
+					buffer[i * render_color_count] = 255;
+					buffer[i * render_color_count + 1] = 255;
+					buffer[i * render_color_count + 2] = 255;
+
+					if (band_4)
+						buffer[i * render_color_count + 3] = 0;
+				}
+			}
+		}
+	}
+}
+
+void Style::set_band_map(int* band_map, int band_count)
+{
+	bandCount_ = band_count;
+
+	for(int i = 0; i < band_count; i ++)
+	{
+		bandMap_[i] = band_map[i];
+	}
+}
 
 StylePtr StyleSerielizer::FromJsonObj(neb::CJsonObject& json_obj)
 {
@@ -238,8 +313,8 @@ StylePtr StyleSerielizer::FromJsonObj(neb::CJsonObject& json_obj)
 	double external_nodata_value;
 	if (json_obj["stretch"].Get("externalNodataValue", external_nodata_value))
 	{
-		style->GetStretch()->SetUseExternalNoDataValue(true);
-		style->GetStretch()->SetExternalNoDataValue(external_nodata_value);
+		style->get_stretch()->SetUseExternalNoDataValue(true);
+		style->get_stretch()->SetExternalNoDataValue(external_nodata_value);
 	}
 
 	return style;

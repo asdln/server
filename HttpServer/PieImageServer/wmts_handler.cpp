@@ -49,6 +49,10 @@ bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, con
 		{
 			return UpdateDataStyle(request_body, result);
 		}
+		else if (request.compare("UpdateStyle") == 0)
+		{
+			return UpdateStyle(request_body, result);
+		}
 		else if (request.compare("ClearAllDatasets") == 0)
 		{
 			return ClearAllDatasets(request_body, result);
@@ -60,6 +64,14 @@ bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, con
 		else if (request.compare("GetImages") == 0)
 		{
 			return GetImages(request_body, result);
+		}
+		else if (request.compare("SetImages") == 0)
+		{
+			return SetImages(request_body, result);
+		}
+		else if (request.compare("GetGroups") == 0)
+		{
+			return GetGroups(result);
 		}
 		else if (request.compare("ClearImages") == 0)
 		{
@@ -100,18 +112,40 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, co
 	Envelop env;
 	GetEnvFromTileIndex(nx, ny, nz, env, epsg_code);
 
-	std::string data_style;
-	if (!GetDataStyleString(url, request_body, data_style))
+	//style和path是否是一对一。如果url里有layer参数，则是多对一，即一个layer里的多个数据集对应同一个style
+	bool one_to_one = true;
+
+	std::list<std::string> data_paths;
+	std::string cachekey;
+	Format format = Format::WEBP;
+
+	std::string json_str;
+	if (GetStyleString(url, request_body, json_str, data_paths, cachekey, format))
+	{
+		one_to_one = false;
+	}
+	else if (!GetDataStyleString(url, request_body, json_str))
+	{
 		return false;
+	}
 
 	bool use_cache = QueryIsUseCache(url);
 
 	std::string md5;
 	if (use_cache && (AmazonS3::GetUseS3() || FileCache::GetUseFileCache()))
 	{
-		std::string amazon_data_style = data_style + std::to_string(nx) + std::to_string(ny) + std::to_string(nz) + std::to_string(epsg_code);
+		std::string amazon_data_style = json_str + std::to_string(nx) + std::to_string(ny) + std::to_string(nz) + std::to_string(epsg_code);
+		if (one_to_one == false)
+		{
+			//路径也要加进来，作为md5的参数
+			for (auto& path : data_paths)
+			{
+				amazon_data_style += path;
+			}
+		}
+
 		GetMd5(md5, amazon_data_style.c_str(), amazon_data_style.size());
 	}
 
-	return GetHandleResult(use_cache, env, 256, 256, epsg_code, data_style, md5, result);
+	return GetHandleResult(use_cache, env, 256, 256, epsg_code, json_str, md5, one_to_one, data_paths, cachekey, format, result);
 }

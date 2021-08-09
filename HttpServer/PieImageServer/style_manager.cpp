@@ -73,6 +73,18 @@ StylePtr StyleManager::GetStyle(const std::string& style_string, DatasetPtr data
 				if (string_style.empty())
 				{
 					style = std::make_shared<Style>();
+
+					if (dataset->GetBandCount() == 1 && dataset->GetDataType() == DT_Byte)
+					{
+						GDALColorTable* poColorTable = dataset->GetColorTable(1);
+						if (poColorTable != nullptr)
+						{
+							style->set_kind(StyleType::PALETTE);
+							style->set_stretch(nullptr);
+							int band = 1;
+							style->set_band_map(&band, 1);
+						}
+					}
 				}
 				else
 				{

@@ -8,6 +8,7 @@ enum class StyleType
 {
 	NONE = 0,
 	TRUE_COLOR,
+	PALETTE,
 	DEM,
 	GRAY
 };

@@ -154,6 +154,15 @@ int TiffDataset::GetRasterYSize()
 	return -1;
 }
 
+GDALColorTable* TiffDataset::GetColorTable(int band)
+{
+	GDALRasterBand* poRasterBand = poDataset_->GetRasterBand(band);
+	if (poRasterBand == nullptr)
+		return nullptr;
+
+	return poRasterBand->GetColorTable();
+}
+
 void TiffDataset::GetBlockSize(int& x, int& y)
 {
 	GDALRasterBand* poBand1 = poDataset_->GetRasterBand(1);

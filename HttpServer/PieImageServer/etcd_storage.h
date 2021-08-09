@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-
+#include <list>
 
 class EtcdStorage
 {
@@ -17,7 +17,11 @@ public:
 
 	bool Delete(const std::string& key);
 
+    void GetGroups(std::list<std::string>& groups);
+
     bool IsUseEtcd() { return use_etcd_v2_ || use_etcd_v3_; }
+
+    static bool IsUseEtcdV3() { return use_etcd_v3_; }
 
 protected:
 

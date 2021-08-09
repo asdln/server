@@ -11,12 +11,6 @@ ENDIF()
 
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
 
-INCLUDE_DIRECTORIES(../install/include)
-LINK_DIRECTORIES(../install/lib)
-
-INCLUDE_DIRECTORIES(../aws-install/include)
-LINK_DIRECTORIES(../aws-install/lib)
-
 SET(SRC_LIST main.cpp
     application.cpp
     buffer.cpp
