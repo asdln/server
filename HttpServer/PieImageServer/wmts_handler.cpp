@@ -61,6 +61,10 @@ bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, con
 		{
 			return AddImages(request_body, result);
 		}
+		else if (request.compare("RemoveImages") == 0)
+		{
+			return RemoveImages(request_body, result);
+		}
 		else if (request.compare("GetImages") == 0)
 		{
 			return GetImages(request_body, result);

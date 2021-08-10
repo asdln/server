@@ -34,6 +34,10 @@ bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, cons
 		{
 			return AddImages(request_body, result);
 		}
+		else if (request.compare("RemoveImages") == 0)
+		{
+			return RemoveImages(request_body, result);
+		}
 		else if (request.compare("GetImages") == 0)
 		{
 			return GetImages(request_body, result);
@@ -620,6 +624,22 @@ bool WMSHandler::AddImages(const std::string& request_body, std::shared_ptr<Hand
 	if (!ImageGroupManager::AddImages(request_body))
 	{
 		res_string_body = "add images failed";
+		status_code = http::status::internal_server_error;
+	}
+
+	auto string_body = CreateStringResponse(status_code, result->version(), result->keep_alive(), res_string_body);
+	result->set_string_body(string_body);
+
+	return true;
+}
+
+bool WMSHandler::RemoveImages(const std::string& request_body, std::shared_ptr<HandleResult> result)
+{
+	http::status status_code = http::status::ok;
+	std::string res_string_body = "ok";
+	if (!ImageGroupManager::RemoveImages(request_body))
+	{
+		res_string_body = "remove images failed";
 		status_code = http::status::internal_server_error;
 	}
 

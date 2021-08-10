@@ -28,6 +28,8 @@ public:
 	//{"group":"group1", "images":["c:/1.tif", "c:/2.tif", "c:/3.tif"]}
 	bool AddImages(const std::string& request_body, std::shared_ptr<HandleResult> result);
 
+	bool RemoveImages(const std::string& request_body, std::shared_ptr<HandleResult> result);
+
 	bool GetGroups(std::shared_ptr<HandleResult> result);
 
 	//{"group":"group1"}

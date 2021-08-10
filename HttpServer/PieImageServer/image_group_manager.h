@@ -11,6 +11,8 @@ public:
 
 	static bool AddImages(const std::string& request_body);
 
+	static bool RemoveImages(const std::string& request_body);
+
 	static bool GetImages(const std::string& request_body, std::string& image_paths_json);
 
 	static bool GetImages(const std::string& group, std::list<std::string>& image_paths);
@@ -28,6 +30,8 @@ protected:
 	static void GetAllGroupsInternal(std::list<std::string>& groups);
 
 	static bool AddImagesInternal(const std::string& group, const std::list<std::string>& image_paths);
+
+	static bool RemoveImagesInternal(const std::string& group, const std::list<std::string>& image_paths);
 
 	static bool SetImagesInternal(const std::string& group, const std::list<std::string>& image_paths);
 

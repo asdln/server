@@ -41,6 +41,35 @@ bool ImageGroupManager::AddImages(const std::string& request_body)
 	return false;
 }
 
+bool ImageGroupManager::RemoveImages(const std::string& request_body)
+{
+	neb::CJsonObject oJson(request_body);
+
+	std::string group;
+	std::list<std::string> image_paths;
+	if (oJson.Get("group", group))
+	{
+		neb::CJsonObject images_obj;
+		if (oJson.Get("images", images_obj))
+		{
+			if (images_obj.IsArray())
+			{
+				int array_size = images_obj.GetArraySize();
+				for (int i = 0; i < array_size; i++)
+				{
+					std::string path;
+					images_obj.Get(i, path);
+					image_paths.push_back(path);
+				}
+
+				return RemoveImagesInternal(group, image_paths);
+			}
+		}
+	}
+
+	return false;
+}
+
 bool ImageGroupManager::SetImages(const std::string& request_body)
 {
 	neb::CJsonObject oJson(request_body);
@@ -214,6 +243,66 @@ bool ImageGroupManager::AddImagesInternal(const std::string& group, const std::l
 			for (auto& image_path : image_paths)
 			{
 				itr->second.push_back(image_path);
+			}
+		}
+	}
+
+	return true;
+}
+
+bool ImageGroupManager::RemoveImagesInternal(const std::string& group, const std::list<std::string>& image_paths)
+{
+	std::string key = image_group_prefix_ + group;
+
+	EtcdStorage etcd_storage;
+	if (etcd_storage.IsUseEtcd())
+	{
+		std::string img_paths;
+		etcd_storage.GetValue(key, img_paths);
+
+		//如果可以读取到etcd，则直接读etcd
+		if (!img_paths.empty())
+		{
+			neb::CJsonObject oJson(img_paths);
+			if (oJson.IsArray())
+			{
+				//直接添加，不去掉重复
+				std::list<std::string> images_list;
+				int array_size = oJson.GetArraySize();
+
+				for (int i = 0; i < array_size; i++)
+				{
+					std::string path;
+					oJson.Get(i, path);
+					images_list.emplace_back(path);
+				}
+
+				for (auto& image_path : image_paths)
+				{
+					images_list.remove(image_path);
+				}
+
+				neb::CJsonObject oJson_array;
+				for (auto& path : images_list)
+				{
+					oJson_array.Add(path);
+				}
+
+				return etcd_storage.SetValue(key, oJson_array.ToString(), false);
+			}
+
+			return false;
+		}
+	}
+	else
+	{
+		std::unique_lock<std::shared_mutex> lock(s_mutex_);
+		std::unordered_map<std::string, std::list<std::string>>::iterator itr = s_user_group_image_map_.find(key);
+		if (itr != s_user_group_image_map_.end())
+		{
+			for (auto& image_path : image_paths)
+			{
+				itr->second.remove(image_path);
 			}
 		}
 	}
