@@ -56,9 +56,14 @@ bool CoordinateTransformation::Transform(const Envelop& srcEnv, Envelop& dstEnv)
 	double dxMax = std::max(std::max(dx1, dx2), std::max(dx3, dx4));
 	double dyMax = std::max(std::max(dy1, dy2), std::max(dy3, dy4));
 
-	dstEnv.PutCoords(dxMin, dyMin, dxMax, dyMax);
+	bool res = bRes1 && bRes2 && bRes3 && bRes4;
 
-	return bRes1 && bRes2 && bRes3 && bRes4;
+	if (res)
+	{
+		dstEnv.PutCoords(dxMin, dyMin, dxMax, dyMax);
+	}
+
+	return res;
 }
 
 CoordinateTransformation::~CoordinateTransformation()

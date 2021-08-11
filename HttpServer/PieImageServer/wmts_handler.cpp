@@ -77,6 +77,10 @@ bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, con
 		{
 			return GetGroups(result);
 		}
+		else if (request.compare("GetGroupEnvelope") == 0)
+		{
+			return GetGroupEnvelope(request_body, result);
+		}
 		else if (request.compare("ClearImages") == 0)
 		{
 			return ClearImages(request_body, result);
@@ -120,11 +124,10 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, co
 	bool one_to_one = true;
 
 	std::list<std::string> data_paths;
-	std::string cachekey;
 	Format format = Format::WEBP;
 
 	std::string json_str;
-	if (GetStyleString(url, request_body, json_str, data_paths, cachekey, format))
+	if (GetStyleString(url, request_body, json_str, data_paths, format))
 	{
 		one_to_one = false;
 	}
@@ -151,5 +154,5 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, co
 		GetMd5(md5, amazon_data_style.c_str(), amazon_data_style.size());
 	}
 
-	return GetHandleResult(use_cache, env, 256, 256, epsg_code, json_str, md5, one_to_one, data_paths, cachekey, format, result);
+	return GetHandleResult(use_cache, env, 256, 256, epsg_code, json_str, md5, one_to_one, data_paths, format, result);
 }

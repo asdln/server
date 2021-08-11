@@ -50,6 +50,10 @@ bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, cons
 		{
 			return GetGroups(result);
 		}
+		else if (request.compare("GetGroupEnvelope") == 0)
+		{
+			return GetGroupEnvelope(request_body, result);
+		}
 		else if (request.compare("ClearImages") == 0)
 		{
 			return ClearImages(request_body, result);
@@ -162,7 +166,7 @@ bool WMSHandler::GetDataStyleString(const Url& url, const std::string& request_b
 }
 
 bool WMSHandler::GetStyleString(const Url& url, const std::string& request_body, std::string& style_json
-	, std::list<std::string>& paths, std::string& cachekey, Format& format)
+	, std::list<std::string>& paths, Format& format)
 {
 	std::string layerID;
 	if (url.QueryValue("layer", layerID))
@@ -183,14 +187,19 @@ bool WMSHandler::GetStyleString(const Url& url, const std::string& request_body,
 		}
 
 		std::string style_key;
+		std::string data_style_json;
 		if (url.QueryValue("style", style_key))
 		{
-			url.QueryValue("s3cachekey", cachekey);
 			std::string format_str;
 			url.QueryValue("format", format_str);
 			format = String2Format(format_str);
 
 			if (!style_key.empty() && !StorageManager::GetStyle(style_key, style_json))
+				return false;
+		}
+		else if (url.QueryValue("info", data_style_json))
+		{
+			if (!GetStyleStringFromInfoString(data_style_json, style_json))
 				return false;
 		}
 	}
@@ -203,7 +212,7 @@ bool WMSHandler::GetStyleString(const Url& url, const std::string& request_body,
 }
 
 bool WMSHandler::GetDatasets(int epsg_code, const std::string& data_style_json, bool one_to_one
-	, const std::list<std::string>& data_paths, std::list<std::pair<DatasetPtr, StylePtr>>& datasets, Format& format, std::string cachekey)
+	, const std::list<std::string>& data_paths, std::list<std::pair<DatasetPtr, StylePtr>>& datasets, Format& format)
 {
 	std::vector<std::string> exts;
 	std::list<std::pair<std::string, std::string>> data_info;
@@ -214,10 +223,21 @@ bool WMSHandler::GetDatasets(int epsg_code, const std::string& data_style_json, 
 	}
 	else
 	{
+		std::list<std::string> style_strings;
+		GetStylesFromStyleString(data_style_json, style_strings, exts);
+		std::list<std::string>::iterator itr = style_strings.begin();
 		for (const auto& data_path : data_paths)
 		{
-			data_info.emplace_back(std::make_pair(data_path, data_style_json));
-			exts.emplace_back(cachekey);
+			if (itr == style_strings.end())
+			{
+				data_info.emplace_back(std::make_pair(data_path, style_strings.back()));
+			}
+			else
+			{
+				data_info.emplace_back(std::make_pair(data_path, *itr));
+			}
+
+			itr++;
 		}
 	}
 
@@ -225,7 +245,7 @@ bool WMSHandler::GetDatasets(int epsg_code, const std::string& data_style_json, 
 	for (auto info : data_info)
 	{
 		i++;
-		const std::string& ext = exts[i];
+		const std::string& ext = exts[i < exts.size() ? i : exts.size() - 1];
 		const std::string& path = info.first;
 		std::string style_string = info.second;
 
@@ -282,7 +302,7 @@ bool WMSHandler::GetDatasets(int epsg_code, const std::string& data_style_json, 
 
 bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, int tile_height, int epsg_code
 	, const std::string& data_style, const std::string& amazon_md5, bool one_to_one
-	, const std::list<std::string>& data_paths, std::string cachekey, Format format, std::shared_ptr<HandleResult> result)
+	, const std::list<std::string>& data_paths, Format format, std::shared_ptr<HandleResult> result)
 {
 	BufferPtr buffer = nullptr;
 	std::mutex* p_mutex = nullptr;
@@ -304,10 +324,8 @@ bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, in
 
 	if (buffer == nullptr)
 	{
-		
 		std::list<std::pair<DatasetPtr, StylePtr>> datasets;
-
-		GetDatasets(epsg_code, data_style, one_to_one, data_paths, datasets, format, cachekey);
+		GetDatasets(epsg_code, data_style, one_to_one, data_paths, datasets, format);
 		
 		buffer = TileProcessor::GetCombinedData(datasets, env, tile_width, tile_height, format);
 		if (use_cache && (AmazonS3::GetUseS3() || FileCache::GetUseFileCache()) && buffer != nullptr)
@@ -394,11 +412,10 @@ bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, cons
 	bool one_to_one = true;
 
 	std::list<std::string> data_paths;
-	std::string cachekey;
 	Format format = Format::WEBP;
 
 	std::string json_str;
-	if (GetStyleString(url, request_body, json_str, data_paths, cachekey, format))
+	if (GetStyleString(url, request_body, json_str, data_paths, format))
 	{
 		one_to_one = false;
 
@@ -418,7 +435,7 @@ bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, cons
 // 		GetMd5(md5, amazon_data_style.c_str(), amazon_data_style.size());
 // 	}
 
-	return GetHandleResult(use_cache, env, tile_width, tile_height, epsg_code, json_str, md5, one_to_one, data_paths, cachekey, format, result);
+	return GetHandleResult(use_cache, env, tile_width, tile_height, epsg_code, json_str, md5, one_to_one, data_paths, format, result);
 }
 
 bool WMSHandler::UpdateDataStyle(const std::string& request_body, std::shared_ptr<HandleResult> result)
@@ -617,6 +634,66 @@ bool WMSHandler::GetEnvlope(const std::string& request_body, std::shared_ptr<Han
 	return true;
 }
 
+bool WMSHandler::GetGroupEnvelope(const std::string& request_body, std::shared_ptr<HandleResult> result)
+{
+	std::vector<std::string> groups;
+	GetLayers(request_body, groups);
+
+	if (groups.empty())
+		return false;
+
+	std::vector<std::pair<Envelop, int>> envs;
+
+	for (auto& group : groups)
+	{
+		std::list<std::string> image_paths;
+		ImageGroupManager::GetImages(group, image_paths);
+
+		Envelop group_env;
+		int epsg_group = -9999;
+		for (auto& image_path : image_paths)
+		{
+			std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(image_path));
+			if (tiffDataset != nullptr)
+			{
+				int epsg = tiffDataset->GetEPSG();
+				Envelop env = tiffDataset->GetExtent();
+
+				if (epsg != 4326)
+				{
+					OGRSpatialReference* ptrDSSRef = ResourcePool::GetInstance()->GetSpatialReference(4326);
+					OGRSpatialReference* ptrSrcRef = tiffDataset->GetSpatialReference();
+					if (ptrSrcRef != nullptr)
+					{
+						CoordinateTransformation transformation2(ptrSrcRef, ptrDSSRef);
+						bool res = transformation2.Transform(env, env);
+					}
+				}
+
+				if (group_env.IsEmpty())
+				{
+					epsg_group = epsg;
+					group_env = env;
+				}
+				else if(epsg == epsg_group)
+				{
+					group_env.Union(env);
+				}
+			}
+		}
+
+		envs.emplace_back(std::make_pair(group_env, epsg_group));
+	}
+
+	std::string json;
+	GetGeojson(envs, json);
+
+	auto string_body = CreateStringResponse(http::status::ok, result->version(), result->keep_alive(), json);
+	result->set_string_body(string_body);
+
+	return true;
+}
+
 bool WMSHandler::AddImages(const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
 	http::status status_code = http::status::ok;
@@ -689,6 +766,11 @@ bool WMSHandler::GetImages(const std::string& request_body, std::shared_ptr<Hand
 	{
 		res_string_body = "null";
 		status_code = http::status::internal_server_error;
+	}
+
+	if (res_string_body.empty())
+	{
+		res_string_body = "null";
 	}
 
 	auto string_body = CreateStringResponse(status_code, result->version(), result->keep_alive(), res_string_body);

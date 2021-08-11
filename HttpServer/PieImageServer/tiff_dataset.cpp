@@ -13,7 +13,19 @@ TiffDataset::~TiffDataset()
 bool TiffDataset::Open(const std::string& path)
 {
 	file_path_ = path;
-	poDataset_ = (GDALDataset*)GDALOpen(path.c_str(), GA_ReadOnly);
+
+	std::string s3pre = "s3://";
+	if (strncmp(path.c_str(), s3pre.c_str(), s3pre.length()) == 0)
+	{
+		std::string new_path = path.substr(s3pre.size(), path.size() - s3pre.size());
+		new_path = "/vsis3/" + new_path;
+
+		poDataset_ = (GDALDataset*)GDALOpen(new_path.c_str(), GA_ReadOnly);
+	}
+	else
+	{
+		poDataset_ = (GDALDataset*)GDALOpen(path.c_str(), GA_ReadOnly);
+	}
 
 	if (poDataset_ == nullptr)
 		return false;
@@ -60,7 +72,7 @@ bool TiffDataset::Open(const std::string& path)
 	}
 	else
 	{
-		poSpatialReference_ = (OGRSpatialReference*)OSRNewSpatialReference(poDataset_->GetProjectionRef());
+		poSpatialReference_ = poDataset_->GetSpatialRef()->Clone();
 		poDataset_->GetGeoTransform(dGeoTransform_);
 
 		if (std::string(poDataset_->GetProjectionRef()).empty())

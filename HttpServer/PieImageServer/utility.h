@@ -78,6 +78,8 @@ public:
 		dMaxY_ = dMaxY;
 	}
 
+	bool IsEmpty() {return dMinX_ == 0.0 && dMinY_ == 0.0 && dMaxX_ == 0.0 && dMaxY_ == 0.0;}
+
 	double GetYMax()const { return dMaxY_; }
 
 	double GetXMax()const { return dMaxX_; }
@@ -128,6 +130,20 @@ public:
 		return true;
 	}
 
+	bool Union(const Envelop& other)
+	{
+		double minX, minY, maxX, maxY;
+
+		minX = other.GetXMin() > dMinX_ ? dMinX_ : other.GetXMin();
+		minY = other.GetYMin() > dMinY_ ? dMinY_ : other.GetYMin();
+		maxX = other.GetXMax() < dMaxX_ ? dMaxX_ : other.GetXMax();
+		maxY = other.GetYMax() < dMaxY_ ? dMaxY_ : other.GetYMax();
+
+		this->PutCoords(minX, minY, maxX, maxY);
+
+		return true;
+	}
+
 private:
 
 	double dMinX_ = 0.0;
@@ -156,4 +172,10 @@ void QueryDataInfo(const std::string& request_body, std::list<std::pair<std::str
 
 void GetLayers(const std::string& request_body, std::vector<std::string>& paths);
 
+void GetGroups(const std::string& request_body, std::vector<std::string>& groups);
+
 void GetGeojson(const std::vector<std::pair<Envelop, int>>& envs, std::string& json);
+
+bool GetStyleStringFromInfoString(const std::string& info_string, std::string& styles_string);
+
+void GetStylesFromStyleString(const std::string& styles_string, std::list<std::string>& style_strings, std::vector<std::string>& exts);

@@ -267,6 +267,11 @@ void GetLayers(const std::string& request_body, std::vector<std::string>& paths)
 	}
 }
 
+void GetGroups(const std::string& request_body, std::vector<std::string>& groups)
+{
+	GetLayers(request_body, groups);
+}
+
 void GetGeojson(const std::vector<std::pair<Envelop, int>>& envs, std::string& json)
 {
 	neb::CJsonObject oJson;
@@ -283,4 +288,53 @@ void GetGeojson(const std::vector<std::pair<Envelop, int>>& envs, std::string& j
 	}
 
 	json = oJson.ToString();
+}
+
+bool GetStyleStringFromInfoString(const std::string& info_string, std::string& styles_string)
+{
+	neb::CJsonObject oJson(info_string);
+
+	neb::CJsonObject styles;
+	oJson.Get("info", styles);
+
+	if (styles.IsArray())
+	{
+		styles_string = styles.ToString();
+		return true;
+	}
+
+	return false;
+}
+
+void GetStylesFromStyleString(const std::string& styles_string, std::list<std::string>& style_strings, std::vector<std::string>& exts)
+{
+	neb::CJsonObject oJson(styles_string);
+	if (oJson.IsArray())
+	{
+		int array_size = oJson.GetArraySize();
+		for (int i = 0; i < array_size; i++)
+		{
+			neb::CJsonObject oJson_sub;
+			oJson.Get(i, oJson_sub);
+
+			//std::string style_string;
+			neb::CJsonObject oJson_style;
+			oJson_sub.Get("style", oJson_style);
+			style_strings.emplace_back(oJson_style.ToString());
+			
+			std::string s3cachekey = "";
+			oJson_sub.Get("s3cachekey", s3cachekey);
+			exts.emplace_back(s3cachekey);
+		}
+	}
+	else
+	{
+		neb::CJsonObject oJson_style;
+		oJson.Get("style", oJson_style);
+		style_strings.emplace_back(oJson_style.ToString());
+
+		std::string s3cachekey = "";
+		oJson.Get("s3cachekey", s3cachekey);
+		exts.emplace_back(s3cachekey);
+	}
 }

@@ -45,7 +45,7 @@ bool StorageManager::AddOrUpdateStyle(const std::string& style_json, std::string
 	neb::CJsonObject oJson_style;
 
 	//简单验证一下格式
-	if (!oJson.Get("style", oJson_style))
+	if (!oJson.Get("style", oJson_style) && !oJson.IsArray())
 		return false;
 
 	AddOrUpdateMd5(style_json, md5);

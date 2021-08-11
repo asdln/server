@@ -15,8 +15,10 @@ extern Aws::String g_aws_access_key_id;
 
 std::shared_ptr<Dataset> DatasetFactory::OpenDataset(const std::string& path)
 {
+	std::string s3pre = "s3://";
 	std::string dst = "/vsis3/";
-	if (strncmp(path.c_str(), dst.c_str(), dst.length()) == 0)
+
+	if (strncmp(path.c_str(), dst.c_str(), dst.length()) == 0 || strncmp(path.c_str(), s3pre.c_str(), s3pre.length()) == 0)
 	{
 		//此处获取需要加锁。外面已经加了锁
 		if (g_aws_region.empty())
