@@ -118,6 +118,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>D:\work\boost_1_73_0;D:\work\libjpeg-turbo-master;D:\work\OSGeo4W\include;D:\work\libpng-libpng16;D:\work\libwebp-master\src;D:\work\glog-master\src\windows;D:\work\third-party-install\aws-sdk-cpp\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -137,6 +138,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>D:\work\boost_1_73_0;D:\work\libjpeg-turbo-master;D:\work\libpng-libpng16;D:\work\OSGeo4W\include;D:\work\glog-master\src\windows;D:\work\libwebp-master\src</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -180,6 +182,7 @@
     <ClCompile Include="storage_manager.cpp" />
     <ClCompile Include="style.cpp" />
     <ClCompile Include="style_manager.cpp" />
+    <ClCompile Include="style_map.cpp" />
     <ClCompile Include="tile_processor.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="jpg_compress.cpp" />
@@ -227,6 +230,7 @@
     <ClInclude Include="storage_manager.h" />
     <ClInclude Include="style.h" />
     <ClInclude Include="style_manager.h" />
+    <ClInclude Include="style_map.h" />
     <ClInclude Include="tile_processor.h" />
     <ClInclude Include="jpg_compress.h" />
     <ClInclude Include="min_max_stretch.h" />

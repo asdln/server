@@ -15,7 +15,7 @@ public:
 
 	static bool GetImages(const std::string& request_body, std::string& image_paths_json);
 
-	static bool GetImages(const std::string& group, std::list<std::string>& image_paths);
+	static bool GetImagesFromLocal(const std::string& group, std::list<std::string>& image_paths);
 
 	static bool SetImages(const std::string& request_body);
 
@@ -23,7 +23,11 @@ public:
 
 	static bool GetAllGroup(std::string& groups);
 
-	static const std::string& GetPrefix() { return image_group_prefix_; }
+	static bool AddGroups(const std::string& request_body);
+
+	static bool RemoveGroups(const std::string& request_body);
+
+	static void StartImageGroupWatch();
 
 protected:
 
@@ -40,12 +44,6 @@ protected:
 	static bool ClearImagesInternal(const std::string& group);
 
 public:
-
-	static std::unordered_map<std::string, std::list<std::string>> s_etcd_cache_group_image_map_;
-
-	static std::shared_mutex s_etcd_cache_mutex_;
-
-protected:
 
 	static std::string image_group_prefix_;
 

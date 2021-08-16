@@ -8,6 +8,7 @@
 #include "coordinate_transformation.h"
 #include "file_cache.h"
 #include "etcd_storage.h"
+#include "style_map.h"
 
 bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
@@ -24,7 +25,11 @@ bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, cons
 		}
 		else if (request.compare("UpdateStyle") == 0)
 		{
-			return UpdateStyle(request_body, result);
+			return UpdateStyle(url, request_body, result);
+		}
+		else if (request.compare("GetStyle") == 0)
+		{
+			return GetStyle(url, result);
 		}
 		else if (request.compare("ClearAllDatasets") == 0)
 		{
@@ -49,6 +54,14 @@ bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, cons
 		else if (request.compare("GetGroups") == 0)
 		{
 			return GetGroups(result);
+		}
+		else if (request.compare("RemoveGroups") == 0)
+		{
+			return RemoveGroups(request_body, result);
+		}
+		else if (request.compare("AddGroups") == 0)
+		{
+			return AddGroups(request_body, result);
 		}
 		else if (request.compare("GetGroupEnvelope") == 0)
 		{
@@ -171,20 +184,7 @@ bool WMSHandler::GetStyleString(const Url& url, const std::string& request_body,
 	std::string layerID;
 	if (url.QueryValue("layer", layerID))
 	{
-		if (EtcdStorage::IsUseEtcdV3())
-		{
-			layerID = ImageGroupManager::GetPrefix() + layerID;
-			std::unique_lock<std::shared_mutex> lock(ImageGroupManager::s_etcd_cache_mutex_);
-			std::unordered_map<std::string, std::list<std::string>>::iterator itr = ImageGroupManager::s_etcd_cache_group_image_map_.find(layerID);
-			if (itr != ImageGroupManager::s_etcd_cache_group_image_map_.end())
-			{
-				paths = itr->second;
-			}
-		}
-		else
-		{
-			ImageGroupManager::GetImages(layerID, paths);
-		}
+		ImageGroupManager::GetImagesFromLocal(layerID, paths);
 
 		std::string style_key;
 		std::string data_style_json;
@@ -194,7 +194,11 @@ bool WMSHandler::GetStyleString(const Url& url, const std::string& request_body,
 			url.QueryValue("format", format_str);
 			format = String2Format(format_str);
 
-			if (!style_key.empty() && !StorageManager::GetStyle(style_key, style_json))
+			std::string style_md5;
+			if (!style_key.empty() && !StyleMap::Find(style_key, style_md5))
+				return false;
+
+			if (!StorageManager::GetStyle(style_md5, style_json))
 				return false;
 		}
 		else if (url.QueryValue("info", data_style_json))
@@ -461,16 +465,49 @@ bool WMSHandler::UpdateDataStyle(const std::string& request_body, std::shared_pt
 	return true;
 }
 
-bool WMSHandler::UpdateStyle(const std::string& request_body, std::shared_ptr<HandleResult> result)
+bool WMSHandler::GetStyle(const Url& url, std::shared_ptr<HandleResult> result)
 {
+	std::string style_id;
+	if (!url.QueryValue("style", style_id))
+		return false;
+
+	std::string res_string_body;
+	http::status status_code = http::status::ok;
+
+	std::string style_md5;
+	std::string data_style_json;
+	if (StyleMap::Find(style_id, style_md5) && StorageManager::GetStyle(style_md5, data_style_json))
+	{
+		res_string_body = data_style_json;
+	}
+	else
+	{
+		res_string_body = "GetStyle failed";
+		status_code = http::status::internal_server_error;
+	}
+
+	auto string_body = CreateStringResponse(status_code, result->version(), result->keep_alive(), res_string_body);
+	result->set_string_body(string_body);
+
+	return true;
+}
+
+bool WMSHandler::UpdateStyle(const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
+{
+	std::string style_id;
+	if (!url.QueryValue("style", style_id))
+		return false;
+
 	std::string res_string_body;
 	http::status status_code = http::status::ok;
 
 	std::string md5;
 	if (StorageManager::AddOrUpdateStyle(request_body, md5))
 	{
-		res_string_body = md5;
+		res_string_body = "ok";
 		status_code = http::status::ok;
+
+		StyleMap::Update(style_id, md5);
 	}
 	else
 	{
@@ -647,7 +684,7 @@ bool WMSHandler::GetGroupEnvelope(const std::string& request_body, std::shared_p
 	for (auto& group : groups)
 	{
 		std::list<std::string> image_paths;
-		ImageGroupManager::GetImages(group, image_paths);
+		ImageGroupManager::GetImagesFromLocal(group, image_paths);
 
 		Envelop group_env;
 		int epsg_group = -9999;
@@ -731,6 +768,43 @@ bool WMSHandler::GetGroups(std::shared_ptr<HandleResult> result)
 	http::status status_code = http::status::ok;
 	std::string res_string_body = "ok";
 	if (!ImageGroupManager::GetAllGroup(res_string_body))
+	{
+		res_string_body = "null";
+		status_code = http::status::internal_server_error;
+	}
+
+	if (res_string_body.empty())
+	{
+		res_string_body = "null";
+	}
+
+	auto string_body = CreateStringResponse(status_code, result->version(), result->keep_alive(), res_string_body);
+	result->set_string_body(string_body);
+
+	return true;
+}
+
+bool WMSHandler::RemoveGroups(const std::string& request_body, std::shared_ptr<HandleResult> result)
+{
+	http::status status_code = http::status::ok;
+	std::string res_string_body = "ok";
+	if (!ImageGroupManager::RemoveGroups(request_body))
+	{
+		res_string_body = "null";
+		status_code = http::status::internal_server_error;
+	}
+
+	auto string_body = CreateStringResponse(status_code, result->version(), result->keep_alive(), res_string_body);
+	result->set_string_body(string_body);
+
+	return true;
+}
+
+bool WMSHandler::AddGroups(const std::string& request_body, std::shared_ptr<HandleResult> result)
+{
+	http::status status_code = http::status::ok;
+	std::string res_string_body = "ok";
+	if (!ImageGroupManager::AddGroups(request_body))
 	{
 		res_string_body = "null";
 		status_code = http::status::internal_server_error;

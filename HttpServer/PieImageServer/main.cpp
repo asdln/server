@@ -17,7 +17,7 @@ void sig_handler(int sig)
 {
 	if (sig == SIGINT)
 	{
-		std::cout << "ctrl+c has been keydownd" << std::endl;
+		std::cout << "exit" << std::endl;
 		exit(0);
 	}
 }

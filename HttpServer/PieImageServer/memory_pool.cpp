@@ -27,6 +27,14 @@ unsigned char* MemoryPool::malloc(size_t length)
 	{
 		unsigned char* buffer = new unsigned char[length];
 		//mem_blocks_.insert({ buffer, {buffer, length} });
+
+		//map的insert方法会忽略重复key，而不是替换;如果想要替换，需判断是否存在，erase然后再insert。
+		std::unordered_map<unsigned char*, MemoryBlock>::iterator itr = mem_blocks_.find(buffer);
+		if (itr != mem_blocks_.end())
+		{
+			mem_blocks_.erase(itr);
+		}
+			
 		mem_blocks_.emplace(std::piecewise_construct, std::forward_as_tuple(buffer), std::forward_as_tuple(buffer, length));
 		return buffer;
 	}
@@ -44,6 +52,14 @@ unsigned char* MemoryPool::malloc(size_t length)
 		}
 
 		unsigned char* buffer = new unsigned char[length];
+
+		//map的insert方法会忽略重复key，而不是替换;如果想要替换，需判断是否存在，erase然后再insert。
+		std::unordered_map<unsigned char*, MemoryBlock>::iterator itr = mem_blocks_.find(buffer);
+		if (itr != mem_blocks_.end())
+		{
+			mem_blocks_.erase(itr);
+		}
+
 		mem_blocks_.emplace(std::piecewise_construct, std::forward_as_tuple(buffer), std::forward_as_tuple(buffer, length));
 		return buffer;
 	}

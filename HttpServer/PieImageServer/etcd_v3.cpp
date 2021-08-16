@@ -11,6 +11,7 @@
 
 std::mutex mutex_client;
 etcd::Client* g_client = nullptr;
+
 etcd::Client& GetEtcdClient(const std::string& address)
 {
 	if (g_client != nullptr)
@@ -28,7 +29,9 @@ etcd::Client& GetEtcdClient(const std::string& address)
 	}
 }
 
-EtcdV3::EtcdV3(const std::string address) : address_(address)
+std::string EtcdV3::prefix_ = "/pie_image_server/";
+
+EtcdV3::EtcdV3(const std::string& address) : address_(address)
 {
 
 }
@@ -127,6 +130,33 @@ bool EtcdV3::Delete(const std::string& key)
 	catch (...)
 	{
 		LOG(ERROR) << "Etcd GetValue failed";
+		return false;
+	}
+
+	return true;
+}
+
+bool EtcdV3::GetSubKeys(const std::string& key, std::list<std::string>& sub_keys)
+{
+	try
+	{
+		etcd::Client& etcd = GetEtcdClient(address_);
+		std::string prefix = /*"/test/key"*/prefix_ + key;
+
+		int prefix_size = prefix.size();
+		std::unordered_map<std::string, std::list<std::string>> group_image_map;
+		etcd::Response resp = etcd.ls(prefix).get();
+
+		for (int i = 0; i < resp.keys().size(); ++i)
+		{
+			std::string key_raw = resp.key(i);
+			std::string group = key_raw.substr(prefix_size, key_raw.size() - prefix_size);
+			sub_keys.emplace_back(group);
+		}
+	}
+	catch (...)
+	{
+		LOG(ERROR) << "Etcd GetSubKeys failed";
 		return false;
 	}
 

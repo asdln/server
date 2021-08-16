@@ -40,6 +40,7 @@ SET(SRC_LIST main.cpp
     stretch.cpp
     style.cpp
     style_manager.cpp
+    style_map.cpp
     tiff_dataset.cpp
     tile_processor.cpp
     true_color_style.cpp

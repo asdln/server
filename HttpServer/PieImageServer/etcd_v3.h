@@ -3,12 +3,13 @@
 #ifndef ETCD_V2
 
 #include <string>
+#include <list>
 
 class EtcdV3
 {
 public:
 
-	EtcdV3(const std::string address);
+	EtcdV3(const std::string& address);
 
 	bool SetValue(const std::string& key, const std::string& value, bool set_ttl = true);
 
@@ -16,13 +17,15 @@ public:
 
 	bool Delete(const std::string& key);
 
-	const std::string GetPrefix() { return prefix_; }
+	bool GetSubKeys(const std::string& key, std::list<std::string>& sub_keys);
+
+	static const std::string GetPrefix() { return prefix_; }
 
 protected:
 
-	std::string address_;  //http://127.0.0.1:4001
+	const std::string& address_;  //http://127.0.0.1:4001
 
-    std::string prefix_ = "/pie_image_server/";
+    static std::string prefix_;
 };
 
 #endif

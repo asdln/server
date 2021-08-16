@@ -14,7 +14,9 @@ public:
 
 	bool UpdateDataStyle(const std::string& request_body, std::shared_ptr<HandleResult> result);
 
-	bool UpdateStyle(const std::string& request_body, std::shared_ptr<HandleResult> result);
+	bool GetStyle(const Url& url, std::shared_ptr<HandleResult> result);
+
+	bool UpdateStyle(const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result);
 
 	bool ClearAllDatasets(const std::string& request_body, std::shared_ptr<HandleResult> result);
 
@@ -32,6 +34,10 @@ public:
 	bool AddImages(const std::string& request_body, std::shared_ptr<HandleResult> result);
 
 	bool RemoveImages(const std::string& request_body, std::shared_ptr<HandleResult> result);
+
+	bool RemoveGroups(const std::string& request_body, std::shared_ptr<HandleResult> result);
+
+	bool AddGroups(const std::string& request_body, std::shared_ptr<HandleResult> result);
 
 	bool GetGroups(std::shared_ptr<HandleResult> result);
 

@@ -51,7 +51,11 @@ bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, con
 		}
 		else if (request.compare("UpdateStyle") == 0)
 		{
-			return UpdateStyle(request_body, result);
+			return UpdateStyle(url, request_body, result);
+		}
+		else if (request.compare("GetStyle") == 0)
+		{
+			return GetStyle(url, result);
 		}
 		else if (request.compare("ClearAllDatasets") == 0)
 		{
@@ -76,6 +80,14 @@ bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, con
 		else if (request.compare("GetGroups") == 0)
 		{
 			return GetGroups(result);
+		}
+		else if (request.compare("RemoveGroups") == 0)
+		{
+			return RemoveGroups(request_body, result);
+		}
+		else if (request.compare("AddGroups") == 0)
+		{
+			return AddGroups(request_body, result);
 		}
 		else if (request.compare("GetGroupEnvelope") == 0)
 		{
