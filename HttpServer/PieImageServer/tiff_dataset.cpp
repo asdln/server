@@ -72,7 +72,11 @@ bool TiffDataset::Open(const std::string& path)
 	}
 	else
 	{
-		poSpatialReference_ = poDataset_->GetSpatialRef()->Clone();
+		if (poDataset_->GetSpatialRef() != nullptr)
+		{
+			poSpatialReference_ = poDataset_->GetSpatialRef()->Clone();
+		}
+		
 		poDataset_->GetGeoTransform(dGeoTransform_);
 
 		if (std::string(poDataset_->GetProjectionRef()).empty())
