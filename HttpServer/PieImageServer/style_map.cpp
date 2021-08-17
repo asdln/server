@@ -116,8 +116,9 @@ void StyleMap::Update(const std::string& key, const std::string& value)
 		if (itr != style_map_.end())
 		{
 			style_map_.erase(itr);
-			style_map_.emplace(key, value);
 		}
+
+		style_map_.emplace(style_map_prefix_ + key, value);
 	}
 }
 
