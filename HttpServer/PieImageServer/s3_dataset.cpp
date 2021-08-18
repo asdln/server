@@ -169,11 +169,13 @@ void S3Dataset::SetS3CacheKey(const std::string& s3cachekey)
 {
 	if (s3cachekey.empty())
 	{
+		switch_ = false;
 		s3_bucket_name_.clear();
 		s3_key_name_.clear();
 		return;
 	}
 
+	switch_ = true;
 	std::string s3cachekey_temp = s3cachekey;
 
 	//去掉最前面的/和最后面的/	
@@ -222,7 +224,22 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 {
 	int level = 1;
 	double scale = std::min((double)width / bufferWidth, (double)height / bufferHeight);
-	if (scale <= 2.0 || s3_bucket_name_.empty())
+
+	//如果没有金字塔，隔一段时间再判断一下
+	if (!s3_bucket_name_.empty() && switch_ == false)
+	{
+		boost::posix_time::ptime time_now = boost::posix_time::microsec_clock::universal_time();
+		boost::posix_time::millisec_posix_time_system_config::time_duration_type time_elapse = time_now - time_for_change_;
+
+		//20秒
+		if (time_elapse.total_seconds() >= 20)
+		{
+			switch_ = true;
+			LOG(ERROR) << "change s3 pyramid check status to true";
+		}
+	}
+
+	if (scale <= 1.0 || s3_bucket_name_.empty() || switch_ == false)
 	{
 		//std::cout << "<<tiffdataset_read";
 		return TiffDataset::Read(nx, ny, width, height, pData, bufferWidth, bufferHeight
@@ -281,9 +298,24 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 				}
 
 				LOG(ERROR) << "error: can not load s3 tile data, use origin tiff instead";
+				s3_failed_count_++;
+
+				//连续4次读取不成功，则认为没有s3金字塔
+				if (s3_failed_count_ >= 4)
+				{
+					s3_failed_count_ = 0;
+					switch_ = false;
+					time_for_change_ = boost::posix_time::microsec_clock::universal_time();
+					LOG(ERROR) << "change s3 pyramid check status to false";
+				}
 
 				return TiffDataset::Read(nx, ny, width, height, pData, bufferWidth, bufferHeight
 					, dataType, nBandCount, pBandMap, pixSpace, lineSapce, bandSpace, psExtraArg);
+			}
+			else
+			{
+				//有一次读取成功了，则重新计数
+				s3_failed_count_ = 0;
 			}
 
 			buffers.emplace_back(buffer);

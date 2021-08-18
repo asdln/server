@@ -6,22 +6,22 @@
 #include <aws/core/Aws.h>
 #include <aws/s3/S3Client.h>
 
-class AmazonS3
+class S3Cache
 {
 
 public:
 
 	static void init();
 
-	static bool GetUseS3() { return s_use_s3_; }
+	static bool GetUseS3Cache() { return s_use_s3_; }
 
-	static void SetUseS3(bool use_s3) { s_use_s3_ = use_s3; }
+	static void SetUseS3Cache(bool use_s3) { s_use_s3_ = use_s3; }
 
 	static bool PutS3Object(const std::string& obj_name, BufferPtr buffer);
 
 	static BufferPtr GetS3Object(const std::string& obj_name);
 
-	static void SetBucketName(const std::string& s3cachekey);
+	static void SetBucketName(const std::string& bucket_name);
 
 	static bool CreateBucket();
 

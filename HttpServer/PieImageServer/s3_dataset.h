@@ -1,6 +1,9 @@
 #pragma once
 
 #include "tiff_dataset.h"
+
+#include<boost/date_time/posix_time/posix_time.hpp>
+
 #include <aws/core/Aws.h>
 #include <aws/s3/S3Client.h>
 
@@ -28,4 +31,10 @@ protected:
 	Aws::String s3_bucket_name_;
 
 	Aws::String s3_key_name_;
+
+	bool switch_ = false;
+
+	int s3_failed_count_ = 0;
+
+	boost::posix_time::ptime time_for_change_ = boost::posix_time::microsec_clock::universal_time();
 };

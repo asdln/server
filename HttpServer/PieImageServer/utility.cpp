@@ -212,9 +212,8 @@ Format String2Format(const std::string& format_string);
 
 void QueryDataInfo(const std::string& request_body
 	, std::list<std::pair<std::string, std::string>>& data_info
-	, std::vector<std::string>& exts, Format& format)
+	, Format& format)
 {
-	exts.reserve(data_info.size());
 	neb::CJsonObject oJson_info;
 	neb::CJsonObject oJson(request_body);
 	std::string format_string;
@@ -229,8 +228,6 @@ void QueryDataInfo(const std::string& request_body
 				std::string path = "";
 				std::string style_string = "";
 				neb::CJsonObject oJson_style;
-				std::string s3cachekey = "";
-				oJson_dataset_info.Get("s3cachekey", s3cachekey);
 
 				if (oJson_dataset_info.Get("path", path))
 				{
@@ -241,7 +238,6 @@ void QueryDataInfo(const std::string& request_body
 					}
 
 					data_info.emplace_back(std::make_pair(path, style_string));
-					exts.emplace_back(s3cachekey);
 				}
 			}
 		}
@@ -306,7 +302,7 @@ bool GetStyleStringFromInfoString(const std::string& info_string, std::string& s
 	return false;
 }
 
-void GetStylesFromStyleString(const std::string& styles_string, std::list<std::string>& style_strings, std::vector<std::string>& exts)
+void GetStylesFromStyleString(const std::string& styles_string, std::list<std::string>& style_strings)
 {
 	neb::CJsonObject oJson(styles_string);
 	if (oJson.IsArray())
@@ -321,10 +317,6 @@ void GetStylesFromStyleString(const std::string& styles_string, std::list<std::s
 			neb::CJsonObject oJson_style;
 			oJson_sub.Get("style", oJson_style);
 			style_strings.emplace_back(oJson_style.ToString());
-			
-			std::string s3cachekey = "";
-			oJson_sub.Get("s3cachekey", s3cachekey);
-			exts.emplace_back(s3cachekey);
 		}
 	}
 	else
@@ -332,9 +324,5 @@ void GetStylesFromStyleString(const std::string& styles_string, std::list<std::s
 		neb::CJsonObject oJson_style;
 		oJson.Get("style", oJson_style);
 		style_strings.emplace_back(oJson_style.ToString());
-
-		std::string s3cachekey = "";
-		oJson.Get("s3cachekey", s3cachekey);
-		exts.emplace_back(s3cachekey);
 	}
 }

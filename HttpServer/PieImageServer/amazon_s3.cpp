@@ -6,11 +6,11 @@
 #include <aws/core/utils/stream/PreallocatedStreamBuf.h>
 #include "png_buffer.h"
 
-bool AmazonS3::s_use_s3_ = false;
+bool S3Cache::s_use_s3_ = false;
 
-Aws::String AmazonS3::s3_bucket_name_;
+Aws::String S3Cache::s3_bucket_name_;
 
-Aws::String AmazonS3::s3_key_name_;
+Aws::String S3Cache::s3_key_name_;
 
 extern Aws::String g_aws_region;
 
@@ -18,9 +18,9 @@ extern Aws::String g_aws_secret_access_key;
 
 extern Aws::String g_aws_access_key_id;
 
-Aws::S3::S3Client* AmazonS3::s3_client_ = nullptr;
+Aws::S3::S3Client* S3Cache::s3_client_ = nullptr;
 
-void AmazonS3::init()
+void S3Cache::init()
 {
 	if (g_aws_region.empty())
 	{
@@ -50,29 +50,29 @@ void AmazonS3::init()
 	s3_client_ = new Aws::S3::S3Client(cred, config);
 }
 
-void AmazonS3::SetBucketName(const std::string& s3cachekey)
+void S3Cache::SetBucketName(const std::string& bucket_name)
 {
-	if (s3cachekey.empty())
+	if (bucket_name.empty())
 	{
 		s3_bucket_name_.clear();
 		s3_key_name_.clear();
 		return;
 	}
 
-	std::string s3cachekey_temp = s3cachekey;
+	std::string s3cachekey_temp = bucket_name;
 
 	//去掉最前面的/和最后面的/	
 	{
-		int pos = s3cachekey.find('/');
+		int pos = bucket_name.find('/');
 		if (pos == 0)
 		{
-			s3cachekey_temp = s3cachekey.substr(1, s3cachekey.size() - 1);
+			s3cachekey_temp = bucket_name.substr(1, bucket_name.size() - 1);
 		}
 
-		int rpos = s3cachekey.rfind('/');
-		if (rpos == s3cachekey.size() - 1)
+		int rpos = bucket_name.rfind('/');
+		if (rpos == bucket_name.size() - 1)
 		{
-			s3cachekey_temp = s3cachekey.substr(0, s3cachekey.size() - 1);
+			s3cachekey_temp = bucket_name.substr(0, bucket_name.size() - 1);
 		}
 	}
 
@@ -92,7 +92,7 @@ void AmazonS3::SetBucketName(const std::string& s3cachekey)
 	}
 }
 
-bool AmazonS3::CreateBucket()
+bool S3Cache::CreateBucket()
 {
 	Aws::S3::Model::CreateBucketRequest request;
 	request.SetBucket(s3_bucket_name_);
@@ -118,7 +118,7 @@ bool AmazonS3::CreateBucket()
 	return true;
 }
 
-bool AmazonS3::PutS3Object(const std::string& obj_name, BufferPtr buffer)
+bool S3Cache::PutS3Object(const std::string& obj_name, BufferPtr buffer)
 {
 	Aws::String obj_key = Aws::String(obj_name.c_str(), obj_name.size());
 	Aws::S3::Model::PutObjectRequest request;
@@ -151,7 +151,7 @@ bool AmazonS3::PutS3Object(const std::string& obj_name, BufferPtr buffer)
 	return true;
 }
 
-BufferPtr AmazonS3::GetS3Object(const std::string& obj_name)
+BufferPtr S3Cache::GetS3Object(const std::string& obj_name)
 {
 	Aws::S3::Model::GetObjectRequest object_request;
 	object_request.SetBucket(s3_bucket_name_);

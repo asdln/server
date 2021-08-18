@@ -190,17 +190,16 @@ Application::Application(int argc, char* argv[])
 		.help("gdal maximum cache size")
 		.default_value(std::string("1000"));
 
-	program.add_argument("--use_amazon_s3")
-		.help("use amazon s3 as image cache")
-		.default_value(false)
-		.implicit_value(true);
-
 	program.add_argument("--file_cache_dir")
 		.help("file cache dir")
 		.default_value(std::string(""));
 
-	program.add_argument("--amazon_s3_bucket_name")
+	program.add_argument("--s3_cache_dir")
 		.help("amazon s3 bucket name for caching")
+		.default_value(std::string(""));
+
+	program.add_argument("--s3_pyramid_dir")
+		.help("s3 pyramid directory, e.g. bucket_name/subkey_name")
 		.default_value(std::string(""));
 
     program.add_argument("--use_etcd_v2")
@@ -246,25 +245,16 @@ Application::Application(int argc, char* argv[])
     EtcdStorage::host_v2_ = program.get<std::string>("--etcd_v2_host");
     EtcdStorage::port_v2_ = program.get<std::string>("--etcd_v2_port");
 
-	bool use_s3 = program.get<bool>("--use_amazon_s3");
 	std::string file_cache_dir = program.get<std::string>("--file_cache_dir");
-
-	AmazonS3::SetUseS3(use_s3);
-	std::string bucket_name;
-	if (use_s3)
+	
+	std::string bucket_name = program.get<std::string>("--s3_cache_dir");
+	if (!bucket_name.empty())
 	{
-		bucket_name = program.get<std::string>("--amazon_s3_bucket_name");
-		AmazonS3::SetBucketName(bucket_name);
+		S3Cache::SetUseS3Cache(true);
+		S3Cache::SetBucketName(bucket_name);
+		S3Cache::init();
 
-		if (bucket_name.empty())
-		{
-			LOG(ERROR) << "amazon s3 bucket name is empty, use --amazon_s3_bucket_name flag";
-			exit(0);
-		}
-
-		AmazonS3::init();
-
-		if (!AmazonS3::CreateBucket())
+		if (!S3Cache::CreateBucket())
 		{
 			exit(0);
 		}
@@ -275,6 +265,10 @@ Application::Application(int argc, char* argv[])
 		FileCache::SetUseFileCache(true);
 		FileCache::SetSavePath(file_cache_dir);
 	}
+
+	extern std::string g_s3_pyramid_dir;
+	g_s3_pyramid_dir = program.get<std::string>("--s3_pyramid_dir");
+
 
 #ifndef ETCD_V2
 
@@ -386,15 +380,19 @@ Application::Application(int argc, char* argv[])
 		}
 	}
 
-	LOG(INFO) << "use_amazon_s3 : " << use_s3;
-	if (use_s3)
+	if (!bucket_name.empty())
 	{
-		LOG(INFO) << "amazon s3 bucket name: " << bucket_name;
+		LOG(INFO) << "s3 cache dir: " << bucket_name;
 	}
 
 	if (!file_cache_dir.empty())
 	{
 		LOG(INFO) << "file cache directory: " << file_cache_dir;
+	}
+
+	if (!g_s3_pyramid_dir.empty())
+	{
+		LOG(INFO) << "s3 pyramid directory: " << g_s3_pyramid_dir;
 	}
 
 	InitBandMap();

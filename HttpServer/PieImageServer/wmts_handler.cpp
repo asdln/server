@@ -151,7 +151,7 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, co
 	bool use_cache = QueryIsUseCache(url);
 
 	std::string md5;
-	if (use_cache && (AmazonS3::GetUseS3() || FileCache::GetUseFileCache()))
+	if (use_cache && (S3Cache::GetUseS3Cache() || FileCache::GetUseFileCache()))
 	{
 		std::string amazon_data_style = json_str + std::to_string(nx) + std::to_string(ny) + std::to_string(nz) + std::to_string(epsg_code);
 		if (one_to_one == false)

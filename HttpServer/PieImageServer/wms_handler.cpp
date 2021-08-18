@@ -10,6 +10,8 @@
 #include "etcd_storage.h"
 #include "style_map.h"
 
+std::string g_s3_pyramid_dir;
+
 bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
 	std::string request;
@@ -218,17 +220,16 @@ bool WMSHandler::GetStyleString(const Url& url, const std::string& request_body,
 bool WMSHandler::GetDatasets(int epsg_code, const std::string& data_style_json, bool one_to_one
 	, const std::list<std::string>& data_paths, std::list<std::pair<DatasetPtr, StylePtr>>& datasets, Format& format)
 {
-	std::vector<std::string> exts;
 	std::list<std::pair<std::string, std::string>> data_info;
 
 	if (one_to_one)
 	{
-		QueryDataInfo(data_style_json, data_info, exts, format);
+		QueryDataInfo(data_style_json, data_info, format);
 	}
 	else
 	{
 		std::list<std::string> style_strings;
-		GetStylesFromStyleString(data_style_json, style_strings, exts);
+		GetStylesFromStyleString(data_style_json, style_strings);
 		std::list<std::string>::iterator itr = style_strings.begin();
 		for (const auto& data_path : data_paths)
 		{
@@ -245,11 +246,8 @@ bool WMSHandler::GetDatasets(int epsg_code, const std::string& data_style_json, 
 		}
 	}
 
-	int i = -1;
 	for (auto info : data_info)
 	{
-		i++;
-		const std::string& ext = exts[i < exts.size() ? i : exts.size() - 1];
 		const std::string& path = info.first;
 		std::string style_string = info.second;
 
@@ -258,9 +256,9 @@ bool WMSHandler::GetDatasets(int epsg_code, const std::string& data_style_json, 
 			continue;
 
 		std::shared_ptr<S3Dataset> s3Dataset = std::dynamic_pointer_cast<S3Dataset>(tiffDataset);
-		if (s3Dataset != nullptr)
+		if (s3Dataset != nullptr && !g_s3_pyramid_dir.empty())
 		{
-			s3Dataset->SetS3CacheKey(ext);
+			s3Dataset->SetS3CacheKey(g_s3_pyramid_dir);
 		}
 
 		StylePtr style_clone = StyleManager::GetStyle(style_string, tiffDataset);
@@ -310,15 +308,15 @@ bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, in
 {
 	BufferPtr buffer = nullptr;
 	std::mutex* p_mutex = nullptr;
-	if (use_cache && (AmazonS3::GetUseS3() || FileCache::GetUseFileCache()))
+	if (use_cache && (S3Cache::GetUseS3Cache() || FileCache::GetUseFileCache()))
 	{
         //加锁，因为有可能出现多个请求写同一个图片的情况
 		p_mutex = ResourcePool::GetInstance()->AcquireCacheMutex(amazon_md5);
 		p_mutex->lock();
 
-		if (AmazonS3::GetUseS3())
+		if (S3Cache::GetUseS3Cache())
 		{
-			buffer = AmazonS3::GetS3Object(amazon_md5);
+			buffer = S3Cache::GetS3Object(amazon_md5);
 		}
 		else
 		{
@@ -332,11 +330,11 @@ bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, in
 		GetDatasets(epsg_code, data_style, one_to_one, data_paths, datasets, format);
 		
 		buffer = TileProcessor::GetCombinedData(datasets, env, tile_width, tile_height, format);
-		if (use_cache && (AmazonS3::GetUseS3() || FileCache::GetUseFileCache()) && buffer != nullptr)
+		if (use_cache && (S3Cache::GetUseS3Cache() || FileCache::GetUseFileCache()) && buffer != nullptr)
 		{
-			if (AmazonS3::GetUseS3())
+			if (S3Cache::GetUseS3Cache())
 			{
-				AmazonS3::PutS3Object(amazon_md5, buffer);
+				S3Cache::PutS3Object(amazon_md5, buffer);
 			}
 			else
 			{
@@ -345,7 +343,7 @@ bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, in
 		}
 	}
 
-	if (use_cache && (AmazonS3::GetUseS3() || FileCache::GetUseFileCache()))
+	if (use_cache && (S3Cache::GetUseS3Cache() || FileCache::GetUseFileCache()))
 	{
 		p_mutex->unlock();
 		ResourcePool::GetInstance()->ReleaseCacheMutex(amazon_md5);
