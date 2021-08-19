@@ -28,14 +28,14 @@ char const TAG[] = "LAMBDA_ALLOC";
 
 
 bool AWSS3GetObject(const Aws::String& fromBucket , const Aws::String& objectKey,
-	const Aws::S3::S3Client& s3_client, std::vector<unsigned char>& buffer)
+	Aws::S3::S3Client* s3_client, std::vector<unsigned char>& buffer)
 {
 	Aws::S3::Model::GetObjectRequest object_request;
 	object_request.SetBucket(fromBucket);
 	object_request.SetKey(objectKey);
 
 	Aws::S3::Model::GetObjectOutcome get_object_outcome =
-		s3_client.GetObject(object_request);
+		s3_client->GetObject(object_request);
 
 	if (get_object_outcome.IsSuccess())
 	{
@@ -56,12 +56,14 @@ bool AWSS3GetObject(const Aws::String& fromBucket , const Aws::String& objectKey
 		std::cout << "Error: GetObject: " <<
 			err.GetExceptionName() << ": " << err.GetMessage() << std::endl;
 
+		std::cout << "bucket: " << fromBucket << "/t" << "key: " << objectKey << std::endl;
+
 		return false;
 	}
 }
 
 bool AWSS3PutObject(const Aws::String& bucketName, const Aws::String& objectName
-	, const Aws::S3::S3Client& s3_client, std::vector<unsigned char>& buffer)
+	, Aws::S3::S3Client* s3_client, std::vector<unsigned char>& buffer)
 {
 	Aws::S3::Model::PutObjectRequest request;
 	request.SetBucket(bucketName);
@@ -74,7 +76,7 @@ bool AWSS3PutObject(const Aws::String& bucketName, const Aws::String& objectName
 	request.SetBody(sbody);
 
 	Aws::S3::Model::PutObjectOutcome outcome =
-		s3_client.PutObject(request);
+		s3_client->PutObject(request);
 
 	if (outcome.IsSuccess()) {
 
@@ -86,6 +88,8 @@ bool AWSS3PutObject(const Aws::String& bucketName, const Aws::String& objectName
 	{
 		std::cout << "Error: PutObject: " <<
 			outcome.GetError().GetMessage() << std::endl;
+
+		std::cout << "bucket: " << bucketName << "/t" << "key: " << objectName << std::endl;
 
 		return false;
 	}
@@ -289,7 +293,7 @@ TaskRecord::~TaskRecord()
 #endif
 
 	if (AWSS3PutObject(save_bucket_name_, save_key_name_ + ".pyra/info.json"
-		, s3_client, buffer))
+		, &s3_client, buffer))
 	{
 		std::cout << "json saved:  " << save_key_name_ + ".pyra/info.json" << std::endl;
 	}
@@ -332,8 +336,6 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 
 	temp_str = std::string(temp_str.c_str() + 7, temp_str.size() - 7);
 	size_t pos = temp_str.find("/");
-
-	src_bucket_name_ = Aws::String(temp_str.c_str(), pos);
 
 	size_t rpos = temp_str.rfind('/');
 	if (rpos != std::string::npos)
@@ -496,7 +498,7 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 
 	std::vector<unsigned char> buffer;
 	if (force_ == 0 && AWSS3GetObject(save_bucket_name_, save_key_name_ + ".pyra/info.json"
-		, s3_client, buffer))
+		, &s3_client, buffer))
 	{
 		std::string string_json(buffer.begin(), buffer.end());
 		FromJson(string_json);
@@ -669,7 +671,7 @@ void TaskRecord::ReleaseDataset()
 }
 
 void SaveTileData(const std::string& path, const Aws::String& save_bucket_name
-	, const Aws::String& obj_key, const Aws::S3::S3Client& s3_client
+	, const Aws::String& obj_key, Aws::S3::S3Client* s3_client
 	, size_t x, size_t y, size_t z, std::vector<unsigned char>& buffer)
 {
 
@@ -715,7 +717,7 @@ void SaveTileData(const std::string& path, const Aws::String& save_bucket_name
 }
 
 bool LoadTileData(const std::string& path, const Aws::String& bucket_name
-	, const Aws::String& obj_key, const Aws::S3::S3Client& s3_client, size_t x
+	, const Aws::String& obj_key, Aws::S3::S3Client* s3_client, size_t x
 	, size_t y, size_t z, std::vector<unsigned char>& buffer)
 {
 #ifdef USE_FILE
@@ -928,14 +930,13 @@ void ResampleLinear(unsigned char* buffer1, unsigned char* buffer2
 	}
 }
 
-void DoTask(TaskRecord* task_record, const Aws::S3::S3Client& s3_client)
+void DoTask(TaskRecord* task_record, Aws::S3::S3Client* s3_client)
 {
 	size_t tile_records_count = task_record->GetTileRecordsCount();
 	int band_count = task_record->GetBandCount();
 	GDALDataType data_type = task_record->GetDataType();
 	std::string path = task_record->GetPath();
 	Aws::String save_obj_key = task_record->GetSaveKey();
-	Aws::String src_bucket = task_record->GetSrcBucket();
 	Aws::String save_bucket = task_record->GetSaveBucket();
 
 	std::vector<int> band_map;
@@ -1087,22 +1088,22 @@ void DoTask(TaskRecord* task_record, const Aws::S3::S3Client& s3_client)
 						
 						if (arrange & 0x08)
 						{
-							LoadTileData(path, src_bucket, save_obj_key, s3_client, tile_record->col_ * 2, tile_record->row_ * 2, tile_record->z_ - 1, buffer1);
+							LoadTileData(path, save_bucket, save_obj_key, s3_client, tile_record->col_ * 2, tile_record->row_ * 2, tile_record->z_ - 1, buffer1);
 						}
 
 						if (arrange & 0x04)
 						{
-							LoadTileData(path, src_bucket, save_obj_key, s3_client, tile_record->col_ * 2 + 1, tile_record->row_ * 2, tile_record->z_ - 1, buffer2);
+							LoadTileData(path, save_bucket, save_obj_key, s3_client, tile_record->col_ * 2 + 1, tile_record->row_ * 2, tile_record->z_ - 1, buffer2);
 						}
 
 						if (arrange & 0x02)
 						{
-							LoadTileData(path, src_bucket, save_obj_key, s3_client, tile_record->col_ * 2, tile_record->row_ * 2 + 1, tile_record->z_ - 1, buffer3);
+							LoadTileData(path, save_bucket, save_obj_key, s3_client, tile_record->col_ * 2, tile_record->row_ * 2 + 1, tile_record->z_ - 1, buffer3);
 						}
 
 						if (arrange & 0x01)
 						{
-							LoadTileData(path, src_bucket, save_obj_key, s3_client, tile_record->col_ * 2 + 1, tile_record->row_ * 2 + 1, tile_record->z_ - 1, buffer4);
+							LoadTileData(path, save_bucket, save_obj_key, s3_client, tile_record->col_ * 2 + 1, tile_record->row_ * 2 + 1, tile_record->z_ - 1, buffer4);
 						}
 
 						//ResampleNearest(buffer1.data(), buffer2.data(), buffer3.data(), buffer4.data(), buffer.data(), pixel_space);
@@ -1137,6 +1138,10 @@ void ProcessLoop(TaskRecord* task_record, int& status)
 	Aws::String aws_access_key_id = task_record->GetAccessKeyID();
 	const Aws::String& region = task_record->GetRegion();
 
+	Aws::S3::S3Client* s3_client = nullptr;
+
+#ifndef USE_FILE
+
 	Aws::Client::ClientConfiguration config;
 	if (!region.empty())
 	{
@@ -1150,12 +1155,16 @@ void ProcessLoop(TaskRecord* task_record, int& status)
 #ifdef USE_LAMBDA
 
 	auto credentialsProvider = Aws::MakeShared<Aws::Auth::EnvironmentAWSCredentialsProvider>(TAG);
-	Aws::S3::S3Client s3_client(credentialsProvider, config);
+	s3_client = new Aws::S3::S3Client(credentialsProvider, config);
+	//Aws::S3::S3Client s3_client(credentialsProvider, config);
 
 #else
 
 	Aws::Auth::AWSCredentials cred(aws_access_key_id, aws_secret_access_key);
-	Aws::S3::S3Client s3_client(cred, config);
+	s3_client = new Aws::S3::S3Client(cred, config);
+	//Aws::S3::S3Client s3_client(cred, config);
+
+#endif
 
 #endif
 
@@ -1178,4 +1187,9 @@ void ProcessLoop(TaskRecord* task_record, int& status)
 	}
 
 	status = code_success;
+
+	if (s3_client != nullptr)
+	{
+		delete s3_client;
+	}
 }

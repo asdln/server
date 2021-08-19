@@ -12,10 +12,13 @@
 #include "task_record.h"
 #include <thread>
 #include <fstream>
+#ifndef USE_FILE
 #include <aws/lambda-runtime/runtime.h>
+using namespace aws::lambda_runtime;
+#endif
+
 #include "CJsonObject.hpp"
 
-using namespace aws::lambda_runtime;
 using namespace std;
 
 //  "/vsis3/pie-engine-test/NN/DEM-Gloable32.tif"
@@ -108,6 +111,7 @@ int make_tile(const std::string& path, int dataset_count, int thread_count
     return code;
 }
 
+#ifndef USE_FILE
 static invocation_response my_handler(invocation_request const& req)
 {
 	std::string json = req.payload;
@@ -162,12 +166,18 @@ static invocation_response my_handler(invocation_request const& req)
 			"application/json" /*MIME type*/);
 	}
 }
+#endif
+
 
 
 int main(int argc, char* argv[])
 {
+
+#ifndef USE_FILE
 	run_handler(my_handler);
 	return 0;
+#else
+
 
     if (0)
     {
@@ -227,11 +237,11 @@ int main(int argc, char* argv[])
 			, aws_s3_endpoint, save_bucket_name, time_limit_sec, force);
     }
 
-	if (0)
+	if (1)
 	{
-		return make_tile("/vsis3/pie-engine-test/NN/mosaic.tif", 4, 4, "cn-northwest-1"
+		return make_tile("D:/test/a/GF1_PMS2_E108.2_N27.4_20201108_L1A0005171705-PAN2_ortho_fuse.img", 4, 4, "cn-northwest-1"
 			, "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ"
-			, "s3.cn-northwest-1.amazonaws.com.cn", "/pie-engine-test/NN/YY/TT/", 15, 0);
+			, "s3.cn-northwest-1.amazonaws.com.cn", "D:/test/a/", 15, 0);
 	}
     
 	if(0)
@@ -248,4 +258,6 @@ int main(int argc, char* argv[])
 
 		Aws::ShutdownAPI(options);
     }
+
+#endif
 }

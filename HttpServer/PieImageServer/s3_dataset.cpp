@@ -18,7 +18,7 @@ Aws::String g_aws_secret_access_key;
 
 Aws::String g_aws_access_key_id;
 
-bool AWSS3GetObject(const Aws::S3::S3Client& s3_client, const Aws::String& fromBucket, const Aws::String& objectKey
+bool AWSS3GetObject(Aws::S3::S3Client* s3_client, const Aws::String& fromBucket, const Aws::String& objectKey
 	, char** buffer, MemoryPool* pool)
 {
 	Aws::S3::Model::GetObjectRequest object_request;
@@ -26,7 +26,7 @@ bool AWSS3GetObject(const Aws::S3::S3Client& s3_client, const Aws::String& fromB
 	object_request.SetKey(objectKey);
 
 	Aws::S3::Model::GetObjectOutcome get_object_outcome =
-		s3_client.GetObject(object_request);
+		s3_client->GetObject(object_request);
 
 	if (get_object_outcome.IsSuccess())
 	{
@@ -49,7 +49,7 @@ bool AWSS3GetObject(const Aws::S3::S3Client& s3_client, const Aws::String& fromB
 	}
 }
 
-bool LoadTileData(const Aws::S3::S3Client& s3_client, const std::string& path
+bool LoadTileData(Aws::S3::S3Client* s3_client, const std::string& path
 	, const Aws::String& src_bucket_name, const Aws::String& src_key_name
 	, size_t x, size_t y, size_t z, char** buffer, MemoryPool* pool)
 {
@@ -67,9 +67,8 @@ bool LoadTileData(const Aws::S3::S3Client& s3_client, const std::string& path
 
 	inFile2.seekg(0, std::ios::beg);
 
-	//char* buffer2 = new char[FileSize2];
-	buffer.resize(FileSize2);
-	inFile2.read((char*)buffer.data(), FileSize2);
+	*buffer = new char[FileSize2];
+	inFile2.read(*buffer, FileSize2);
 	inFile2.close();
 
 	return true;
@@ -129,6 +128,9 @@ bool S3Dataset::Open(const std::string& path)
 
 	type_bytes_ = GetDataTypeBytes(GetDataType());
 
+#ifndef USE_FILE
+
+
 	try
 	{
 		Aws::Client::ClientConfiguration config;
@@ -141,13 +143,15 @@ bool S3Dataset::Open(const std::string& path)
 		config.region = g_aws_region;
 
 		Aws::Auth::AWSCredentials cred(g_aws_access_key_id, g_aws_secret_access_key);
-		s3_client_ = Aws::S3::S3Client(cred, config);
+		s3_client_ = new Aws::S3::S3Client(cred, config);
 	}
 	catch (...)
 	{
 		std::cout << "s3 client failed" << std::endl;
 		return false;
 	}
+
+#endif
 
 	//std::string temp_str = path;
 	//if (temp_str.rfind("/vsis3/", 0) != 0)

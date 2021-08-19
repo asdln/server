@@ -20,13 +20,15 @@ public:
 
 	void SetS3CacheKey(const std::string& s3cachekey);
 
+	~S3Dataset() { if (s3_client_) delete s3_client_; }
+
 protected:
 
 	std::vector<std::pair<size_t, size_t>> dims_;
 
 	int type_bytes_ = 1;
 
-	Aws::S3::S3Client s3_client_;
+	Aws::S3::S3Client* s3_client_ = nullptr;
 
 	Aws::String s3_bucket_name_;
 

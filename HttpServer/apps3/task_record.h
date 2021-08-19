@@ -99,8 +99,6 @@ public:
 
 	const Aws::String& GetRegion() { return aws_region_; }
 
-	const Aws::String& GetSrcBucket() { return src_bucket_name_; }
-
 	const Aws::String& GetSaveBucket() { return save_bucket_name_; }
 
 	const Aws::String& GetSaveKey() { return save_key_name_; }
@@ -126,8 +124,6 @@ protected:
 	std::string format_;
 
 	std::string info_json_path_;
-
-	Aws::String src_bucket_name_;
 
 	Aws::String aws_region_;
 
