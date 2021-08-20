@@ -472,7 +472,8 @@ HistogramPtr ComputerHistogram(Dataset* dataset, int band, bool complete_statist
 		dataset->GetBlockSize(block_x, block_y);
 
 		//对于较大的数据，只取有限的block，以加速统计
-		int block_count = /*360*/256 * 256 * 36 / block_x / block_y;
+		//int block_count = 256 * 256 * 36 / block_x / block_y;
+		int block_count = 256.0 / block_x * 256.0 / block_y * 36;
 
 		double dStep = 1.0;
 
