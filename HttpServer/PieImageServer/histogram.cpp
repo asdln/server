@@ -401,7 +401,8 @@ HistogramPtr ComputerHistogram(Dataset* dataset, int band, bool complete_statist
 		no_data_value = external_no_data_value;
 	}
 
-	if (m_nSizeX * m_nSizeY < 2000 * 2000)
+	if((m_nSizeX / 2000.0) * (m_nSizeY / 2000.0) < 1.0)
+	//if (m_nSizeX * m_nSizeY < 2000 * 2000)
 	{
 		double dXFactor = hist_window_size / (float)m_nSizeX;
 		double dYFactor = hist_window_size / (float)m_nSizeY;

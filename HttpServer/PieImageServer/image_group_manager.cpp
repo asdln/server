@@ -595,12 +595,20 @@ bool ImageGroupManager::ClearImagesInternal(const std::string& group)
 
 	if (etcd_storage.IsUseEtcd())
 	{
-		return etcd_storage.Delete(key);
+		return etcd_storage.SetValue(key, "", false);
 	}
 	else
 	{
 		std::unique_lock<std::shared_mutex> lock(s_mutex_);
-		s_user_group_image_map_.erase(key);
+		std::unordered_map<std::string, std::list<std::string>>::iterator itr = s_user_group_image_map_.find(key);
+		if (itr != s_user_group_image_map_.end())
+		{
+			itr->second.clear();
+		}
+		else
+		{
+			return false;
+		}
 	}
 
 	return true;

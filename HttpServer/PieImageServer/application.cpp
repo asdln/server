@@ -203,16 +203,16 @@ Application::Application(int argc, char* argv[])
 		.default_value(std::string(""));
 
     program.add_argument("--etcd_v2_host")
-        .help("etcd_v2 service's host")
-		.default_value(std::string("127.0.0.1"));
+        .help("etcd_v2 service's host, e.g. \"127.0.0.1\"")
+		.default_value(std::string(""));
 
     program.add_argument("--etcd_v2_port")
-        .help("etcd_v2 service's port")
-		.default_value(std::string("2379"));
+        .help("etcd_v2 service's port, e.g. \"2379\"")
+		.default_value(std::string(""));
 
     program.add_argument("--etcd_v3_address")
-        .help("etcd_v3 service's address, cluster address example:\"http://a.com:2379;http://b.com:2379;http://c.com:2379\"")
-        .default_value(std::string("http://127.0.0.1:2379"));
+        .help("etcd_v3 service's address, cluster address e.g.\"http://a.com:2379;http://b.com:2379;http://c.com:2379\"")
+        .default_value(std::string(""));
 
 	try {
 		program.parse_args(argc, argv);
