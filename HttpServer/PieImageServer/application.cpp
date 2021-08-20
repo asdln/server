@@ -202,16 +202,6 @@ Application::Application(int argc, char* argv[])
 		.help("s3 pyramid directory, e.g. bucket_name/subkey_name")
 		.default_value(std::string(""));
 
-    program.add_argument("--use_etcd_v2")
-        .help("is use etcd_v2")
-		.default_value(false)
-		.implicit_value(true);
-
-    program.add_argument("--use_etcd_v3")
-        .help("is use etcd_v3")
-        .default_value(false)
-        .implicit_value(true);
-
     program.add_argument("--etcd_v2_host")
         .help("etcd_v2 service's host")
 		.default_value(std::string("127.0.0.1"));
@@ -240,10 +230,10 @@ Application::Application(int argc, char* argv[])
 	statistic_window_size_ = program.get<int>("--statistic_size");
 	gdal_cache_size_ = program.get<std::string>("--gdal_cache_size");
 
-    EtcdStorage::use_etcd_v2_ = program.get<bool>("--use_etcd_v2");
-
     EtcdStorage::host_v2_ = program.get<std::string>("--etcd_v2_host");
     EtcdStorage::port_v2_ = program.get<std::string>("--etcd_v2_port");
+
+	EtcdStorage::use_etcd_v2_ = !EtcdStorage::host_v2_.empty() && !EtcdStorage::port_v2_.empty();
 
 	std::string file_cache_dir = program.get<std::string>("--file_cache_dir");
 	
@@ -272,8 +262,8 @@ Application::Application(int argc, char* argv[])
 
 #ifndef ETCD_V2
 
-    EtcdStorage::use_etcd_v3_ = program.get<bool>("--use_etcd_v3");
     EtcdStorage::address_v3_ = program.get<std::string>("--etcd_v3_address");
+	EtcdStorage::use_etcd_v3_ = !EtcdStorage::address_v3_.empty();
 
 #endif
 
