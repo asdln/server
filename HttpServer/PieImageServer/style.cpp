@@ -249,21 +249,22 @@ void Style::Apply(void* data, unsigned char* mask_buffer, int size, int band_cou
 				{
 					int srcIndex = j;
 
-					buffer[dstIndex] = lut_[buffer[srcIndex]][0];
-					buffer[dstIndex + 1] = lut_[buffer[srcIndex]][1];
-					buffer[dstIndex + 2] = lut_[buffer[srcIndex]][2];
-
+					//因为是倒序覆盖，所以重写索引要从大到小
 					if (band_4)
 						buffer[dstIndex + 3] = lut_[buffer[srcIndex]][3];
+
+					buffer[dstIndex + 2] = lut_[buffer[srcIndex]][2];
+					buffer[dstIndex + 1] = lut_[buffer[srcIndex]][1];
+					buffer[dstIndex] = lut_[buffer[srcIndex]][0];
 				}
 				else
 				{
-					buffer[dstIndex] = 255;
-					buffer[dstIndex + 1] = 255;
-					buffer[dstIndex + 2] = 255;
-
 					if (band_4)
 						buffer[dstIndex + 3] = 0;
+
+					buffer[dstIndex + 2] = 255;
+					buffer[dstIndex + 1] = 255;
+					buffer[dstIndex] = 255;
 				}
 			}
 		}
@@ -280,21 +281,21 @@ void Style::Apply(void* data, unsigned char* mask_buffer, int size, int band_cou
 				{
 					const GDALColorEntry* poColorEntry = poColorTable->GetColorEntry(buffer[i]);
 
-					buffer[i * render_color_count] = poColorEntry->c1;
-					buffer[i * render_color_count + 1] = poColorEntry->c2;
-					buffer[i * render_color_count + 2] = poColorEntry->c3;
-
-					if(band_4)
+					if (band_4)
 						buffer[i * render_color_count + 3] = poColorEntry->c4;
+
+					buffer[i * render_color_count + 2] = poColorEntry->c3;
+					buffer[i * render_color_count + 1] = poColorEntry->c2;
+					buffer[i * render_color_count] = poColorEntry->c1;
 				}
 				else
 				{
-					buffer[i * render_color_count] = 255;
-					buffer[i * render_color_count + 1] = 255;
-					buffer[i * render_color_count + 2] = 255;
-
 					if (band_4)
 						buffer[i * render_color_count + 3] = 0;
+
+					buffer[i * render_color_count + 2] = 255;
+					buffer[i * render_color_count + 1] = 255;
+					buffer[i * render_color_count] = 255;
 				}
 			}
 		}
