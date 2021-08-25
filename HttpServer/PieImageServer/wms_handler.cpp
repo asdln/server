@@ -256,7 +256,7 @@ bool WMSHandler::GetDatasets(int epsg_code, const std::string& data_style_json, 
 			continue;
 
 		std::shared_ptr<S3Dataset> s3Dataset = std::dynamic_pointer_cast<S3Dataset>(tiffDataset);
-		if (s3Dataset != nullptr && !g_s3_pyramid_dir.empty())
+		if (s3Dataset != nullptr && !g_s3_pyramid_dir.empty() && s3Dataset->IsHavePyramid() == false)
 		{
 			s3Dataset->SetS3CacheKey(g_s3_pyramid_dir);
 		}
@@ -580,6 +580,13 @@ bool WMSHandler::GetImageInfo(const std::string& request_body, std::shared_ptr<H
 
 			oJson_env.Add("epsg", tiffDataset->GetEPSG());
 			oJson_img.Add("envelope", oJson_env);
+			oJson_img.Add("pyramid", tiffDataset->IsHavePyramid(), true);
+
+			bool palette = tiffDataset->GetColorTable(1) != nullptr;
+			oJson_img.Add("palette", palette, true);
+
+			DataType data_type = tiffDataset->GetDataType();
+			oJson_img.Add("type", GetDataTypeString(data_type));
 
 			neb::CJsonObject oJson_bands;
 			for (int i = 0; i < band_count; i++)

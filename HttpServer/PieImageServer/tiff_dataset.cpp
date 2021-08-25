@@ -95,6 +95,17 @@ bool TiffDataset::Open(const std::string& path)
 	return true;
 }
 
+bool TiffDataset::IsHavePyramid()
+{
+	GDALRasterBand* poRasterBand = poDataset_->GetRasterBand(1);
+	if (poRasterBand != nullptr && poRasterBand->GetOverviewCount() != 0)
+	{
+		return true;
+	}
+
+	return false;
+}
+
 void TiffDataset::CalcExtent()
 {
 	int nWid = GetRasterXSize();

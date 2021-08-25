@@ -87,7 +87,7 @@ bool StorageManager::AddOrUpdateMd5(const std::string& json_str, std::string& md
 	EtcdStorage etcd_storage;
 	if (etcd_storage.IsUseEtcd())
 	{
-		return etcd_storage.SetValue(md5, json_str);
+		return etcd_storage.SetValue(md5, json_str, false);
 	}
 	else
 	{

@@ -108,7 +108,7 @@ void StyleMap::Update(const std::string& key, const std::string& value)
 	EtcdStorage etcd_storage;
 	if(etcd_storage.IsUseEtcd())
 	{
-		etcd_storage.SetValue(style_map_prefix_ + key, value);
+		etcd_storage.SetValue(style_map_prefix_ + key, value, false);
 	}
 	else
 	{

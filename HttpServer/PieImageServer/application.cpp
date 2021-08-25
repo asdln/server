@@ -355,7 +355,7 @@ Application::Application(int argc, char* argv[])
 	if (etcd_storage.IsUseEtcd())
     {
 		LOG(INFO) << "try to connect to etcd, please wait...";
-        if (!etcd_storage.SetValue("pie", "test"))
+        if (!etcd_storage.SetValue("pie", "test", true))
 		{
 			LOG(INFO) << "etcd connect test failed!";
 		}

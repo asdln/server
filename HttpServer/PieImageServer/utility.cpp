@@ -183,6 +183,76 @@ int GetDataTypeBytes(DataType DataType)
 	return nBytes;
 }
 
+std::string GetDataTypeString(DataType data_type)
+{
+	std::string type_string;
+	switch (data_type)
+	{
+	case DT_Byte:
+	{
+		type_string = "uint8";
+		break;
+	}
+	case DT_UInt16:
+	{
+		type_string = "uint16";
+		break;
+	}
+	case DT_Int16:
+	{
+		type_string = "int16";
+		break;
+	}
+	case DT_UInt32:
+	{
+		type_string = "uint32";
+		break;
+	}
+	case DT_Int32:
+	{
+		type_string = "int32";
+		break;
+	}
+	case DT_Float32:
+	{
+		type_string = "float32";
+		break;
+	}
+	case DT_Float64:
+	{
+		type_string = "float64";
+		break;
+	}
+	case DT_CInt16:
+	{
+		type_string = "cint16";;
+		break;
+	}
+	case DT_CInt32:
+	{
+		type_string = "cint32";
+		break;
+	}
+	case DT_CFloat32:
+	{
+		type_string = "cfloat32";
+		break;
+	}
+	case DT_CFloat64:
+	{
+		type_string = "cfloat64";
+		break;
+	}
+	default:
+	{
+		type_string = "unknown";
+		break;
+	}
+	}
+
+	return type_string;
+}
+
 bool GetMd5(std::string& str_md5, const char* const buffer, size_t buffer_size)
 {
 	if (buffer == nullptr)

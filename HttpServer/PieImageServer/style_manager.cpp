@@ -74,15 +74,24 @@ StylePtr StyleManager::GetStyle(const std::string& style_string, DatasetPtr data
 				{
 					style = std::make_shared<Style>();
 
-					if (dataset->GetBandCount() == 1 && dataset->GetDataType() == DT_Byte)
+					if (dataset->GetBandCount() == 1)
 					{
-						GDALColorTable* poColorTable = dataset->GetColorTable(1);
-						if (poColorTable != nullptr)
+						if (dataset->GetDataType() == DT_Byte)
 						{
-							style->set_kind(StyleType::PALETTE);
-							style->set_stretch(nullptr);
-							int band = 1;
-							style->set_band_map(&band, 1);
+							GDALColorTable* poColorTable = dataset->GetColorTable(1);
+							if (poColorTable != nullptr)
+							{
+								style->set_kind(StyleType::PALETTE);
+								style->set_stretch(nullptr);
+								int band = 1;
+								style->set_band_map(&band, 1);
+							}
+						}
+						else
+						{
+							//单波段默认使用dem渲染，可以减少波段的读取
+							style->set_kind(StyleType::DEM);
+							style->init_lut();
 						}
 					}
 				}

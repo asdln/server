@@ -45,69 +45,9 @@ bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, con
 		{
 			return GetTile(doc_root, url, request_body, result);
 		}
-		else if (request.compare("UpdateDataStyle") == 0)
+		else
 		{
-			return UpdateDataStyle(request_body, result);
-		}
-		else if (request.compare("UpdateStyle") == 0)
-		{
-			return UpdateStyle(url, request_body, result);
-		}
-		else if (request.compare("GetStyle") == 0)
-		{
-			return GetStyle(url, result);
-		}
-		else if (request.compare("ClearAllDatasets") == 0)
-		{
-			return ClearAllDatasets(request_body, result);
-		}
-		else if (request.compare("AddImages") == 0)
-		{
-			return AddImages(request_body, result);
-		}
-		else if (request.compare("RemoveImages") == 0)
-		{
-			return RemoveImages(request_body, result);
-		}
-		else if (request.compare("GetImages") == 0)
-		{
-			return GetImages(request_body, result);
-		}
-		else if (request.compare("SetImages") == 0)
-		{
-			return SetImages(request_body, result);
-		}
-		else if (request.compare("GetGroups") == 0)
-		{
-			return GetGroups(result);
-		}
-		else if (request.compare("RemoveGroups") == 0)
-		{
-			return RemoveGroups(request_body, result);
-		}
-		else if (request.compare("AddGroups") == 0)
-		{
-			return AddGroups(request_body, result);
-		}
-		else if (request.compare("GetGroupEnvelope") == 0)
-		{
-			return GetGroupEnvelope(request_body, result);
-		}
-		else if (request.compare("ClearImages") == 0)
-		{
-			return ClearImages(request_body, result);
-		}
-		else if (request.compare("GetLayInfo") == 0)
-		{
-			return GetLayInfo(request_body, result);
-		}
-		else if (request.compare("GetEnvelope") == 0)
-		{
-			return GetEnvlope(request_body, result);
-		}
-		else if (request.compare("GetImageInfo") == 0)
-		{
-			return GetImageInfo(request_body, result);
+			return WMSHandler::Handle(doc_root, url, request_body, result);
 		}
 
 		return false;

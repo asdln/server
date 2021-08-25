@@ -303,7 +303,7 @@ bool ImageGroupManager::AddGroups(const std::string& request_body)
 			std::string key = image_group_prefix_ + group;
 			if (etcd_storage.IsUseEtcd())
 			{
-				etcd_storage.SetValue(key, "");
+				etcd_storage.SetValue(key, "", false);
 			}
 			else
 			{

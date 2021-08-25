@@ -10,8 +10,40 @@
 #include "glog/logging.h"
 #include "gdal_priv.h"
 
+#include <set>
+
 Format default_format = Format::WEBP;
 std::string default_string_format = "webp";
+
+void ColorInterpolation(int index1, int index2, unsigned char charcolor[][4])
+{
+	int count = index2 - index1 - 1;
+	if (count <= 0)
+		return;
+
+	const unsigned char& r1 = charcolor[index1][0];
+	const unsigned char& g1 = charcolor[index1][1];
+	const unsigned char& b1 = charcolor[index1][2];
+	const unsigned char& a1 = charcolor[index1][3];
+
+	const unsigned char& r2 = charcolor[index2][0];
+	const unsigned char& g2 = charcolor[index2][1];
+	const unsigned char& b2 = charcolor[index2][2];
+	const unsigned char& a2 = charcolor[index2][3];
+
+	float step_r = (r2 - r1) / float(count + 1);
+	float step_g = (g2 - g1) / float(count + 1);
+	float step_b = (b2 - b1) / float(count + 1);
+	float step_a = (a2 - a1) / float(count + 1);
+
+	for (int i = 0; i < count; i ++)
+	{
+		charcolor[index1 + 1 + i][0] = r1 + i * step_r;
+		charcolor[index1 + 1 + i][1] = g1 + i * step_g;
+		charcolor[index1 + 1 + i][2] = b1 + i * step_b;
+		charcolor[index1 + 1 + i][3] = a1 + i * step_a;
+	}
+}
 
 std::string StyleType2String(StyleType style_type)
 {
@@ -108,7 +140,6 @@ StylePtr Style::Clone()
 	StylePtr pClone = std::make_shared<Style>();
 	pClone->uid_ = uid_;
 	pClone->version_ = version_;
-	//pClone->format_ = format_;
 	pClone->kind_ = kind_;
 	for (int i = 0; i < 4; i++)
 	{
@@ -118,6 +149,8 @@ StylePtr Style::Clone()
 	pClone->srs_epsg_code_ = srs_epsg_code_;
 
 	pClone->stretch_ = nullptr;
+
+	memcpy(pClone->lut_, lut_, sizeof(lut_));
 
 	if (stretch_)
 	{
@@ -132,7 +165,6 @@ StylePtr Style::CompletelyClone()
 	StylePtr pClone = std::make_shared<Style>();
 	pClone->uid_ = uid_;
 	pClone->version_ = version_;
-	//pClone->format_ = format_;
 	pClone->kind_ = kind_;
 	for (int i = 0; i < 4; i++)
 	{
@@ -142,6 +174,8 @@ StylePtr Style::CompletelyClone()
 	pClone->srs_epsg_code_ = srs_epsg_code_;
 
 	pClone->stretch_ = nullptr;
+
+	memcpy(pClone->lut_, lut_, sizeof(lut_));
 
 	if (stretch_)
 	{
@@ -161,9 +195,6 @@ void Style::Prepare(Dataset* dataset)
 		, bandMap_[1] <= dataset_band_count ? bandMap_[1] : dataset_band_count
 		, bandMap_[2] <= dataset_band_count ? bandMap_[2] : dataset_band_count
 		, bandMap_[3] <= dataset_band_count ? bandMap_[3] : dataset_band_count };
-
-// 	if (format_ == Format::JPG)
-// 		nBandCount = 3;
 
 	if (kind_ == StyleType::TRUE_COLOR)
 	{
@@ -185,10 +216,57 @@ void Style::Prepare(Dataset* dataset)
 
 void Style::Apply(void* data, unsigned char* mask_buffer, int size, int band_count, int* band_map, Dataset* dataset, int render_color_count)
 {
+	unsigned char* buffer = (unsigned char*)data;
+
 	//色彩映射表不做拉伸
 	if (kind_ != StyleType::PALETTE && stretch_ != nullptr)
 	{
 		stretch_->DoStretch(data, mask_buffer, size, band_count, band_map, dataset);
+
+		if (kind_ == StyleType::TRUE_COLOR)
+		{
+			//根据mask的值，添加透明通道的值。
+			if (render_color_count == 4 && band_count == 3)
+			{
+				for (int j = size - 1; j >= 0; j--)
+				{
+					int srcIndex = j * 3;
+					int dstIndex = j * 4;
+
+					memcpy(buffer + dstIndex, buffer + srcIndex, 3);
+					buffer[dstIndex + 3] = mask_buffer[j];
+				}
+			}
+		}
+		else if (kind_ == StyleType::DEM)
+		{
+			bool band_4 = render_color_count == 4;
+
+			for (int j = size - 1; j >= 0; j--)
+			{
+				int dstIndex = j * render_color_count;
+				if (mask_buffer[j] != 0)
+				{
+					int srcIndex = j;
+
+					buffer[dstIndex] = lut_[buffer[srcIndex]][0];
+					buffer[dstIndex + 1] = lut_[buffer[srcIndex]][1];
+					buffer[dstIndex + 2] = lut_[buffer[srcIndex]][2];
+
+					if (band_4)
+						buffer[dstIndex + 3] = lut_[buffer[srcIndex]][3];
+				}
+				else
+				{
+					buffer[dstIndex] = 255;
+					buffer[dstIndex + 1] = 255;
+					buffer[dstIndex + 2] = 255;
+
+					if (band_4)
+						buffer[dstIndex + 3] = 0;
+				}
+			}
+		}
 	}
 	else if (kind_ == StyleType::PALETTE)
 	{
@@ -196,7 +274,6 @@ void Style::Apply(void* data, unsigned char* mask_buffer, int size, int band_cou
 		GDALColorTable* poColorTable = dataset->GetColorTable(1);
 		//if (poColorTable && dataset->GetDataType() == DT_Byte)
 		{
-			unsigned char* buffer = (unsigned char*)data;
 			for (int i = size - 1; i >= 0; i--)
 			{
 				if (mask_buffer[i] != 0)
@@ -234,6 +311,26 @@ void Style::set_band_map(int* band_map, int band_count)
 	}
 }
 
+void Style::init_lut()
+{
+	if (kind_ == StyleType::DEM)
+	{
+		bandCount_ = 1;
+	}
+
+	lut_[0][0] = 0;
+	lut_[0][1] = 0;
+	lut_[0][2] = 0;
+	lut_[0][3] = 255;
+
+	lut_[255][0] = 255;
+	lut_[255][1] = 255;
+	lut_[255][2] = 255;
+	lut_[255][3] = 255;
+
+	ColorInterpolation(0, 255, lut_);
+}
+
 StylePtr StyleSerielizer::FromJsonObj(neb::CJsonObject& json_obj)
 {
 	StylePtr style;
@@ -245,6 +342,20 @@ StylePtr StyleSerielizer::FromJsonObj(neb::CJsonObject& json_obj)
 			json_obj["bandMap"].Get(i, style->bandMap_[i]);
 		}
 	}
+	else
+	{
+		neb::CJsonObject json_band_map;
+		json_obj.Get("bandMap", json_band_map);
+
+		if (json_band_map.IsArray())
+		{
+			style->bandCount_ = json_band_map.GetArraySize();
+			for (int i = 0; i < style->bandCount_; i++)
+			{
+				json_band_map.Get(i, style->bandMap_[i]);
+			}
+		}
+	}
 
 	json_obj.Get("version", style->version_);
 
@@ -254,7 +365,15 @@ StylePtr StyleSerielizer::FromJsonObj(neb::CJsonObject& json_obj)
 		style->kind_ = StyleType::TRUE_COLOR;
 	}
 
-	//style->format_ = String2Format(json_obj("format"));
+	//如果是truecolor，则band_count只能是3或者4
+	if (style->kind_ == StyleType::TRUE_COLOR && style->bandCount_ != 3 && style->bandCount_ != 4)
+	{
+		style->bandCount_ = 3;
+	}
+	else if (style->kind_ == StyleType::DEM)
+	{
+		style->bandCount_ = 1;
+	}
 
 	style->uid_ = json_obj("uid");
 
@@ -317,6 +436,71 @@ StylePtr StyleSerielizer::FromJsonObj(neb::CJsonObject& json_obj)
 		style->get_stretch()->SetExternalNoDataValue(external_nodata_value);
 	}
 
+	if (style->kind_ == StyleType::DEM)
+	{
+		neb::CJsonObject json_lut;
+		json_obj.Get("lut", json_lut);
+
+		style->lut_[0][0] = 0;
+		style->lut_[0][1] = 0;
+		style->lut_[0][2] = 0;
+		style->lut_[0][3] = 255;
+
+		style->lut_[255][0] = 255;
+		style->lut_[255][1] = 255;
+		style->lut_[255][2] = 255;
+		style->lut_[255][3] = 255;
+
+		//首尾默认添加
+		std::set<int> tag_set;
+		tag_set.emplace(0);
+		tag_set.emplace(255);
+
+		if (json_lut.IsArray())
+		{
+			int array_size = json_lut.GetArraySize();
+			for (int i = 0; i < array_size; i ++)
+			{
+				neb::CJsonObject json_lut_entry;
+				json_lut.Get(i, json_lut_entry);
+
+				if (json_lut_entry.IsArray())
+				{
+					int lut_index = 0;
+					int entry_size = json_lut_entry.GetArraySize();
+					json_lut_entry.Get(0, lut_index);
+
+					if(lut_index < 0 || lut_index >= 256)
+						break;
+
+					for (int j = 1; j < entry_size; j ++)
+					{
+						if(j >= 4)
+							break;
+
+						tag_set.emplace(lut_index);
+
+						int color_entry = 255;
+						json_lut_entry.Get(j, color_entry);
+						style->lut_[lut_index][j - 1] = color_entry;
+					}
+				}
+			}
+		}
+
+		//根据tag_set进行插值
+		for (std::set<int>::iterator itr = tag_set.begin(); itr != tag_set.end(); itr++)
+		{
+			std::set<int>::iterator itr_next = itr;
+			itr_next++;
+
+			if (itr_next == tag_set.end())
+				break;
+
+			ColorInterpolation(*itr, *itr_next, style->lut_);
+		}
+	}
+
 	return style;
 }
 
@@ -348,10 +532,9 @@ StylePtr StyleSerielizer::FromJson(const std::string& jsonStyle)
 	return style;
 }
 
-//目前部署没用到etcd所以暂时不写
-std::string StyleSerielizer::ToJson(StylePtr style)
-{
-	neb::CJsonObject oJson;
+//std::string StyleSerielizer::ToJson(StylePtr style)
+//{
+//	neb::CJsonObject oJson;
 	//oJson.Add("uid", style->uid_.c_str());
 	//oJson.Add("version", style->version_);
 	//oJson.Add("kind", StyleType2String(style->kind_));
@@ -381,8 +564,8 @@ std::string StyleSerielizer::ToJson(StylePtr style)
 	//{
 	//}
 
-	neb::CJsonObject oJson1;
-	oJson1.Add("style", oJson);
+// 	neb::CJsonObject oJson1;
+//	oJson1.Add("style", oJson);
 
-	return oJson1.ToString();
-}
+//	return oJson1.ToString();
+//}

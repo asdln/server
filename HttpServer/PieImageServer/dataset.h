@@ -14,6 +14,9 @@ public:
 
 	virtual bool Open(const std::string& path) = 0;
 
+	//是否有标准金字塔文件
+	virtual bool IsHavePyramid() = 0;
+
 	virtual void Close() = 0;
 
 	virtual bool Read(int, int, int, int,

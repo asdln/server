@@ -330,7 +330,8 @@ bool TileProcessor::SimpleProject(Dataset* pDataset, int nBandCount, int bandMap
 	return true;
 }
 
-bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDataset, int nBandCount, int bandMap[], const Envelop& envelope, unsigned char* pData, unsigned char* pMaskData, int nWidth, int nHeight)
+bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDataset, int nBandCount, int bandMap[]
+	, const Envelop& envelope, unsigned char* pData, unsigned char* pMaskData, int nWidth, int nHeight)
 {
 	const Envelop& ptrEnvDataset = pDataset->GetExtent();
 	OGRSpatialReference* ptrDSSRef = pDataset->GetSpatialReference();
@@ -897,22 +898,6 @@ BufferPtr TileProcessor::GetCombinedData(const std::list<std::pair<DatasetPtr, S
 		Dataset* dataset = content.first.get();
 		Style* style = content.second.get();
 		bool bRes = GetTileData(dataset, style, env, tile_width, tile_height, &render_buffer, &mask_buffer, render_color_count);
-
-		//Format format = style->format();
-		int band_count = style->band_count();
-
-		//根据mask的值，添加透明通道的值。
-		if (bRes && /*band_count == 3 &&*/ format != Format::JPG && style->get_kind() != StyleType::PALETTE)
-		{
-			for (int j = (tile_width * tile_height) - 1; j >= 0; j--)
-			{
-				int srcIndex = j * 3;
-				int dstIndex = j * 4;
-
-				memcpy(render_buffer + dstIndex, render_buffer + srcIndex, 3);
-				render_buffer[dstIndex + 3] = mask_buffer[j];
-			}
-		}
 		
 		if (bRes && render_buffer_final == nullptr && mask_buffer_final == nullptr)
 		{
@@ -993,25 +978,6 @@ BufferPtr TileProcessor::GetCombinedData(const std::list<std::pair<DatasetPtr, S
 			break;
 		}
 	}
-
-	//if (format == Format::JPG)
-	//{
-	//	JpgCompress jpgCompress;
-	//	buffer = jpgCompress.DoCompress(render_buffer, 256, 256);
-	//}
-	//else
-	//{
-	//	if (format == Format::PNG)
-	//	{
-	//		PngCompress pngCompress;
-	//		buffer = pngCompress.DoCompress(render_buffer, 256, 256);
-	//	}
-	//	else if (format == Format::WEBP)
-	//	{
-	//		WebpCompress webpCompress;
-	//		buffer = webpCompress.DoCompress(render_buffer, 256, 256);
-	//	}
-	//}
 
 	if (render_buffer_final)
 	{

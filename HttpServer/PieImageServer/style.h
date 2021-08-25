@@ -68,6 +68,8 @@ public:
 
 	void set_kind(StyleType kind) { kind_ = kind; }
 
+	void init_lut();
+
 	StyleType get_kind() { return kind_; }
 
 	void QueryInfo(int& band_count, int* band_map, /*Format& format, */StyleType& style_type, int& epsg_code) 
@@ -88,8 +90,6 @@ protected:
 
 	size_t version_ = 0;
 
-	//Format format_ = default_format;
-
 	StyleType kind_ = StyleType::TRUE_COLOR;
 	int bandMap_[4] = { 1, 2, 3, 4 };
 	int bandCount_ = 3;
@@ -98,6 +98,8 @@ protected:
 	int srs_epsg_code_ = 3857; //4326 wgs84 
 
 	std::shared_ptr<Stretch> stretch_ = std::make_shared<PercentMinMaxStretch>();
+
+	unsigned char lut_[256][4];
 };
 
 class StyleSerielizer
@@ -108,7 +110,7 @@ public:
 
 	static StylePtr FromJsonObj(neb::CJsonObject& json_obj);
 
-	static std::string ToJson(StylePtr style);
+	//static std::string ToJson(StylePtr style);
 };
 
 

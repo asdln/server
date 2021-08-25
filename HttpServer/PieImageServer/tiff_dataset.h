@@ -13,6 +13,8 @@ public:
 
     virtual void Close() override;
 
+    bool IsHavePyramid() override;
+
     virtual const std::string& file_path() override;
 
 	virtual bool Read(int nx, int ny, int width, int height,
