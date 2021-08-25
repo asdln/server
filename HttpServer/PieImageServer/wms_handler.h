@@ -8,8 +8,6 @@ public:
 
 	virtual bool Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result) override;
 
-	//bool GetRenderBytes(const std::list<std::pair<DatasetPtr, StylePtr>>& datasets, const Envelop& env, int tile_width, int tile_height, std::shared_ptr<HandleResult> result);
-
 	bool GetMap(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result);
 
 	bool UpdateDataStyle(const std::string& request_body, std::shared_ptr<HandleResult> result);
@@ -51,7 +49,6 @@ public:
 
 protected:
 
-	//bool GetDatasets(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::list<std::pair<DatasetPtr, StylePtr>>& datasets);
 	bool GetDatasets(int epsg_code, const std::string& data_style_json, bool one_to_one
 		, const std::list<std::string>& data_paths, std::list<std::pair<DatasetPtr, StylePtr>>& datasets, Format& format);
 

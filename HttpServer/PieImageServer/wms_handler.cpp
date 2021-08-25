@@ -96,69 +96,6 @@ bool WMSHandler::ClearAllDatasets(const std::string& request_body, std::shared_p
 	return true;
 }
 
-/*bool WMSHandler::GetRenderBytes(const std::list<std::pair<DatasetPtr, StylePtr>>& datasets, const Envelop& env, int tile_width, int tile_height, std::shared_ptr<HandleResult> result)
-{
-	BufferPtr buffer = TileProcessor::GetCombinedData(datasets, env, tile_width, tile_height);
-
-	//if(buffer != nullptr)
-	//{
-	//	//test code
-	//	FILE* pFile = nullptr;
-	//	std::string path = "d:/test/";
-
-	//	char string1[32];
-	//	_itoa(nx, string1, 10);
-	//	path += string1;
-	//	path += "_";
-
-	//	char string2[32];
-	//	_itoa(ny, string2, 10);
-	//	path += string2;
-	//	path += "_";
-
-	//	char string3[32];
-	//	_itoa(nz, string3, 10);
-	//	path += string3;
-
-	//	path += ".jpg";
-
-	//	fopen_s(&pFile, path.c_str(), "wb+");
-	//	fwrite(buffer->data(), 1, buffer->size(), pFile);
-	//	fclose(pFile);
-	//	pFile = nullptr;
-	//}
-
-	if (buffer != nullptr)
-	{
-		result->set_buffer(buffer);
-
-		http::buffer_body::value_type body;
-		body.data = result->buffer()->data();
-		body.size = result->buffer()->size();
-		body.more = false;
-
-		auto msg = std::make_shared<http::response<http::buffer_body>>(
-			std::piecewise_construct,
-			std::make_tuple(std::move(body)),
-			std::make_tuple(http::status::ok, result->version()));
-
-		msg->set(http::field::server, BOOST_BEAST_VERSION_STRING);
-		msg->set(http::field::content_type, "image/jpeg");
-
-		msg->set(http::field::access_control_allow_origin, "*");
-		msg->set(http::field::access_control_allow_methods, "POST, PUT, GET, OPTIONS, DELETE");
-		msg->set(http::field::access_control_allow_credentials, "true");
-
-		msg->content_length(result->buffer()->size());
-		msg->keep_alive(result->keep_alive());
-
-		result->set_buffer_body(msg);
-	}
-
-	return true;
-}
-*/
-
 bool WMSHandler::GetDataStyleString(const Url& url, const std::string& request_body, std::string& data_style_json)
 {
 	//先判断url里有没有“key”
@@ -268,39 +205,6 @@ bool WMSHandler::GetDatasets(int epsg_code, const std::string& data_style_json, 
 
 	return true;
 }
-
-// bool WMSHandler::GetDatasets(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::list<std::pair<DatasetPtr, StylePtr>>& datasets)
-// {
-// 	int epsg_code = QuerySRS(url);
-// 	if (epsg_code == -1)
-// 	{
-// 		//默认 web_mercator
-// 		epsg_code = 3857;
-// 	}
-// 
-// 	std::string data_style_json;
-// 	if (!GetDataStyleString(url, request_body, data_style_json))
-// 		return false;
-// 
-// 	std::list<std::pair<std::string, std::string>> data_info;
-// 	QueryDataInfo(data_style_json, data_info);
-// 
-// 	for (auto info : data_info)
-// 	{
-// 		const std::string& path = info.first;
-// 		std::string style_string = info.second;
-// 
-// 		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(path));
-// 		if (tiffDataset == nullptr)
-// 			continue;
-// 
-// 		StylePtr style_clone = StyleManager::GetStyle(style_string, tiffDataset);
-// 		style_clone->set_code(epsg_code);
-// 		datasets.emplace_back(std::make_pair(tiffDataset, style_clone));
-// 	}
-// 
-// 	return true;
-// }
 
 bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, int tile_height, int epsg_code
 	, const std::string& data_style, const std::string& amazon_md5, bool one_to_one
