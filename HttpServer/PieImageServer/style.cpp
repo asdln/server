@@ -313,6 +313,8 @@ void Style::set_band_map(int* band_map, int band_count)
 
 void Style::init_lut()
 {
+	memset(lut_, 255, sizeof(lut_));
+
 	if (kind_ == StyleType::DEM)
 	{
 		bandCount_ = 1;
@@ -372,6 +374,7 @@ StylePtr StyleSerielizer::FromJsonObj(neb::CJsonObject& json_obj)
 	}
 	else if (style->kind_ == StyleType::DEM)
 	{
+		memset(style->lut_, 255, sizeof(style->lut_));
 		style->bandCount_ = 1;
 	}
 
