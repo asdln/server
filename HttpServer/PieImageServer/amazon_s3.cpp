@@ -3,6 +3,7 @@
 #include <aws/s3/model/PutObjectRequest.h>
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/CreateBucketRequest.h>
+#include <aws/s3/model/DeleteObjectRequest.h>
 #include <aws/core/utils/stream/PreallocatedStreamBuf.h>
 #include "png_buffer.h"
 
@@ -92,7 +93,7 @@ void S3Cache::SetBucketName(const std::string& bucket_name)
 	}
 }
 
-bool S3Cache::CreateBucket()
+bool S3Cache::CreateRootBucket()
 {
 	Aws::S3::Model::CreateBucketRequest request;
 	request.SetBucket(s3_bucket_name_);
@@ -174,7 +175,14 @@ BufferPtr S3Cache::GetS3Object(const std::string& obj_name)
 
 		retrieved_file.read((char*)buffer.data(), content_bytes);
 
-		//std::cout << "ln_debug: get s3 cache success" << std::endl;
+		//作为读取成功标记，只显示一次。
+		static unsigned char tag = 0;
+		if (tag == 0)
+		{
+			tag++;
+			std::cout << "ln_debug: get s3 cache success" << std::endl;
+		}
+
 		return png_buffer;
 	}
 	else
@@ -187,4 +195,28 @@ BufferPtr S3Cache::GetS3Object(const std::string& obj_name)
 	}
 
 	return nullptr;
+}
+
+bool S3Cache::DeleteObject(const std::string& key)
+{
+	Aws::S3::Model::DeleteObjectRequest request;
+
+	request.WithKey(s3_key_name_ + "/" + Aws::String(key.c_str(), key.size()))
+		.WithBucket(s3_bucket_name_);
+
+	Aws::S3::Model::DeleteObjectOutcome outcome =
+		s3_client_->DeleteObject(request);
+
+	if (!outcome.IsSuccess())
+	{
+		auto err = outcome.GetError();
+		std::cout << "Error: DeleteObject: " <<
+			err.GetExceptionName() << ": " << err.GetMessage() << std::endl;
+
+		return false;
+	}
+	else
+	{
+		return true;
+	}
 }

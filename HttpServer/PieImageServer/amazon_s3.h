@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <shared_mutex>
 #include "buffer.h"
 
 #include <aws/core/Aws.h>
@@ -21,9 +22,11 @@ public:
 
 	static BufferPtr GetS3Object(const std::string& obj_name);
 
+	static bool DeleteObject(const std::string& key);
+
 	static void SetBucketName(const std::string& bucket_name);
 
-	static bool CreateBucket();
+	static bool CreateRootBucket();
 
 protected:
 

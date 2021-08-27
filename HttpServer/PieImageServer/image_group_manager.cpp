@@ -2,12 +2,23 @@
 #include "etcd_storage.h"
 #include "CJsonObject.hpp"
 #include "etcd_storage.h"
+#include <filesystem>
+#include <iostream>
+
+#include "file_cache.h"
+#include "amazon_s3.h"
 
 std::shared_mutex ImageGroupManager::s_mutex_;
 
+std::shared_mutex ImageGroupManager::s_group_cache_mutex_;
+
 std::string ImageGroupManager::image_group_prefix_ = "image_groups/";
 
+std::string ImageGroupManager::group_cache_prefix_ = "image_groups_state/";
+
 std::unordered_map<std::string, std::list<std::string>> ImageGroupManager::s_user_group_image_map_;
+
+std::unordered_map<std::string, bool> ImageGroupManager::s_group_cache_state_;
 
 #ifndef ETCD_V2
 
@@ -17,6 +28,8 @@ std::unordered_map<std::string, std::list<std::string>> ImageGroupManager::s_use
 #include "etcd/kv.pb.h"
 
 std::unique_ptr<etcd::Watcher> image_group_watcher;
+
+std::unique_ptr<etcd::Watcher> group_cache_watcher;
 
 void PrintMap(const std::unordered_map<std::string, std::list<std::string>>& unordered_map)
 {
@@ -33,7 +46,7 @@ void PrintMap(const std::unordered_map<std::string, std::list<std::string>>& uno
 	}
 }
 
-void printResponse(etcd::Response response)
+void imagesResponse(etcd::Response response)
 {
 	//etcd::Response response = response_task.get(); // can throw
 	if (!response.is_ok())
@@ -79,9 +92,44 @@ void printResponse(etcd::Response response)
 			ImageGroupManager::s_user_group_image_map_.erase(itr);
 		}
 	}
+}
 
-	//std::string value = response.value().as_string();
-	//std::cout << "ln_debug: watcher:\t" << value << std::endl;
+void cacheStateResponse(etcd::Response response)
+{
+	//etcd::Response response = response_task.get(); // can throw
+	if (!response.is_ok())
+	{
+		std::cout << "operation failed, details: " << response.error_message() << std::endl;
+		return;
+	}
+
+	std::unique_lock<std::shared_mutex> lock(ImageGroupManager::s_group_cache_mutex_);
+
+	//std::cout << "action: " << response.action() << std::endl;
+	const std::string& key_full = response.value().key();
+	const std::string& value = response.value().as_string();
+
+	static int prefix_size = EtcdV3::GetPrefix().size();
+	std::string key = key_full.substr(prefix_size, key_full.size() - prefix_size);
+
+	if (response.action() == "create" || response.action() == "set")
+	{
+		bool state = true;
+		if (value.compare("0") == 0)
+		{
+			state = false;
+		}
+
+		ImageGroupManager::s_group_cache_state_[key] = state;
+	}
+	else if (response.action() == "delete")
+	{
+		std::unordered_map<std::string, std::list<std::string>>::iterator itr = ImageGroupManager::s_group_cache_state_.find(key);
+		if (itr != ImageGroupManager::s_group_cache_state_.end())
+		{
+			ImageGroupManager::s_group_cache_state_.erase(itr);
+		}
+	}
 }
 
 void wait_for_connection(etcd::Client& client) {
@@ -114,6 +162,12 @@ void initialize_watcher(const std::string& endpoints,
 #endif
 
 void ImageGroupManager::StartImageGroupWatch()
+{
+	StartImagesWatch();
+	StartCacheStateWatch();
+}
+
+void ImageGroupManager::StartImagesWatch()
 {
 #ifndef ETCD_V2
 	//设置etcd watcher
@@ -148,12 +202,50 @@ void ImageGroupManager::StartImageGroupWatch()
 
 		//创建图层信息watcher
 		const std::string& endpoints = EtcdStorage::GetV3Address();
-		std::function<void(etcd::Response)> callback = printResponse;
+		std::function<void(etcd::Response)> callback = imagesResponse;
 		std::string prefix = EtcdV3::GetPrefix() + image_group_prefix_;
 		prefix = prefix.substr(0, prefix.size() - 1);
 
 		// the watcher initialized in this way will auto re-connect to etcd
 		initialize_watcher(endpoints, prefix, callback, image_group_watcher);
+	}
+#endif
+}
+
+void ImageGroupManager::StartCacheStateWatch()
+{
+#ifndef ETCD_V2
+	//设置etcd watcher
+	if (EtcdStorage::IsUseEtcdV3())
+	{
+		//同步读取etcd里的图层状态信息
+		EtcdStorage etcd_storage;
+		std::list<std::string> groups;
+		etcd_storage.GetSubKeys(group_cache_prefix_, groups);
+
+		for (auto& group : groups)
+		{
+			std::string state;
+			std::string key = group_cache_prefix_ + group;
+			etcd_storage.GetValue(key, state);
+
+			bool state = true;
+			if (state.compare("0") == 0)
+			{
+				state = false;
+			}
+
+			s_group_cache_state_[key] = state;
+		}
+
+		//创建图层信息watcher
+		const std::string& endpoints = EtcdStorage::GetV3Address();
+		std::function<void(etcd::Response)> callback = cacheStateResponse;
+		std::string prefix = EtcdV3::GetPrefix() + group_cache_prefix_;
+		prefix = prefix.substr(0, prefix.size() - 1);
+
+		// the watcher initialized in this way will auto re-connect to etcd
+		initialize_watcher(endpoints, prefix, callback, group_cache_watcher);
 	}
 #endif
 }
@@ -533,7 +625,6 @@ bool ImageGroupManager::SetImagesInternal(const std::string& group, const std::l
 			oJson.Add(image_path);
 		}
 		return etcd_storage.SetValue(key, oJson.ToString(), false);
-		
 	}
 	else
 	{
@@ -612,4 +703,146 @@ bool ImageGroupManager::ClearImagesInternal(const std::string& group)
 	}
 
 	return true;
+}
+
+bool ImageGroupManager::SetGroupCacheState(const std::string& request_body)
+{
+	bool total_state = S3Cache::GetUseS3Cache() || FileCache::GetUseFileCache();
+	if (total_state == false)
+		return false;
+
+	neb::CJsonObject oJson(request_body);
+	if (oJson.IsArray())
+	{
+		EtcdStorage etcd_storage;
+		int array_size = oJson.GetArraySize();
+		for (int i = 0; i < array_size; i ++)
+		{
+			neb::CJsonObject group_state;
+			oJson.Get(i, group_state);
+
+			if(group_state.IsEmpty())
+				continue;
+
+			bool state;
+			std::string group;
+			
+			group_state.Get("group", group);
+			group_state.Get("cache", state);
+
+			std::string key = group_cache_prefix_ + group;
+			if (etcd_storage.IsUseEtcd())
+			{
+				std::string state_str = "1";
+				if (state == false)
+					state_str = "0";
+
+				etcd_storage.SetValue(key, state_str, false);
+			}
+			else
+			{
+				std::unique_lock<std::shared_mutex> lock(s_group_cache_mutex_);
+				s_group_cache_state_[key] = state;
+			}
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+bool ImageGroupManager::GetGroupCacheState(const std::string& group)
+{
+	//因为已经使用了etcd watcher进行了同步，所以只需要从map中读取。
+	std::string key = group_cache_prefix_ + group;
+	std::shared_lock<std::shared_mutex> lock(s_group_cache_mutex_);
+	std::unordered_map<std::string, bool>::iterator itr = s_group_cache_state_.find(key);
+
+	if (itr != s_group_cache_state_.end())
+	{
+		return itr->second;
+	}
+
+	return true;
+}
+
+bool ImageGroupManager::GetGroupCacheState(const std::string& request_body, std::string& state_json)
+{
+	neb::CJsonObject oJson(request_body);
+	std::list<bool> states;
+
+	bool total_state = S3Cache::GetUseS3Cache() || FileCache::GetUseFileCache();
+
+	if (oJson.IsArray())
+	{
+		int array_size = oJson.GetArraySize();
+
+		for (int i = 0; i < array_size; i++)
+		{
+			std::string group;
+			oJson.Get(i, group);
+
+			if (total_state == false)
+			{
+				states.emplace_back(false);
+			}
+			else
+			{
+				bool state = GetGroupCacheState(group);
+				states.emplace_back(state);
+			}
+		}
+	}
+
+	neb::CJsonObject oJson_states;
+	for (const auto& state : states)
+	{
+		oJson_states.Add(999, state);
+	}
+
+	state_json = oJson_states.ToString();
+
+	return true;
+}
+
+bool ImageGroupManager::ClearGroupCache(const std::string& request_body)
+{
+	neb::CJsonObject oJson(request_body);
+	if (oJson.IsArray())
+	{
+		EtcdStorage etcd_storage;
+		int array_size = oJson.GetArraySize();
+		for (int i = 0; i < array_size; i++)
+		{
+			std::string group;
+			oJson.Get(i, group);
+
+			if (S3Cache::GetUseS3Cache())
+			{
+				S3Cache::DeleteObject(group);
+			}
+			else if (FileCache::GetUseFileCache())
+			{
+				try
+				{
+					const std::string& file_cache_dir = FileCache::GetSavePath();
+					std::filesystem::path b_dir_path(file_cache_dir + '/' + group);
+					if (std::filesystem::exists(b_dir_path))
+					{
+						std::filesystem::remove_all(b_dir_path);
+					}
+				}
+				catch (std::filesystem::filesystem_error& e)
+				{
+					std::cout << "what=" << e.what() << "code=" << e.code().value() << e.code().message() << std::endl;
+					return false;
+				}
+			}
+		}
+
+		return true;
+	}
+
+	return false;
 }

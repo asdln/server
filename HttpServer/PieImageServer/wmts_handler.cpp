@@ -7,6 +7,7 @@
 #include "storage_manager.h"
 #include "amazon_s3.h"
 #include "file_cache.h"
+#include "image_group_manager.h"
 
 //if(buffer != nullptr)
 //{
@@ -72,14 +73,16 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, co
 	Envelop env;
 	GetEnvFromTileIndex(nx, ny, nz, env, epsg_code);
 
-	//style和path是否是一对一。如果url里有layer参数，则是多对一，即一个layer里的多个数据集对应同一个style
+	//style和path是否是一对一。如果url里有layer参数，则是多对一，即一个layer里的多个数据集对应同一个style，或者多个style
 	bool one_to_one = true;
 
 	std::list<std::string> data_paths;
 	Format format = Format::WEBP;
 
 	std::string json_str;
-	if (GetStyleString(url, request_body, json_str, data_paths, format))
+	std::string group;
+	bool use_cache = true;
+	if (GetStyleString(url, request_body, json_str, data_paths, format, group))
 	{
 		one_to_one = false;
 	}
@@ -88,7 +91,14 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, co
 		return false;
 	}
 
-	bool use_cache = QueryIsUseCache(url);
+	if (one_to_one == true)
+	{
+		use_cache = QueryIsUseCache(url);
+	}
+	else
+	{
+		use_cache = ImageGroupManager::GetGroupCacheState(group);
+	}
 
 	std::string md5;
 	if (use_cache && (S3Cache::GetUseS3Cache() || FileCache::GetUseFileCache()))
@@ -104,6 +114,12 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, co
 		}
 
 		GetMd5(md5, amazon_data_style.c_str(), amazon_data_style.size());
+	}
+
+	//如果是有图层的，则按图层名为目录存放缓存
+	if (one_to_one == false && use_cache == true)
+	{
+		md5 = group + '/' + md5;
 	}
 
 	return GetHandleResult(use_cache, env, 256, 256, epsg_code, json_str, md5, one_to_one, data_paths, format, result);

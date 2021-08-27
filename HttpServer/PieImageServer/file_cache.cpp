@@ -32,8 +32,24 @@ bool FileCache::Write(const std::string& obj_name, BufferPtr buffer)
 
 	if (!outFile.is_open())
 	{
-		std::cout << "ln_debug: file cache open failed" << std::endl;
-		return false;
+		//失败可能是因为没有创建目录，创建目录再试
+		std::string group_path = path_ + '/' + obj_name;
+		int pos = group_path.rfind("/");
+		group_path = group_path.substr(0, pos);
+
+		if (!std::filesystem::exists(group_path))
+		{
+			if (!std::filesystem::create_directories(group_path))
+			{
+				std::cout << "create path failed: " << group_path << std::endl;
+			}
+		}
+
+		if (!outFile.is_open())
+		{
+			std::cout << "ln_debug: file cache open failed" << std::endl;
+			return false;
+		}
 	}
 
 	outFile.write((char*)buffer->data(), buffer->size());

@@ -244,7 +244,7 @@ Application::Application(int argc, char* argv[])
 		S3Cache::SetBucketName(bucket_name);
 		S3Cache::init();
 
-		if (!S3Cache::CreateBucket())
+		if (!S3Cache::CreateRootBucket())
 		{
 			exit(0);
 		}

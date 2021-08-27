@@ -9,6 +9,7 @@
 #include "file_cache.h"
 #include "etcd_storage.h"
 #include "style_map.h"
+#include "gdal_priv.h"
 
 std::string g_s3_pyramid_dir;
 
@@ -85,6 +86,18 @@ bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, cons
 		{
 			return GetImageInfo(request_body, result);
 		}
+		else if (request.compare("GetGroupCacheState") == 0)
+		{
+			return GetGroupCacheState(request_body, result);
+		}
+		else if (request.compare("SetGroupCacheState") == 0)
+		{
+			return SetGroupCacheState(request_body, result);
+		}
+		else if (request.compare("ClearGroupCache") == 0)
+		{
+			return ClearGroupCache(request_body, result);
+		}
 	}
 
 	return GetMap(doc_root, url, request_body, result);
@@ -118,9 +131,8 @@ bool WMSHandler::GetDataStyleString(const Url& url, const std::string& request_b
 }
 
 bool WMSHandler::GetStyleString(const Url& url, const std::string& request_body, std::string& style_json
-	, std::list<std::string>& paths, Format& format)
+	, std::list<std::string>& paths, Format& format, std::string& layerID)
 {
-	std::string layerID;
 	if (url.QueryValue("layer", layerID))
 	{
 		ImageGroupManager::GetImagesFromLocal(layerID, paths);
@@ -321,7 +333,8 @@ bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, cons
 	Format format = Format::WEBP;
 
 	std::string json_str;
-	if (GetStyleString(url, request_body, json_str, data_paths, format))
+	std::string group;
+	if (GetStyleString(url, request_body, json_str, data_paths, format, group))
 	{
 		one_to_one = false;
 
@@ -486,8 +499,31 @@ bool WMSHandler::GetImageInfo(const std::string& request_body, std::shared_ptr<H
 			oJson_img.Add("envelope", oJson_env);
 			oJson_img.Add("pyramid", tiffDataset->IsHavePyramid(), true);
 
-			bool palette = tiffDataset->GetColorTable(1) != nullptr;
+			GDALColorTable* poColorTable = tiffDataset->GetColorTable(1);
+			bool palette = poColorTable != nullptr;
 			oJson_img.Add("palette", palette, true);
+
+			if (palette)
+			{
+				neb::CJsonObject oJson_array_lut;
+
+				for (int i = 0; i < 256; i ++)
+				{
+					neb::CJsonObject oJson_array_entry;
+					const GDALColorEntry* poColorEntry = poColorTable->GetColorEntry(i);
+					if (poColorEntry != nullptr)
+					{
+						oJson_array_entry.Add(i);
+						oJson_array_entry.Add(poColorEntry->c1);
+						oJson_array_entry.Add(poColorEntry->c2);
+						oJson_array_entry.Add(poColorEntry->c3);
+						oJson_array_entry.Add(poColorEntry->c4);
+						oJson_array_lut.Add(oJson_array_entry);
+					}
+				}
+				
+				oJson_img.Add("lut", oJson_array_lut);
+			}
 
 			DataType data_type = tiffDataset->GetDataType();
 			oJson_img.Add("type", GetDataTypeString(data_type));
@@ -769,6 +805,54 @@ bool WMSHandler::ClearImages(const std::string& request_body, std::shared_ptr<Ha
 	if (!ImageGroupManager::ClearImages(request_body))
 	{
 		res_string_body = "ClearImages failed";
+		status_code = http::status::internal_server_error;
+	}
+
+	auto string_body = CreateStringResponse(status_code, result->version(), result->keep_alive(), res_string_body);
+	result->set_string_body(string_body);
+
+	return true;
+}
+
+bool WMSHandler::GetGroupCacheState(const std::string& request_body, std::shared_ptr<HandleResult> result)
+{
+	http::status status_code = http::status::ok;
+	std::string res_string_body = "OK";
+	if (!ImageGroupManager::GetGroupCacheState(request_body, res_string_body))
+	{
+		res_string_body = "null";
+		status_code = http::status::internal_server_error;
+	}
+
+	auto string_body = CreateStringResponse(status_code, result->version(), result->keep_alive(), res_string_body);
+	result->set_string_body(string_body);
+
+	return true;
+}
+
+bool WMSHandler::SetGroupCacheState(const std::string& request_body, std::shared_ptr<HandleResult> result)
+{
+	http::status status_code = http::status::ok;
+	std::string res_string_body = "ok";
+	if (!ImageGroupManager::SetGroupCacheState(request_body))
+	{
+		res_string_body = "set cache state failed";
+		status_code = http::status::internal_server_error;
+	}
+
+	auto string_body = CreateStringResponse(status_code, result->version(), result->keep_alive(), res_string_body);
+	result->set_string_body(string_body);
+
+	return true;
+}
+
+bool WMSHandler::ClearGroupCache(const std::string& request_body, std::shared_ptr<HandleResult> result)
+{
+	http::status status_code = http::status::ok;
+	std::string res_string_body = "OK";
+	if (!ImageGroupManager::ClearGroupCache(request_body))
+	{
+		res_string_body = "ClearGroupCache failed";
 		status_code = http::status::internal_server_error;
 	}
 

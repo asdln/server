@@ -47,6 +47,12 @@ public:
 	//{"group":"group1"}
 	bool ClearImages(const std::string& request_body, std::shared_ptr<HandleResult> result);
 
+	bool GetGroupCacheState(const std::string& request_body, std::shared_ptr<HandleResult> result);
+
+	bool SetGroupCacheState(const std::string& request_body, std::shared_ptr<HandleResult> result);
+
+	bool ClearGroupCache(const std::string& request_body, std::shared_ptr<HandleResult> result);
+
 protected:
 
 	bool GetDatasets(int epsg_code, const std::string& data_style_json, bool one_to_one
@@ -55,7 +61,7 @@ protected:
 	bool GetDataStyleString(const Url& url, const std::string& request_body, std::string& data_style_json);
 
 	bool GetStyleString(const Url& url, const std::string& request_body, std::string& style_json
-		, std::list<std::string>& paths, Format& format);
+		, std::list<std::string>& paths, Format& format, std::string& layerID);
 
 	bool GetHandleResult(bool use_cache, Envelop env, int tile_width, int tile_height, int epsg_code
 		, const std::string& data_style, const std::string& amazon_md5, bool one_to_one, 

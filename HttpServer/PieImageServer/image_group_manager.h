@@ -27,9 +27,21 @@ public:
 
 	static bool RemoveGroups(const std::string& request_body);
 
+	static bool SetGroupCacheState(const std::string& request_body);
+
+	static bool GetGroupCacheState(const std::string& request_body, std::string& state_json);
+
+	static bool GetGroupCacheState(const std::string& group);
+
+	static bool ClearGroupCache(const std::string& request_body);
+
 	static void StartImageGroupWatch();
 
 protected:
+
+	static void StartImagesWatch();
+
+	static void StartCacheStateWatch();
 
 	static void GetAllGroupsInternal(std::list<std::string>& groups);
 
@@ -50,4 +62,11 @@ public:
 	static std::shared_mutex s_mutex_;
 
 	static std::unordered_map<std::string, std::list<std::string>> s_user_group_image_map_;
+
+	//Í¼²ã×éµÄ»º´æ×´Ì¬
+	static std::unordered_map<std::string, bool> s_group_cache_state_;
+
+	static std::string group_cache_prefix_;
+
+	static std::shared_mutex s_group_cache_mutex_;
 };

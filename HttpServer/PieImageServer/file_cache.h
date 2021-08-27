@@ -2,7 +2,6 @@
 #include <string>
 #include "buffer.h"
 
-
 class FileCache
 {
 
@@ -13,6 +12,8 @@ public:
 	static bool GetUseFileCache() { return use_file_cache_; }
 
 	static void SetSavePath(const std::string& path);
+
+	static const std::string& GetSavePath() { return path_; }
 
 	static bool Write(const std::string& obj_name, BufferPtr buffer);
 
