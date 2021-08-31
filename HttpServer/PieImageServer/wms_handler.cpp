@@ -13,6 +13,8 @@
 
 std::string g_s3_pyramid_dir;
 
+unsigned char WMSHandler::cache_tag_ = 0;
+
 bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
 	std::string request;
@@ -230,6 +232,12 @@ bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, in
 		p_mutex = ResourcePool::GetInstance()->AcquireCacheMutex(amazon_md5);
 		p_mutex->lock();
 
+		if (cache_tag_ == 0)
+		{
+			std::cout << "using cache tile" << std::endl;
+			cache_tag_++;
+		}
+
 		if (S3Cache::GetUseS3Cache())
 		{
 			buffer = S3Cache::GetS3Object(amazon_md5);
@@ -238,6 +246,11 @@ bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, in
 		{
 			buffer = FileCache::Read(amazon_md5);
 		}
+	}
+	else if (cache_tag_ == 0)
+	{
+		std::cout << "not using cache tile" << std::endl;
+		cache_tag_++;
 	}
 
 	if (buffer == nullptr)
@@ -832,6 +845,9 @@ bool WMSHandler::GetGroupCacheState(const std::string& request_body, std::shared
 
 bool WMSHandler::SetGroupCacheState(const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
+	cache_tag_ = 0;
+	S3Cache::ResetTag();
+
 	http::status status_code = http::status::ok;
 	std::string res_string_body = "ok";
 	if (!ImageGroupManager::SetGroupCacheState(request_body))

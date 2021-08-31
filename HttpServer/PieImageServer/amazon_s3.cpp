@@ -4,6 +4,8 @@
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/CreateBucketRequest.h>
 #include <aws/s3/model/DeleteObjectRequest.h>
+#include <aws/s3/model/DeleteObjectsRequest.h>
+#include <aws/s3/model/ListObjectsRequest.h>
 #include <aws/core/utils/stream/PreallocatedStreamBuf.h>
 #include "png_buffer.h"
 
@@ -20,6 +22,8 @@ extern Aws::String g_aws_secret_access_key;
 extern Aws::String g_aws_access_key_id;
 
 Aws::S3::S3Client* S3Cache::s3_client_ = nullptr;
+
+unsigned char S3Cache::tag_ = 0;
 
 void S3Cache::init()
 {
@@ -176,10 +180,9 @@ BufferPtr S3Cache::GetS3Object(const std::string& obj_name)
 		retrieved_file.read((char*)buffer.data(), content_bytes);
 
 		//作为读取成功标记，只显示一次。
-		static unsigned char tag = 0;
-		if (tag == 0)
+		if (tag_ == 0)
 		{
-			tag++;
+			tag_++;
 			std::cout << "ln_debug: get s3 cache success" << std::endl;
 		}
 
@@ -199,24 +202,69 @@ BufferPtr S3Cache::GetS3Object(const std::string& obj_name)
 
 bool S3Cache::DeleteObject(const std::string& key)
 {
-	Aws::S3::Model::DeleteObjectRequest request;
-
-	request.WithKey(s3_key_name_ + "/" + Aws::String(key.c_str(), key.size()))
-		.WithBucket(s3_bucket_name_);
-
-	Aws::S3::Model::DeleteObjectOutcome outcome =
-		s3_client_->DeleteObject(request);
-
-	if (!outcome.IsSuccess())
+	while(true)
 	{
-		auto err = outcome.GetError();
-		std::cout << "Error: DeleteObject: " <<
-			err.GetExceptionName() << ": " << err.GetMessage() << std::endl;
+		Aws::S3::Model::ListObjectsRequest request;
+		request.WithBucket(s3_bucket_name_);
+		Aws::String aws_key = s3_key_name_ + '/' + Aws::String(key.c_str(), key.size());
+		request.WithPrefix(std::move(aws_key));
 
-		return false;
+		auto outcome = s3_client_->ListObjects(request);
+
+		Aws::Vector<Aws::S3::Model::ObjectIdentifier> value;
+		if (outcome.IsSuccess())
+		{
+			Aws::Vector<Aws::S3::Model::Object> objects;
+			objects = outcome.GetResult().GetContents();
+
+			if(objects.size() == 0)
+				break;
+
+			std::cout << "bucket: " << s3_bucket_name_ << "\t" << "key: " << aws_key << "\t" << "size:\t" << objects.size()
+				<< std::endl;
+
+			for (Aws::S3::Model::Object& object : objects)
+			{
+				//std::cout << object.GetKey() << std::endl;
+				Aws::S3::Model::ObjectIdentifier identifier;
+				identifier.SetKey(object.GetKey());
+				value.emplace_back(identifier);
+			}
+
+			//return true;
+		}
+		else
+		{
+			std::cout << "Error: ListObjects: " <<
+				outcome.GetError().GetMessage() << std::endl;
+
+			return false;
+		}
+
+		Aws::S3::Model::Delete s3_delete;
+		s3_delete.SetObjects(std::move(value));
+		Aws::S3::Model::DeleteObjectsRequest delete_request;
+		delete_request.SetBucket(s3_bucket_name_);
+		delete_request.SetDelete(std::move(s3_delete));
+
+		Aws::S3::Model::DeleteObjectOutcome outcome2 =
+			s3_client_->DeleteObjects(delete_request);
+
+		if (!outcome2.IsSuccess())
+		{
+			auto err = outcome2.GetError();
+			std::cout << "Error: DeleteObjects: " <<
+				err.GetExceptionName() << ": " << err.GetMessage() << std::endl;
+
+			return false;
+		}
+		else
+		{
+			//test code
+			std::cout << "s3 delete oOk" << std::endl;
+			//return true;
+		}
 	}
-	else
-	{
-		return true;
-	}
+
+	return true;
 }

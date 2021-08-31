@@ -390,10 +390,19 @@ StylePtr StyleSerielizer::FromJsonObj(neb::CJsonObject& json_obj)
 		auto stretch = std::make_shared<MinMaxStretch>();
 		style->stretch_ = stretch;
 
+		neb::CJsonObject json_min;
+		neb::CJsonObject json_max;
+
+		json_obj["stretch"].Get("minimum", json_min);
+		json_obj["stretch"].Get("maximum", json_max);
+
 		for (int i = 0; i < style->bandCount_; i++)
 		{
-			json_obj["stretch"]["minimum"].Get(i, stretch->min_value_[i]);
-			json_obj["stretch"]["maximum"].Get(i, stretch->max_value_[i]);
+			json_min.Get(i, stretch->min_value_[i]);
+			json_max.Get(i, stretch->max_value_[i]);
+
+			//json_obj["stretch"]["minimum"].Get(i, stretch->min_value_[i]);
+			//json_obj["stretch"]["maximum"].Get(i, stretch->max_value_[i]);
 		}
 	}
 	else if (stretch_kind.compare(StretchType2String(StretchType::PERCENT_MINMAX)) == 0)

@@ -66,4 +66,8 @@ protected:
 	bool GetHandleResult(bool use_cache, Envelop env, int tile_width, int tile_height, int epsg_code
 		, const std::string& data_style, const std::string& amazon_md5, bool one_to_one, 
 		const std::list<std::string>& data_paths, Format format, std::shared_ptr<HandleResult> result);
+
+protected:
+
+	static unsigned char cache_tag_;
 };

@@ -124,7 +124,7 @@ void cacheStateResponse(etcd::Response response)
 	}
 	else if (response.action() == "delete")
 	{
-		std::unordered_map<std::string, std::list<std::string>>::iterator itr = ImageGroupManager::s_group_cache_state_.find(key);
+		std::unordered_map<std::string, bool>::iterator itr = ImageGroupManager::s_group_cache_state_.find(key);
 		if (itr != ImageGroupManager::s_group_cache_state_.end())
 		{
 			ImageGroupManager::s_group_cache_state_.erase(itr);
@@ -225,12 +225,12 @@ void ImageGroupManager::StartCacheStateWatch()
 
 		for (auto& group : groups)
 		{
-			std::string state;
+			std::string state_str;
 			std::string key = group_cache_prefix_ + group;
-			etcd_storage.GetValue(key, state);
+			etcd_storage.GetValue(key, state_str);
 
 			bool state = true;
-			if (state.compare("0") == 0)
+			if (state_str.compare("0") == 0)
 			{
 				state = false;
 			}
@@ -820,6 +820,8 @@ bool ImageGroupManager::ClearGroupCache(const std::string& request_body)
 
 			if (S3Cache::GetUseS3Cache())
 			{
+				//test code
+				std::cout << "s3 delete object" << std::endl;
 				S3Cache::DeleteObject(group);
 			}
 			else if (FileCache::GetUseFileCache())

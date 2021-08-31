@@ -28,6 +28,8 @@ public:
 
 	static bool CreateRootBucket();
 
+	static void ResetTag() { tag_ = 0; }
+
 protected:
 
 	static bool s_use_s3_;
@@ -37,4 +39,6 @@ protected:
 	static Aws::String s3_bucket_name_;
 
 	static Aws::String s3_key_name_;
+
+	static unsigned char tag_;
 };

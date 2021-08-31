@@ -32,14 +32,14 @@ void MinMaxStretch::Prepare(int band_count, int* band_map, Dataset* dataset)
 
 	for (int i = 0; i < band_count; i++)
 	{
-		//if (min_value_[i] == 0.0 && max_value_[i] == 0.0)
-		//{
+		if (min_value_[i] == 0.0 && max_value_[i] == 0.0)
+		{
 			HistogramPtr histogram = ResourcePool::GetInstance()->GetHistogram(dataset, band_map[i], use_external_nodata_value, external_nodata_value);
 			double min, max, mean, std_dev;
 			histogram->QueryStats(min, max, mean, std_dev);
 			min_value_[i] = min;
 			max_value_[i] = max;
-		//}
+		}
 	}
 }
 
