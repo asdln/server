@@ -235,7 +235,7 @@ bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, in
 		if (cache_tag_ == 0)
 		{
 			std::cout << "using cache tile" << std::endl;
-			cache_tag_++;
+			cache_tag_ = 1;
 		}
 
 		if (S3Cache::GetUseS3Cache())
@@ -250,7 +250,7 @@ bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, in
 	else if (cache_tag_ == 0)
 	{
 		std::cout << "not using cache tile" << std::endl;
-		cache_tag_++;
+		cache_tag_ = 1;
 	}
 
 	if (buffer == nullptr)

@@ -43,7 +43,7 @@ bool AWSS3GetObject(Aws::S3::S3Client* s3_client, const Aws::String& fromBucket,
 	{
 		auto err = get_object_outcome.GetError();
 		std::cout << "Error: GetObject: " <<
-			err.GetExceptionName() << ": " << err.GetMessage() << std::endl;
+			err.GetExceptionName() << ": " << err.GetMessage() << "\t" << objectKey << std::endl;
 
 		return false;
 	}
