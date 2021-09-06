@@ -191,9 +191,8 @@ bool WMSHandler::GetDatasets(int epsg_code, const std::string& data_style_json, 
 			else
 			{
 				data_info.emplace_back(std::make_pair(data_path, *itr));
+				itr++;
 			}
-
-			itr++;
 		}
 	}
 
@@ -202,7 +201,7 @@ bool WMSHandler::GetDatasets(int epsg_code, const std::string& data_style_json, 
 		const std::string& path = info.first;
 		std::string style_string = info.second;
 
-		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(path));
+		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->AcquireDataset(path));
 		if (tiffDataset == nullptr)
 			continue;
 
@@ -221,11 +220,15 @@ bool WMSHandler::GetDatasets(int epsg_code, const std::string& data_style_json, 
 }
 
 bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, int tile_height, int epsg_code
-	, const std::string& data_style, const std::string& amazon_md5, bool one_to_one
-	, const std::list<std::string>& data_paths, Format format, std::shared_ptr<HandleResult> result)
+	, const std::string& data_style, const std::string& amazon_md5, bool one_to_one, const std::list<std::string>& data_paths
+	, Format format, bool statistic, Benchmark& bench_mark, std::shared_ptr<HandleResult> result)
 {
 	BufferPtr buffer = nullptr;
 	std::mutex* p_mutex = nullptr;
+
+	long long start_time = 0;
+	GetCurrentTimeMilliseconds(start_time);
+
 	if (use_cache && (S3Cache::GetUseS3Cache() || FileCache::GetUseFileCache()))
 	{
         //加锁，因为有可能出现多个请求写同一个图片的情况
@@ -258,7 +261,7 @@ bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, in
 		std::list<std::pair<DatasetPtr, StylePtr>> datasets;
 		GetDatasets(epsg_code, data_style, one_to_one, data_paths, datasets, format);
 		
-		buffer = TileProcessor::GetCombinedData(datasets, env, tile_width, tile_height, format);
+		buffer = TileProcessor::GetCombinedData(datasets, env, tile_width, tile_height, format, bench_mark);
 		if (use_cache && (S3Cache::GetUseS3Cache() || FileCache::GetUseFileCache()) && buffer != nullptr)
 		{
 			if (S3Cache::GetUseS3Cache())
@@ -270,6 +273,11 @@ bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, in
 				FileCache::Write(amazon_md5, buffer);
 			}
 		}
+
+		for (auto dataset : datasets)
+		{
+			ResourcePool::GetInstance()->ReleaseDataset(dataset.first);
+		}
 	}
 
 	if (use_cache && (S3Cache::GetUseS3Cache() || FileCache::GetUseFileCache()))
@@ -277,6 +285,11 @@ bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, in
 		p_mutex->unlock();
 		ResourcePool::GetInstance()->ReleaseCacheMutex(amazon_md5);
 	}
+
+	long long end_time = 0;
+	GetCurrentTimeMilliseconds(end_time);
+
+	bench_mark.TimeTag("GetHandleResult");
 
 	if (buffer != nullptr)
 	{
@@ -302,6 +315,29 @@ bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, in
 		msg->content_length(result->buffer()->size());
 		msg->keep_alive(result->keep_alive());
 
+		if (statistic)
+		{
+			msg->set("Process_Time", std::to_string(end_time - start_time));
+
+			auto last = bench_mark.time_statistics.begin();
+			for (auto itr = bench_mark.time_statistics.begin(); itr != bench_mark.time_statistics.end(); itr++)
+			{
+				msg->set(itr->first, std::to_string(itr->second - last->second));
+				last = itr;
+			}
+
+			int index = 0;
+			for (const auto& read_statistic : bench_mark.read_statistics)
+			{
+				std::string str_index = std::to_string(index);
+				msg->set("Read_Time" + str_index, std::to_string(read_statistic.read_time_milliseconds));
+				msg->set("Read_X" + str_index, std::to_string(read_statistic.read_width));
+				msg->set("Read_Y" + str_index, std::to_string(read_statistic.read_height));
+
+				index++;
+			}
+		}
+
 		result->set_buffer_body(msg);
 	}
 
@@ -311,6 +347,9 @@ bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, in
 // 暂时不维护。如需要，参考WMTSHandler::GetTile进行修改
 bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
+	QPSLocker qps_locker(g_qps);
+	Benchmark benchmark(false);
+
 	int epsg_code = QuerySRS(url);
 	if (epsg_code == -1)
 	{
@@ -350,7 +389,6 @@ bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, cons
 	if (GetStyleString(url, request_body, json_str, data_paths, format, group))
 	{
 		one_to_one = false;
-
 	}
 	else if (!GetDataStyleString(url, request_body, json_str))
 	{
@@ -367,7 +405,8 @@ bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, cons
 // 		GetMd5(md5, amazon_data_style.c_str(), amazon_data_style.size());
 // 	}
 
-	return GetHandleResult(use_cache, env, tile_width, tile_height, epsg_code, json_str, md5, one_to_one, data_paths, format, result);
+	return GetHandleResult(use_cache, env, tile_width, tile_height, epsg_code
+		, json_str, md5, one_to_one, data_paths, format, false, benchmark, result);
 }
 
 bool WMSHandler::UpdateDataStyle(const std::string& request_body, std::shared_ptr<HandleResult> result)
@@ -460,7 +499,7 @@ bool WMSHandler::GetLayInfo(const std::string& request_body, std::shared_ptr<Han
 	std::vector<std::pair<Envelop, int>> envs;
 	for (auto& path : layers)
 	{
-		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(path));
+		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->AcquireDataset(path));
 		if(tiffDataset != nullptr)
 			envs.emplace_back(std::make_pair(tiffDataset->GetExtent(), tiffDataset->GetEPSG()));
 		else
@@ -469,6 +508,8 @@ bool WMSHandler::GetLayInfo(const std::string& request_body, std::shared_ptr<Han
 			env.PutCoords(0, 0, 0, 0);
 			envs.emplace_back(std::make_pair(env, -1));
 		}
+
+		ResourcePool::GetInstance()->ReleaseDataset(tiffDataset);
 	}
 
 	std::string json;
@@ -494,7 +535,7 @@ bool WMSHandler::GetImageInfo(const std::string& request_body, std::shared_ptr<H
 	for (auto& path : layers)
 	{
 		neb::CJsonObject oJson_img;
-		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(path));
+		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->AcquireDataset(path));
 		if (tiffDataset != nullptr)
 		{
 			int band_count = tiffDataset->GetBandCount();
@@ -511,6 +552,9 @@ bool WMSHandler::GetImageInfo(const std::string& request_body, std::shared_ptr<H
 			oJson_env.Add("epsg", tiffDataset->GetEPSG());
 			oJson_img.Add("envelope", oJson_env);
 			oJson_img.Add("pyramid", tiffDataset->IsHavePyramid(), true);
+
+			oJson_img.Add("width", tiffDataset->GetRasterXSize());
+			oJson_img.Add("height", tiffDataset->GetRasterYSize());
 
 			GDALColorTable* poColorTable = tiffDataset->GetColorTable(1);
 			bool palette = poColorTable != nullptr;
@@ -563,6 +607,8 @@ bool WMSHandler::GetImageInfo(const std::string& request_body, std::shared_ptr<H
 		{
 			oJson.AddNull();
 		}
+
+		ResourcePool::GetInstance()->ReleaseDataset(tiffDataset);
 	}
 
 	std::string json = oJson.ToString();
@@ -584,7 +630,7 @@ bool WMSHandler::GetEnvlope(const std::string& request_body, std::shared_ptr<Han
 	std::vector<std::pair<Envelop, int>> envs;
 	for (auto& path : layers)
 	{
-		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(path));
+		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->AcquireDataset(path));
 		if (tiffDataset != nullptr)
 		{
 			int epsg = tiffDataset->GetEPSG();
@@ -618,6 +664,8 @@ bool WMSHandler::GetEnvlope(const std::string& request_body, std::shared_ptr<Han
 			env.PutCoords(0, 0, 0, 0);
 			envs.emplace_back(std::make_pair(env, -1));
 		}
+
+		ResourcePool::GetInstance()->ReleaseDataset(tiffDataset);
 	}
 
 	std::string json;
@@ -648,7 +696,7 @@ bool WMSHandler::GetGroupEnvelope(const std::string& request_body, std::shared_p
 		int epsg_group = -9999;
 		for (auto& image_path : image_paths)
 		{
-			std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->GetDataset(image_path));
+			std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->AcquireDataset(image_path));
 			if (tiffDataset != nullptr)
 			{
 				int epsg = tiffDataset->GetEPSG();
@@ -675,6 +723,8 @@ bool WMSHandler::GetGroupEnvelope(const std::string& request_body, std::shared_p
 					group_env.Union(env);
 				}
 			}
+
+			ResourcePool::GetInstance()->ReleaseDataset(tiffDataset);
 		}
 
 		envs.emplace_back(std::make_pair(group_env, epsg_group));

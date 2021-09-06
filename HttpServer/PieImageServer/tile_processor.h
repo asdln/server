@@ -6,6 +6,7 @@
 #include "buffer.h"
 #include "dataset.h"
 #include "style.h"
+#include "benchmark.h"
 
 class OGRSpatialReference;
 
@@ -17,10 +18,10 @@ public:
 	~TileProcessor();
 
 	static bool GetTileData(Dataset* dataset, Style* style, const Envelop& env, int tile_width
-		, int tile_height, unsigned char** buff, unsigned char** mask_buffer, int render_color_count);
+		, int tile_height, unsigned char** buff, unsigned char** mask_buffer, int render_color_count, Benchmark& bench_mark);
 
 	static BufferPtr GetCombinedData(const std::list<std::pair<DatasetPtr, StylePtr>>& datasets
-		, const Envelop& env, int tile_width, int tile_height, Format& format);
+		, const Envelop& env, int tile_width, int tile_height, Format& format, Benchmark& bench_mark);
 
 protected:
 
@@ -29,7 +30,7 @@ protected:
 
 	static bool DynamicProject(OGRSpatialReference* pDstSpatialReference, Dataset* pDataset
 		, int nBandCount, int bandMap[], const Envelop& env, unsigned char* pData
-		, unsigned char* pMaskBuffer, int width, int height);
+		, unsigned char* pMaskBuffer, int width, int height, Benchmark& bench_mark);
 
 	static bool ProcessPerPixel(Dataset* ptrDataset
 		, const Envelop& ptrEnvelope

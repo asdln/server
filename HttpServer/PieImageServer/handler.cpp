@@ -90,6 +90,20 @@ int Handler::QueryZ(const Url& url)
 	return nx;
 }
 
+bool Handler::QueryStatistic(const Url& url)
+{
+	std::string statistic;
+	if (url.QueryValue("statistic", statistic))
+	{
+		if (statistic.compare("true") == 0 || statistic.compare("1") == 0)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 int Handler::QueryTileWidth(const Url& url)
 {
 	int width = 256;

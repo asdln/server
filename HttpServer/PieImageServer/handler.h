@@ -16,6 +16,8 @@ public:
 	virtual int QueryY(const Url& url);
 	virtual int QueryZ(const Url& url);
 
+	virtual bool QueryStatistic(const Url& url);
+
 	virtual int QueryTileWidth(const Url& url);
 	virtual int QueryTileHeight(const Url& url);
 

@@ -331,7 +331,7 @@ bool TileProcessor::SimpleProject(Dataset* pDataset, int nBandCount, int bandMap
 }
 
 bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDataset, int nBandCount, int bandMap[]
-	, const Envelop& envelope, unsigned char* pData, unsigned char* pMaskData, int nWidth, int nHeight)
+	, const Envelop& envelope, unsigned char* pData, unsigned char* pMaskData, int nWidth, int nHeight, Benchmark& bench_mark)
 {
 	const Envelop& ptrEnvDataset = pDataset->GetExtent();
 	OGRSpatialReference* ptrDSSRef = pDataset->GetSpatialReference();
@@ -339,6 +339,8 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 	RasterResamplingType resampType = NEAREST_NEIGHBOR;
 
 	bool bDynPrjTrans = false;
+
+	bench_mark.TimeTag("DynamicProject");
 
 	// 坐标转换
 	if (ptrVisSRef && ptrDSSRef && ptrDSSRef->GetRoot() != nullptr)
@@ -389,6 +391,7 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
  		//针对极地坐标做特殊处理
  		if (!bTransRes || std::isnan(dx1) || std::isnan(dy1) || std::isnan(dx2) || std::isnan(dy2))
  		{
+			bench_mark.TimeTag("ProcessPerPixel1");
  			return ProcessPerPixel(pDataset, envelope, ptrDSSRef, nWidth, nHeight, nBandCount, bandMap, pData, pMaskData, resampType, bDynProjectToGeoCoord);
  		}
 	}
@@ -408,6 +411,7 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 		Envelop ptrEvnTemp = envelope;
 		if (IsIntersect(ptrEnvDataset, ptrEvnTemp))
 		{
+			bench_mark.TimeTag("ProcessPerPixel2");
 			return ProcessPerPixel(pDataset, envelope, ptrDSSRef, nWidth, nHeight, nBandCount, bandMap, pData, pMaskData, resampType, bDynProjectToGeoCoord);
 		}
 
@@ -599,10 +603,13 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 	//	}
 	//}
 	//else
+
+	ReadStatistic read_statistic(nDesWid, nDesHei);
 	{
+		TimeDuration time_duration(read_statistic.read_time_milliseconds);
 		pDataset->Read(nLeft, nTop, nSrcWid, nSrcHei, pSrcData, nDesWid, nDesHei, ePixelType, nBandCount, bandMap);
 	}
-
+	bench_mark.read_statistics.push_back(read_statistic);
 
 	double dx, dy, dbSrcX, dbSrcY;
 
@@ -618,6 +625,8 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 
 	double dbHalfCellX = dScreenResolutionX * 0.5;
 	double dbHalfCellY = dScreenResolutionY * 0.5;
+
+	bench_mark.TimeTag("bDynPrjTrans");
 
 	if (bDynPrjTrans)
 	{
@@ -658,6 +667,8 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 			return false;
 		}
 	}
+
+	bench_mark.TimeTag("bDynPrjTrans_end");
 
 	double ddx1, ddy1, ddx2, ddy2;
 	ptrEnvDataset.QueryCoords(ddx1, ddy1, ddx2, ddy2);
@@ -855,6 +866,8 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 		dy -= dScreenResolutionY;
 	}
 
+	bench_mark.TimeTag("DynamicProject_end");
+
 	if (bDynPrjTrans)
 	{
 // 		delete[] pdx;
@@ -870,7 +883,7 @@ bool TileProcessor::DynamicProject(OGRSpatialReference* ptrVisSRef, Dataset* pDa
 }
 
 BufferPtr TileProcessor::GetCombinedData(const std::list<std::pair<DatasetPtr, StylePtr>>& datasets
-	, const Envelop& env, int tile_width, int tile_height, Format& format)
+	, const Envelop& env, int tile_width, int tile_height, Format& format, Benchmark& bench_mark)
 {
 	if (datasets.empty())
 		return nullptr;
@@ -885,11 +898,14 @@ BufferPtr TileProcessor::GetCombinedData(const std::list<std::pair<DatasetPtr, S
 
 	int size = tile_width * tile_height;
 
+	bench_mark.TimeTag("GetCombinedData");
+
 	//默认带透明度
 	int render_color_count = 4;
 	if (format == Format::JPG)
 		render_color_count = 3;
 
+	int index_statistic = 0;
 	for (auto content : datasets)
 	{
 		unsigned char* render_buffer = nullptr;
@@ -897,7 +913,7 @@ BufferPtr TileProcessor::GetCombinedData(const std::list<std::pair<DatasetPtr, S
 
 		Dataset* dataset = content.first.get();
 		Style* style = content.second.get();
-		bool bRes = GetTileData(dataset, style, env, tile_width, tile_height, &render_buffer, &mask_buffer, render_color_count);
+		bool bRes = GetTileData(dataset, style, env, tile_width, tile_height, &render_buffer, &mask_buffer, render_color_count, bench_mark);
 		
 		if (bRes && render_buffer_final == nullptr && mask_buffer_final == nullptr)
 		{
@@ -948,6 +964,8 @@ BufferPtr TileProcessor::GetCombinedData(const std::list<std::pair<DatasetPtr, S
 				dataset->GetMemoryPool()->free(mask_buffer);
 			}
 		}
+
+		bench_mark.TimeTag("GetCombinedData" + std::to_string(index_statistic ++));
 	}
 
 	BufferPtr buffer = nullptr;
@@ -989,10 +1007,13 @@ BufferPtr TileProcessor::GetCombinedData(const std::list<std::pair<DatasetPtr, S
 		pool_final->free(mask_buffer_final);
 	}
 
+	bench_mark.TimeTag("GetCombinedData_End");
+
 	return buffer;
 }
 
-bool TileProcessor::GetTileData(Dataset* dataset, Style* style, const Envelop& env, int tile_width, int tile_height, unsigned char** buffer_out, unsigned char** mask_buff, int render_color_count)
+bool TileProcessor::GetTileData(Dataset* dataset, Style* style, const Envelop& env, int tile_width, int tile_height
+	, unsigned char** buffer_out, unsigned char** mask_buff, int render_color_count, Benchmark& bench_mark)
 {
 	TiffDataset* tiffDataset = dynamic_cast<TiffDataset*>(dataset);
 	if (tiffDataset == nullptr)
@@ -1017,7 +1038,7 @@ bool TileProcessor::GetTileData(Dataset* dataset, Style* style, const Envelop& e
 	OGRSpatialReference* pDefaultSpatialReference = ResourcePool::GetInstance()->GetSpatialReference(epsg_code);
 	int pixel_bytes = GetDataTypeBytes(tiffDataset->GetDataType());
 
-	bool bSimple = false;
+	//bool bSimple = false;
 	OGRSpatialReference* poSpatialReference = tiffDataset->GetSpatialReference();
 	
 	//if (!tiffDataset->IsUseRPC())
@@ -1041,15 +1062,16 @@ bool TileProcessor::GetTileData(Dataset* dataset, Style* style, const Envelop& e
 	mask_buffer = *mask_buff;
 	memset(mask_buffer, 255, (size_t)tile_width * tile_height);
 
-	if (bSimple)
-	{
-		bRes = SimpleProject(tiffDataset, band_count, band_map, env, buff, mask_buffer, tile_width, tile_height);
-	}
-	else
-	{
+// 	if (bSimple)
+// 	{
+// 		bRes = SimpleProject(tiffDataset, band_count, band_map, env, buff, mask_buffer, tile_width, tile_height);
+// 	}
+// 	else
+// 	{
 		//env 必须是 pDefaultSpatialReference 的空间参考
-		bRes = DynamicProject(pDefaultSpatialReference, tiffDataset, band_count, band_map, env, buff, mask_buffer, tile_width, tile_height);
-	}
+		bench_mark.TimeTag("before_DynamicProject");
+		bRes = DynamicProject(pDefaultSpatialReference, tiffDataset, band_count, band_map, env, buff, mask_buffer, tile_width, tile_height, bench_mark);
+	//}
 
 	if (!bRes)
 	{

@@ -7,6 +7,28 @@
 #include <shared_mutex>
 #include "dataset.h"
 
+class DatasetGroup
+{
+public:
+
+	DatasetGroup(const std::string& path, int max_count) 
+		: path_(path), dataset_pool_max_count_(max_count){}
+
+	DatasetPtr wait();
+
+	void signal(DatasetPtr);
+
+protected:
+
+	std::string path_;
+
+	std::vector<DatasetPtr> datasets_;
+
+	std::condition_variable cond_;
+	int dataset_pool_max_count_;
+	std::mutex mutex_dataset_group_;
+};
+
 class ResourcePool
 {
 public:
@@ -37,7 +59,9 @@ public:
 
 	void ReleaseCacheMutex(const std::string& md5);
 
-	std::shared_ptr<Dataset> GetDataset(const std::string& path);
+	std::shared_ptr<Dataset> AcquireDataset(const std::string& path);
+
+	void ReleaseDataset(std::shared_ptr<Dataset> dataset);
 
 	OGRSpatialReference* GetSpatialReference(int epsg_code);
 
@@ -64,11 +88,10 @@ private:
 
 	static ResourcePool* instance_;
 
-	static std::mutex mutex_;
-
 	int dataset_pool_max_count_ = 8;
-	std::mutex mutex_dataset_;
-	std::map<std::string, std::vector<DatasetPtr>> map_dataset_pool_;
+	static std::mutex mutex_;
+	std::shared_mutex mutex_dataset_;
+	std::map<std::string, std::shared_ptr<DatasetGroup>> map_dataset_pool_;
 
 	std::shared_mutex srs_shared_mutex_;
 	std::map<int, std::shared_ptr<OGRSpatialReference>> map_SRS;

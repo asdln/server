@@ -7,6 +7,34 @@ ResourcePool* ResourcePool::instance_ = nullptr;
 std::mutex ResourcePool::mutex_;
 extern bool g_complete_statistic;
 
+DatasetPtr DatasetGroup::wait()
+{
+	std::unique_lock<std::mutex> lock(mutex_dataset_group_);
+	cond_.wait(lock, [&]() {return dataset_pool_max_count_ > 0; });
+	--dataset_pool_max_count_;
+
+	if (!datasets_.empty())
+	{
+		auto p = datasets_.back();
+		datasets_.pop_back();
+		return p;
+	}
+	else
+	{
+		auto p = DatasetFactory::OpenDataset(path_);
+		return p;
+	}
+}
+
+void DatasetGroup::signal(DatasetPtr dataset)
+{
+	std::unique_lock<std::mutex> lock(mutex_dataset_group_);
+	++dataset_pool_max_count_;
+	cond_.notify_one();
+
+	datasets_.push_back(dataset);
+}
+
 ResourcePool::ResourcePool()
 {
 
@@ -16,7 +44,8 @@ ResourcePool::~ResourcePool()
 {
 	map_SRS.clear();
 	map_histogram_.clear();
-	map_dataset_pool_.clear();
+
+	ClearDatasets();
 }
 
 void ResourcePool::Init()
@@ -36,11 +65,11 @@ void ResourcePool::SetDatasetPoolMaxCount(int count)
 {
 	dataset_pool_max_count_ = count;
 
-	for (int i = 0; i < dataset_pool_max_count_; i++)
-	{
-		std::mutex* pmutex = new std::mutex;
-		list_cache_mutex_.push_back(pmutex);
-	}
+ 	for (int i = 0; i < dataset_pool_max_count_; i++)
+ 	{
+ 		std::mutex* pmutex = new std::mutex;
+ 		list_cache_mutex_.push_back(pmutex);
+ 	}
 }
 
 std::mutex* ResourcePool::AcquireCacheMutex(const std::string& md5)
@@ -80,56 +109,93 @@ void ResourcePool::ReleaseCacheMutex(const std::string& md5)
 	}
 }
 
-std::shared_ptr<Dataset> ResourcePool::GetDataset(const std::string& path)
+std::shared_ptr<Dataset> ResourcePool::AcquireDataset(const std::string& path)
 {
-	std::lock_guard<std::mutex> guard(mutex_dataset_);
-
-	std::map<std::string, std::vector<DatasetPtr>>::iterator itr = map_dataset_pool_.find(path);
-	if (itr != map_dataset_pool_.end())
+	//先用读锁
+	std::shared_ptr<DatasetGroup> group = nullptr;
 	{
-		std::vector<DatasetPtr>& datasets = itr->second;
-		if (datasets.size() < dataset_pool_max_count_)
+		std::shared_lock<std::shared_mutex> lock(mutex_dataset_);
+		auto itr = map_dataset_pool_.find(path);
+		if (itr != map_dataset_pool_.end())
 		{
-			auto p = DatasetFactory::OpenDataset(path);
-			datasets.emplace_back(p);
-			return p;
+			group = itr->second;
+			//return itr->second->wait();
+		}
+	}
+
+	if (group != nullptr)
+	{
+		return group->wait();
+	}
+
+	//没找到，用写锁
+	{
+		//需要再查找一次，因为另外的写锁可能抢先一步
+		std::unique_lock<std::shared_mutex> lock(mutex_dataset_);
+		auto itr = map_dataset_pool_.find(path);
+		if (itr != map_dataset_pool_.end())
+		{
+			group = itr->second;
+			//return itr->second->wait();
 		}
 		else
 		{
-			int use_count = -1;
-			DatasetPtr min_count_dataset;
-			for (auto dataset : datasets)
-			{
-				if (-1 == use_count)
-				{
-					use_count = dataset.use_count();
-					min_count_dataset = dataset;
-				}
-				else
-				{
-					if (use_count > dataset.use_count())
-					{
-						use_count = dataset.use_count();
-						min_count_dataset = dataset;
-					}
-				}
-			}
-			return min_count_dataset;
+			group = std::make_shared<DatasetGroup>(path, dataset_pool_max_count_);
+			map_dataset_pool_.emplace(path, group);
 		}
 	}
-	else
+
+	return group->wait();
+}
+
+void ResourcePool::ReleaseDataset(std::shared_ptr<Dataset> dataset)
+{
+	//先用读锁
+	std::shared_ptr<DatasetGroup> group = nullptr;
 	{
-		std::vector<DatasetPtr> datasets;
-		auto p = DatasetFactory::OpenDataset(path);
-		datasets.emplace_back(p);
-		map_dataset_pool_.emplace(path, datasets);
-		return p;
+		std::shared_lock<std::shared_mutex> lock(mutex_dataset_);
+		auto itr = map_dataset_pool_.find(dataset->file_path());
+		if (itr != map_dataset_pool_.end())
+		{
+			group = itr->second;
+			//return itr->second->signal(dataset);
+		}
 	}
+
+	if (group != nullptr)
+	{
+		return group->signal(dataset);
+	}
+
+	//没找到，用写锁
+	{
+		//需要再查找一次，因为另外的写锁可能抢先一步
+		std::unique_lock<std::shared_mutex> lock(mutex_dataset_);
+		auto itr = map_dataset_pool_.find(dataset->file_path());
+		if (itr != map_dataset_pool_.end())
+		{
+			//return itr->second->signal(dataset);
+			group = itr->second;
+		}
+		else
+		{
+			group = std::make_shared<DatasetGroup>(dataset->file_path(), dataset_pool_max_count_);
+			map_dataset_pool_.emplace(dataset->file_path(), group);
+		}
+	}
+
+	return group->signal(dataset);
 }
 
 void ResourcePool::ClearDatasets()
 {
-	std::lock_guard<std::mutex> guard(mutex_dataset_);
+	std::unique_lock<std::shared_mutex> lock(mutex_dataset_);
+
+	for (auto itr : map_dataset_pool_)
+	{
+		itr.second->wait();
+	}
+	
 	map_dataset_pool_.clear();
 }
 

@@ -119,6 +119,7 @@
       <AdditionalIncludeDirectories>D:\work\boost_1_73_0;D:\work\libjpeg-turbo-master;D:\work\OSGeo4W\include;D:\work\libpng-libpng16;D:\work\libwebp-master\src;D:\work\glog-master\src\windows;D:\work\third-party-install\aws-sdk-cpp\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -152,6 +153,7 @@
   <ItemGroup>
     <ClCompile Include="amazon_s3.cpp" />
     <ClCompile Include="application.cpp" />
+    <ClCompile Include="benchmark.cpp" />
     <ClCompile Include="buffer.cpp" />
     <ClCompile Include="cJSON.c" />
     <ClCompile Include="CJsonObject.cpp" />
@@ -199,6 +201,7 @@
   <ItemGroup>
     <ClInclude Include="amazon_s3.h" />
     <ClInclude Include="application.h" />
+    <ClInclude Include="benchmark.h" />
     <ClInclude Include="buffer.h" />
     <ClInclude Include="cJSON.h" />
     <ClInclude Include="CJsonObject.hpp" />

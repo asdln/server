@@ -13,6 +13,7 @@ MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
 
 SET(SRC_LIST main.cpp
     application.cpp
+    benchmark.cpp
     buffer.cpp
     CJsonObject.cpp
     compress.cpp

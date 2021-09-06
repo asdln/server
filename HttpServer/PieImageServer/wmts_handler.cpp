@@ -8,6 +8,7 @@
 #include "amazon_s3.h"
 #include "file_cache.h"
 #include "image_group_manager.h"
+#include "benchmark.h"
 
 //if(buffer != nullptr)
 //{
@@ -37,7 +38,8 @@
 //	pFile = nullptr;
 //}
 
-bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
+bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url
+	, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
 	std::string request;
 	if (url.QueryValue("request", request))
@@ -57,8 +59,16 @@ bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url, con
 	return GetTile(doc_root, url, request_body, result);
 }
 
-bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
+bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url
+	, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
+	bool statistic = QueryStatistic(url);
+
+	QPSLocker qps_locker(g_qps);
+	Benchmark benchmark(statistic);
+
+	benchmark.TimeTag("GetTile_Begin");
+
 	int epsg_code = QuerySRS(url);
 	if (epsg_code == -1)
 	{
@@ -103,7 +113,8 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, co
 	std::string md5;
 	if (use_cache && (S3Cache::GetUseS3Cache() || FileCache::GetUseFileCache()))
 	{
-		std::string amazon_data_style = json_str + std::to_string(nx) + std::to_string(ny) + std::to_string(nz) + std::to_string(epsg_code);
+		std::string amazon_data_style = json_str + std::to_string(nx)
+			+ std::to_string(ny) + std::to_string(nz) + std::to_string(epsg_code);
 		if (one_to_one == false)
 		{
 			//路径也要加进来，作为md5的参数
@@ -122,5 +133,6 @@ bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url, co
 		md5 = group + '/' + md5;
 	}
 
-	return GetHandleResult(use_cache, env, 256, 256, epsg_code, json_str, md5, one_to_one, data_paths, format, result);
+	return GetHandleResult(use_cache, env, 256, 256, epsg_code, json_str
+		, md5, one_to_one, data_paths, format, statistic, benchmark, result);
 }

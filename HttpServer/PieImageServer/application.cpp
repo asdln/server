@@ -178,6 +178,11 @@ Application::Application(int argc, char* argv[])
 
 	program.add_argument("--thread")
 		.help("number of thread created")
+		.default_value(80)
+		.action([](const std::string& value) { return std::stoi(value); });
+
+	program.add_argument("--dataset_count")
+		.help("maximum number of dataset created of each file")
 		.default_value(12)
 		.action([](const std::string& value) { return std::stoi(value); });
 
@@ -227,6 +232,7 @@ Application::Application(int argc, char* argv[])
 
 	port_ = program.get<int>("--port");
 	threads_ = program.get<int>("--thread");
+	int dataset_count = program.get<int>("--dataset_count");
 	statistic_window_size_ = program.get<int>("--statistic_size");
 	gdal_cache_size_ = program.get<std::string>("--gdal_cache_size");
 
@@ -326,13 +332,13 @@ Application::Application(int argc, char* argv[])
     address_ = net::ip::make_address("0.0.0.0");
 	doc_root_ = std::make_shared<std::string>("tile");
 
+	ResourcePool::GetInstance()->SetDatasetPoolMaxCount(dataset_count);
+
 	CPLSetConfigOption("GDAL_CACHEMAX", gdal_cache_size_.c_str());
 	LOG(INFO) << "GDAL Version:  " << GDALVersionInfo("--version");
-	LOG(INFO) << "gdal_cache_size:  " << gdal_cache_size_ << "Mb";
+	LOG(INFO) << "gdal_cache_size:  " << gdal_cache_size_ << "Mb" << "   dataset_count : " << dataset_count;
 
 	//LoadConfig();
-
-	ResourcePool::GetInstance()->SetDatasetPoolMaxCount(threads_ + 1);
 
 	LOG(INFO) << "thread : " << threads_ << "   port : " << port_ << "    statistic_size: " << statistic_window_size_;
 
@@ -393,57 +399,6 @@ Application::~Application()
 {
 
 }
-
-//bool Application::LoadConfig()
-//{
-//	threads_ = 12;
-//	port_ = 8083;
-//	statistic_window_size_ = 1024;
-//	EtcdStorage::port_ = "2379";
-//	EtcdStorage::host_ = "0.0.0.0";
-//
-//	if (!boost::filesystem::exists(app_path_ + "config.ini")) 
-//	{
-//		LOG(INFO) << "config.ini not exists : " << app_path_ + "config.ini";
-//		return false;
-//	}
-//
-//	boost::property_tree::ptree root_node, tag_system;
-//	boost::property_tree::ini_parser::read_ini(app_path_ + "config.ini", root_node);
-//	tag_system = root_node.get_child("Server");
-//	if (tag_system.count("port") == 1) 
-//	{
-//		port_ = tag_system.get<int>("port");
-//	}
-//	
-//	if (tag_system.count("threads") == 1) 
-//	{
-//		threads_ = std::max<int>(1, tag_system.get<int>("threads"));
-//	}
-//
-//	if (tag_system.count("statistic_size") == 1)
-//	{
-//		statistic_window_size_ = std::max<int>(1, tag_system.get<int>("statistic_size"));
-//	}
-//
-//	if (tag_system.count("gdal_cache_size") == 1)
-//	{
-//		gdal_cache_size_ = tag_system.get<std::string>("gdal_cache_size");
-//	}
-//
-//	boost::property_tree::ptree tag_etcd = root_node.get_child("Etcd");
-//	if (tag_etcd.count("port") == 1) 
-//	{
-//		EtcdStorage::port_ = tag_etcd.get<std::string>("port");
-//	}
-//
-//	if (tag_etcd.count("host") == 1) 
-//	{
-//		EtcdStorage::host_ = tag_etcd.get<std::string>("host");
-//	}
-//
-//	return true;
-//}
 
 void Application::InitBandMap()
 {

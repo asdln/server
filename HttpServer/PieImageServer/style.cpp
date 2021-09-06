@@ -273,13 +273,15 @@ void Style::Apply(void* data, unsigned char* mask_buffer, int size, int band_cou
 	{
 		bool band_4 = render_color_count == 4;
 		GDALColorTable* poColorTable = dataset->GetColorTable(1);
-		//if (poColorTable && dataset->GetDataType() == DT_Byte)
+		if (poColorTable && dataset->GetDataType() == DT_Byte)
 		{
 			for (int i = size - 1; i >= 0; i--)
 			{
 				if (mask_buffer[i] != 0)
 				{
 					const GDALColorEntry* poColorEntry = poColorTable->GetColorEntry(buffer[i]);
+					if(poColorEntry == nullptr)
+						continue;
 
 					if (band_4)
 						buffer[i * render_color_count + 3] = poColorEntry->c4;
@@ -378,6 +380,10 @@ StylePtr StyleSerielizer::FromJsonObj(neb::CJsonObject& json_obj)
 		memset(style->lut_, 255, sizeof(style->lut_));
 		style->bandCount_ = 1;
 	}
+	else if (style->kind_ == StyleType::PALETTE)
+	{
+		style->bandCount_ = 1;
+	}
 
 	style->uid_ = json_obj("uid");
 
@@ -432,7 +438,7 @@ StylePtr StyleSerielizer::FromJsonObj(neb::CJsonObject& json_obj)
 		json_obj["stretch"].Get("scale", scale);
 		stretch->set_dev_scale(scale);
 	}
-	else
+	else if(style->kind_ != StyleType::PALETTE) //颜色映射表不做拉伸
 	{
 		auto stretch = std::make_shared<PercentMinMaxStretch>();
 		style->stretch_ = stretch;
