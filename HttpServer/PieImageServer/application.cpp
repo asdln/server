@@ -335,6 +335,10 @@ Application::Application(int argc, char* argv[])
 	ResourcePool::GetInstance()->SetDatasetPoolMaxCount(dataset_count);
 
 	CPLSetConfigOption("GDAL_CACHEMAX", gdal_cache_size_.c_str());
+	GDALSetCacheMax64(std::atoi(gdal_cache_size_.c_str()) * 1024 * 1024);
+
+	int test_cache = GDALGetCacheMax64();
+
 	LOG(INFO) << "GDAL Version:  " << GDALVersionInfo("--version");
 	LOG(INFO) << "gdal_cache_size:  " << gdal_cache_size_ << "Mb" << "   dataset_count : " << dataset_count;
 
