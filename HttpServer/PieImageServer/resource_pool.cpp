@@ -22,6 +22,11 @@ DatasetPtr DatasetGroup::wait()
 	else
 	{
 		auto p = DatasetFactory::OpenDataset(path_);
+		if (p == nullptr)
+		{
+			++dataset_pool_max_count_;
+		}
+
 		return p;
 	}
 }
@@ -150,6 +155,9 @@ std::shared_ptr<Dataset> ResourcePool::AcquireDataset(const std::string& path)
 
 void ResourcePool::ReleaseDataset(std::shared_ptr<Dataset> dataset)
 {
+	if (dataset == nullptr)
+		return;
+
 	//ÏÈÓÃ¶ÁËø
 	std::shared_ptr<DatasetGroup> group = nullptr;
 	{
