@@ -556,6 +556,12 @@ bool WMSHandler::GetImageInfo(const std::string& request_body, std::shared_ptr<H
 			oJson_img.Add("width", tiffDataset->GetRasterXSize());
 			oJson_img.Add("height", tiffDataset->GetRasterYSize());
 
+			int block_x, block_y;
+			tiffDataset->GetBlockSize(block_x, block_y);
+
+			oJson_img.Add("block_size_x", block_x);
+			oJson_img.Add("block_size_y", block_y);
+
 			GDALColorTable* poColorTable = tiffDataset->GetColorTable(1);
 			bool palette = poColorTable != nullptr;
 			oJson_img.Add("palette", palette, true);
