@@ -178,7 +178,7 @@ Application::Application(int argc, char* argv[])
 
 	program.add_argument("--thread")
 		.help("number of thread created")
-		.default_value(80)
+		.default_value(12)
 		.action([](const std::string& value) { return std::stoi(value); });
 
 	program.add_argument("--dataset_count")

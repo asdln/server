@@ -1,7 +1,14 @@
 #include "benchmark.h"
 #include <chrono>
 
-std::atomic_int g_qps(0);
+std::atomic_uint g_qps(0); 
+std::atomic_uint g_max_qps(0);
+std::atomic_llong g_tile_count(0);
+std::atomic_llong g_last_time(0);
+
+std::shared_mutex TileTimeCount::s_mutex_;
+
+std::map<std::thread::id, std::list< std::pair<long long, long>>> TileTimeCount::time_count_map_;
 
 void GetCurrentTimeMilliseconds(long long& milliseconds)
 {

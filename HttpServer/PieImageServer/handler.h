@@ -10,7 +10,7 @@ class Handler
 {
 public:
 
-	virtual bool Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result) { return false; }
+	virtual bool Handle(const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result) { return false; }
 
 	virtual int QueryX(const Url& url);
 	virtual int QueryY(const Url& url);

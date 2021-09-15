@@ -1,5 +1,5 @@
 #include "session.h"
-#include "handler.h"
+#include "wmts_handler.h"
 
 #define GOOGLE_GLOG_DLL_DECL 
 #define GLOG_NO_ABBREVIATED_SEVERITIES
@@ -20,8 +20,70 @@ Session::Session(
 {
 }
 
+void Session::run()
+{
+	// We need to be executing within a strand to perform async operations
+	// on the I/O objects in this session. Although not strictly necessary
+	// for single-threaded contexts, this example code is written to be
+	// thread-safe by default.
+	net::dispatch(stream_.get_executor(),
+		beast::bind_front_handler(
+			&Session::do_read,
+			shared_from_this()));
+}
+
+void Session::thread_func()
+{
+	HandlerMapping* pHandlerMapping = HandlerMapping::GetInstance();
+	std::string request_body = req_.body().data();
+	auto result = std::make_shared<HandleResult>(req_.version(), req_.keep_alive());
+
+	try
+	{
+		WMTSHandler handler;
+		handler.GetThumbnail(request_body, result);
+	}
+	catch (std::exception e)
+	{
+		LOG(ERROR) << e.what();
+	}
+	catch (...)
+	{
+		LOG(ERROR) << "handle_request error";
+	}
+
+	//重置超时
+	stream_.expires_after(std::chrono::seconds(10));
+
+	if (result->IsEmpty())
+	{
+		http::request<http::string_body>& req = req_;
+		// Returns a not found response
+		auto const not_found =
+			[&req](beast::string_view target)
+		{
+			http::response<http::string_body> res{ http::status::not_found, req.version() };
+			res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+			res.set(http::field::content_type, "text/html");
+			res.keep_alive(req.keep_alive());
+			//res.body() = "The resource '" + std::string(target) + "' was not found.";
+			res.set(http::field::access_control_allow_origin, "*");
+			res.set(http::field::access_control_allow_methods, "POST, GET, OPTIONS, DELETE");
+			res.set(http::field::access_control_allow_credentials, "true");
+			res.prepare_payload();
+			return res;
+		};
+
+		Send(not_found(""));
+	}
+	else
+	{
+		Send(result);
+	}
+}
+
 void Session::handle_request(
-	beast::string_view doc_root,
+	const Url& url,
 	http::request<http::string_body>&& req)
 {
 	// Make sure we can handle the method
@@ -51,8 +113,6 @@ void Session::handle_request(
 	}
 
 	HandlerMapping* pHandlerMapping = HandlerMapping::GetInstance();
-	Url url(std::string(req.target()));
-	
 	std::string request_body = req.body().data();
 	Handler* pHandler = pHandlerMapping->GetHandler(url);
 
@@ -60,7 +120,7 @@ void Session::handle_request(
 	
 	try
 	{
-		bool bRes = pHandler->Handle(doc_root, url, request_body, result);
+		bool bRes = pHandler->Handle(url, request_body, result);
 	}
 	catch (std::exception e)
 	{
@@ -126,8 +186,25 @@ void Session::on_read(
 	if (ec)
 		return fail(ec, "read");
 
-	// Send the response
-	handle_request(*doc_root_, std::move(req_));
+	Url url(std::string(req_.target()));
+	std::string request;
+
+	//如果是获取拇指图的请求，为了减少对并发性能的影响，单独开一个线程进行处理。
+	if (url.QueryValue("request", request) && request.compare("GetThumbnail") == 0)
+	{
+		auto shared_this = shared_from_this();
+		std::thread func_thread([shared_this, url]
+			{
+				shared_this->thread_func();
+			});
+
+		func_thread.detach();
+	}
+	else
+	{
+		// Send the response
+		handle_request(url, std::move(req_));
+	}
 }
 
 void Session::on_write(

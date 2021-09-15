@@ -38,7 +38,7 @@
 //	pFile = nullptr;
 //}
 
-bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url
+bool WMTSHandler::Handle(const Url& url
 	, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
 	std::string request;
@@ -46,25 +46,26 @@ bool WMTSHandler::Handle(boost::beast::string_view doc_root, const Url& url
 	{
 		if (request.compare("GetTile") == 0)
 		{
-			return GetTile(doc_root, url, request_body, result);
+			return GetTile(url, request_body, result);
 		}
 		else
 		{
-			return WMSHandler::Handle(doc_root, url, request_body, result);
+			return WMSHandler::Handle(url, request_body, result);
 		}
 
 		return false;
 	}
 
-	return GetTile(doc_root, url, request_body, result);
+	return GetTile(url, request_body, result);
 }
 
-bool WMTSHandler::GetTile(boost::beast::string_view doc_root, const Url& url
+bool WMTSHandler::GetTile(const Url& url
 	, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
 	bool statistic = QueryStatistic(url);
 
-	QPSLocker qps_locker(g_qps);
+	QPSLocker qps_locker;
+	TileTimeCount tile_time_count;
 	Benchmark benchmark(statistic);
 
 	benchmark.TimeTag("GetTile_Begin");

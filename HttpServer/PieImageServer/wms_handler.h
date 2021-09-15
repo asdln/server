@@ -6,9 +6,9 @@ class WMSHandler : public Handler
 {
 public:
 
-	virtual bool Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result) override;
+	virtual bool Handle(const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result) override;
 
-	bool GetMap(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result);
+	bool GetMap(const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result);
 
 	bool UpdateDataStyle(const std::string& request_body, std::shared_ptr<HandleResult> result);
 
@@ -52,6 +52,10 @@ public:
 	bool SetGroupCacheState(const std::string& request_body, std::shared_ptr<HandleResult> result);
 
 	bool ClearGroupCache(const std::string& request_body, std::shared_ptr<HandleResult> result);
+
+	bool Inspect(const std::string& request_body, std::shared_ptr<HandleResult> result);
+
+	bool GetThumbnail(const std::string& request_body, std::shared_ptr<HandleResult> result);
 
 protected:
 

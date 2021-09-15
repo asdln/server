@@ -282,7 +282,7 @@ Format String2Format(const std::string& format_string);
 
 void QueryDataInfo(const std::string& request_body
 	, std::list<std::pair<std::string, std::string>>& data_info
-	, Format& format)
+	, Format& format, int& width, int& height)
 {
 	neb::CJsonObject oJson_info;
 	neb::CJsonObject oJson(request_body);
@@ -314,6 +314,8 @@ void QueryDataInfo(const std::string& request_body
 	}
 
 	format = String2Format(oJson("format"));
+	oJson.Get("width", width);
+	oJson.Get("height", height);
 }
 
 void GetLayers(const std::string& request_body, std::vector<std::string>& paths)

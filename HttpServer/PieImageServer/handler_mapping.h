@@ -12,7 +12,7 @@ class HandlerMapping
 {
 public:
 
-	Handler* GetHandler(Url& url);
+	Handler* GetHandler(const Url& url);
 
 	void RegisterAll();
 

@@ -38,7 +38,7 @@ void HandlerMapping::RegisterAll()
 	handlerMap_.insert(std::make_pair("WMS", handler));
 }
 
-Handler* HandlerMapping::GetHandler(Url& url)
+Handler* HandlerMapping::GetHandler(const Url& url)
 {
 	std::string service = "";
 	url.QueryValue("service", service);

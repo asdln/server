@@ -10,19 +10,20 @@
 #include "etcd_storage.h"
 #include "style_map.h"
 #include "gdal_priv.h"
+#include "dataset_factory.h"
 
 std::string g_s3_pyramid_dir;
 
 unsigned char WMSHandler::cache_tag_ = 0;
 
-bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
+bool WMSHandler::Handle(const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
 	std::string request;
 	if (url.QueryValue("request", request))
 	{
 		if (request.compare("GetMap") == 0)
 		{
-			return GetMap(doc_root, url, request_body, result);
+			return GetMap(url, request_body, result);
 		}
 		else if (request.compare("UpdateDataStyle") == 0)
 		{
@@ -100,14 +101,26 @@ bool WMSHandler::Handle(boost::beast::string_view doc_root, const Url& url, cons
 		{
 			return ClearGroupCache(request_body, result);
 		}
+		else if (request.compare("Inspect") == 0)
+		{
+			return Inspect(request_body, result);
+		}
+// 		else if (request.compare("GetThumbnail") == 0)
+// 		{
+// 			return GetThumbnail(request_body, result);
+// 		}
 	}
 
-	return GetMap(doc_root, url, request_body, result);
+	return GetMap(url, request_body, result);
 }
 
 bool WMSHandler::ClearAllDatasets(const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
 	ResourcePool::GetInstance()->ClearDatasets();
+
+	auto string_body = CreateStringResponse(http::status::ok, result->version(), result->keep_alive(), "ok");
+	result->set_string_body(string_body);
+
 	return true;
 }
 
@@ -175,7 +188,8 @@ bool WMSHandler::GetDatasets(int epsg_code, const std::string& data_style_json, 
 
 	if (one_to_one)
 	{
-		QueryDataInfo(data_style_json, data_info, format);
+		int width, height;
+		QueryDataInfo(data_style_json, data_info, format, width, height);
 	}
 	else
 	{
@@ -345,9 +359,9 @@ bool WMSHandler::GetHandleResult(bool use_cache, Envelop env, int tile_width, in
 }
 
 // 暂时不维护。如需要，参考WMTSHandler::GetTile进行修改
-bool WMSHandler::GetMap(boost::beast::string_view doc_root, const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
+bool WMSHandler::GetMap(const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
-	QPSLocker qps_locker(g_qps);
+	QPSLocker qps_locker;
 	Benchmark benchmark(false);
 
 	int epsg_code = QuerySRS(url);
@@ -930,6 +944,151 @@ bool WMSHandler::ClearGroupCache(const std::string& request_body, std::shared_pt
 
 	auto string_body = CreateStringResponse(status_code, result->version(), result->keep_alive(), res_string_body);
 	result->set_string_body(string_body);
+
+	return true;
+}
+
+bool WMSHandler::Inspect(const std::string& request_body, std::shared_ptr<HandleResult> result)
+{
+	unsigned long long tile_count = QPSLocker::GetTileCount();
+	unsigned int max_qps = QPSLocker::GetMaxQPS();
+	double average_time = TileTimeCount::GetAverageTileTime();
+	long long last_time = TileTimeCount::GetLastTime();
+
+	neb::CJsonObject oJson;
+	oJson.Add("tile_count", tile_count);
+	oJson.Add("max_qps", max_qps);
+	oJson.Add("average_time", average_time);
+	oJson.Add("last_time", last_time);
+
+	std::string json_str = oJson.ToString();
+
+	auto string_body = CreateStringResponse(http::status::ok, result->version(), result->keep_alive(), json_str);
+	result->set_string_body(string_body);
+
+	return true;
+}
+
+bool WMSHandler::GetThumbnail(const std::string& request_body, std::shared_ptr<HandleResult> result)
+{
+	//暂时不用共享句柄
+	//std::shared_ptr<Dataset> dataset = ResourcePool::GetInstance()->AcquireDataset(path);
+
+	//##需要在额外的线程中执行
+
+	int epsg_code = 4326;
+	Format format;
+	int width = 512;
+	int height = 512;
+	std::list<std::pair<std::string, std::string>> data_info;
+	QueryDataInfo(request_body, data_info, format, width, height);
+
+	Envelop group_env;
+	std::list<std::pair<DatasetPtr, StylePtr>> datasets;
+	for (auto info : data_info)
+	{
+		const std::string& path = info.first;
+		std::string style_string = info.second;
+
+		//std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->AcquireDataset(path));
+		auto tiffDataset = DatasetFactory::OpenDataset(path);
+		if (tiffDataset == nullptr)
+			continue;
+
+		std::shared_ptr<S3Dataset> s3Dataset = std::dynamic_pointer_cast<S3Dataset>(tiffDataset);
+		if (s3Dataset != nullptr && !g_s3_pyramid_dir.empty() && s3Dataset->IsHavePyramid() == false)
+		{
+			s3Dataset->SetS3CacheKey(g_s3_pyramid_dir);
+		}
+
+		StylePtr style_clone = StyleManager::GetStyle(style_string, tiffDataset);
+		style_clone->set_code(epsg_code);
+		datasets.emplace_back(std::make_pair(tiffDataset, style_clone));
+
+		int epsg = tiffDataset->GetEPSG();
+		Envelop env = tiffDataset->GetExtent();
+
+		if (epsg != epsg_code)
+		{
+			OGRSpatialReference* ptrDSSRef = ResourcePool::GetInstance()->GetSpatialReference(epsg_code);
+			OGRSpatialReference* ptrSrcRef = tiffDataset->GetSpatialReference();
+			if (ptrSrcRef != nullptr)
+			{
+				CoordinateTransformation transformation2(ptrSrcRef, ptrDSSRef);
+				bool res = transformation2.Transform(env, env);
+			}
+		}
+
+		if (group_env.IsEmpty())
+		{
+			group_env = env;
+		}
+		else
+		{
+			group_env.Union(env);
+		}
+	}
+
+	double dMinX, dMinY, dMaxX, dMaxY;
+	group_env.QueryCoords(dMinX, dMinY, dMaxX, dMaxY);
+
+	double env_width = group_env.GetWidth();
+	double env_height = group_env.GetHeight();
+
+	double ratio_rec = (double)width / height;
+	double ratio_env = env_width / env_height;
+
+	if (ratio_rec < ratio_env)
+	{
+		double new_height = env_width / ratio_rec;
+		double center_y = (dMinY + dMaxY) * 0.5;
+		group_env.PutCoords(dMinX, center_y - 0.5 * new_height, dMaxX, center_y + 0.5 * new_height);
+	}
+	else
+	{
+		double new_width = ratio_rec * env_height;
+		double center_x = (dMinX + dMaxX) * 0.5;
+		group_env.PutCoords(center_x - 0.5 * new_width, dMinY, center_x + 0.5 * new_width, dMaxY);
+	}
+
+	Benchmark bench_mark(false);
+	BufferPtr buffer = TileProcessor::GetCombinedData(datasets, group_env, width, height, format, bench_mark);
+
+	std::this_thread::sleep_for(std::chrono::seconds(60));
+
+	if (buffer != nullptr)
+	{
+		result->set_buffer(buffer);
+
+		http::buffer_body::value_type body;
+		body.data = result->buffer()->data();
+		body.size = result->buffer()->size();
+		body.more = false;
+
+		auto msg = std::make_shared<http::response<http::buffer_body>>(
+			std::piecewise_construct,
+			std::make_tuple(std::move(body)),
+			std::make_tuple(http::status::ok, result->version()));
+
+		msg->set(http::field::server, BOOST_BEAST_VERSION_STRING);
+		msg->set(http::field::content_type, "image/jpeg");
+
+		msg->set(http::field::access_control_allow_origin, "*");
+		msg->set(http::field::access_control_allow_methods, "POST, PUT, GET, OPTIONS, DELETE");
+		msg->set(http::field::access_control_allow_credentials, "true");
+
+		msg->content_length(result->buffer()->size());
+		msg->keep_alive(result->keep_alive());
+
+		result->set_buffer_body(msg);
+	}
+	else
+	{
+		auto string_body = CreateStringResponse(http::status::internal_server_error, result->version(), result->keep_alive(), "empty");
+		result->set_string_body(string_body);
+	}
+
+	std::cout << "GetThumbnail thread id:\t" << std::this_thread::get_id() << std::endl;
 
 	return true;
 }

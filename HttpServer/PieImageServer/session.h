@@ -39,7 +39,7 @@ public:
 	// contents of the request, so the interface requires the
 	// caller to pass a generic lambda for receiving the response.
 
-	void handle_request(beast::string_view doc_root, http::request<http::string_body>&& req);
+	void handle_request(const Url& url, http::request<http::string_body>&& req);
 
 	template<bool isRequest, class Body, class Fields>
 	void Send(http::message<isRequest, Body, Fields>&& msg)
@@ -100,17 +100,7 @@ public:
 	~Session() {}
 
 	// Start the asynchronous operation
-	void run()
-	{
-		// We need to be executing within a strand to perform async operations
-		// on the I/O objects in this session. Although not strictly necessary
-		// for single-threaded contexts, this example code is written to be
-		// thread-safe by default.
-		net::dispatch(stream_.get_executor(),
-			beast::bind_front_handler(
-				&Session::do_read,
-				shared_from_this()));
-	}
+	void run();
 
 	void do_read();
 
@@ -119,6 +109,8 @@ public:
 	void on_write(bool close, beast::error_code ec, std::size_t bytes_transferred);
 
 	void do_close();
+
+	void thread_func();
 
 private:
 
