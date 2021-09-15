@@ -978,8 +978,8 @@ bool WMSHandler::GetThumbnail(const std::string& request_body, std::shared_ptr<H
 
 	int epsg_code = 4326;
 	Format format;
-	int width = 512;
-	int height = 512;
+	int width = 500;
+	int height = 500;
 	std::list<std::pair<std::string, std::string>> data_info;
 	QueryDataInfo(request_body, data_info, format, width, height);
 
@@ -1054,8 +1054,6 @@ bool WMSHandler::GetThumbnail(const std::string& request_body, std::shared_ptr<H
 	Benchmark bench_mark(false);
 	BufferPtr buffer = TileProcessor::GetCombinedData(datasets, group_env, width, height, format, bench_mark);
 
-	std::this_thread::sleep_for(std::chrono::seconds(60));
-
 	if (buffer != nullptr)
 	{
 		result->set_buffer(buffer);
@@ -1088,7 +1086,6 @@ bool WMSHandler::GetThumbnail(const std::string& request_body, std::shared_ptr<H
 		result->set_string_body(string_body);
 	}
 
-	std::cout << "GetThumbnail thread id:\t" << std::this_thread::get_id() << std::endl;
-
+	//std::cout << "GetThumbnail thread id:\t" << std::this_thread::get_id() << std::endl;
 	return true;
 }
