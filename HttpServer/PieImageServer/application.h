@@ -15,8 +15,6 @@ public:
 
 	void Run();
 
-	std::list<std::string>& service_files() { return service_files_; }
-
 	int StatisticSize() { return statistic_window_size_; }
 
 protected:
@@ -37,10 +35,6 @@ protected:
 	int statistic_window_size_;
 
 	std::string app_path_;
-
-	std::string service_data_path_ = "";
-
-	std::list<std::string> service_files_;
 
 	std::map<std::string, std::map<std::string, std::vector<int>>> band_map_description_;
 };

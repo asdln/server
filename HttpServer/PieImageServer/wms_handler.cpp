@@ -567,6 +567,18 @@ bool WMSHandler::GetImageInfo(const std::string& request_body, std::shared_ptr<H
 			oJson_img.Add("envelope", oJson_env);
 			oJson_img.Add("pyramid", tiffDataset->IsHavePyramid(), true);
 
+			int band = 1;
+			int have_no_data = 0;
+			double dNodataValue = tiffDataset->GetNoDataValue(band, &have_no_data);
+			if (have_no_data != 0)
+			{
+				oJson_img.Add("nodata_value", dNodataValue);
+			}
+			else
+			{
+				oJson_img.AddNull("nodata_value");
+			}
+
 			oJson_img.Add("width", tiffDataset->GetRasterXSize());
 			oJson_img.Add("height", tiffDataset->GetRasterYSize());
 
@@ -950,18 +962,44 @@ bool WMSHandler::ClearGroupCache(const std::string& request_body, std::shared_pt
 
 bool WMSHandler::Inspect(const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
-	unsigned long long tile_count = QPSLocker::GetTileCount();
-	unsigned int max_qps = QPSLocker::GetMaxQPS();
-	double average_time = TileTimeCount::GetAverageTileTime();
-	long long last_time = TileTimeCount::GetLastTime();
+	std::string json_str;
+	neb::CJsonObject obj_benchmarks;
 
-	neb::CJsonObject oJson;
-	oJson.Add("tile_count", tile_count);
-	oJson.Add("max_qps", max_qps);
-	oJson.Add("average_time", average_time);
-	oJson.Add("last_time", last_time);
+	if (EtcdStorage::IsUseEtcdV3())
+	{
+		EtcdStorage etcd_storage;
+		std::list<std::string> container_ids;
+		etcd_storage.GetSubKeys("benchmark/", container_ids);
 
-	std::string json_str = oJson.ToString();
+		for (auto& container_id : container_ids)
+		{
+			std::string benchmark;
+			std::string key = "benchmark/" + container_id;
+			etcd_storage.GetValue(key, benchmark);
+
+			neb::CJsonObject obj_benchmark(benchmark);
+			obj_benchmark.Add("id", container_id);
+			obj_benchmarks.Add(obj_benchmark);
+		}
+	}
+	else
+	{
+		unsigned long long tile_count = QPSLocker::GetTileCount();
+		unsigned int max_qps = QPSLocker::GetMaxQPS();
+		double average_time = TileTimeCount::GetAverageTileTime();
+		long long last_time = TileTimeCount::GetLastTime();
+
+		neb::CJsonObject obj_benchmark;
+ 		obj_benchmark.Add("id", g_container_id);
+ 		obj_benchmark.Add("tile_count", (uint64)tile_count);
+ 		obj_benchmark.Add("max_qps", (uint32)max_qps);
+ 		obj_benchmark.Add("average_time", average_time);
+ 		obj_benchmark.Add("last_time", (int64)last_time);
+
+		obj_benchmarks.Add(obj_benchmark);
+	}
+
+	json_str = obj_benchmarks.ToString();
 
 	auto string_body = CreateStringResponse(http::status::ok, result->version(), result->keep_alive(), json_str);
 	result->set_string_body(string_body);

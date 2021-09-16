@@ -193,7 +193,7 @@ void Session::on_read(
 	if (url.QueryValue("request", request) && request.compare("GetThumbnail") == 0)
 	{
 		auto shared_this = shared_from_this();
-		std::thread func_thread([shared_this, url]
+		std::thread func_thread([shared_this]
 			{
 				shared_this->thread_func();
 			});

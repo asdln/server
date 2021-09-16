@@ -12,6 +12,7 @@ extern std::atomic_uint g_qps;
 extern std::atomic_uint g_max_qps;
 extern std::atomic_llong g_tile_count;
 extern std::atomic_llong g_last_time;
+extern std::string g_container_id;
 
 struct ReadStatistic
 {
@@ -53,6 +54,7 @@ protected:
 };
 
 void GetCurrentTimeMilliseconds(long long& milliseconds);
+void Start_InspectThread();
 
 class TileTimeCount
 {
@@ -130,7 +132,14 @@ public:
 			}
 		}
 
-		return total_time / (double)count;
+		if (count == 0)
+		{
+			return 0.0;
+		}
+		else
+		{
+			return total_time / (double)count;
+		}
 	}
 
 protected:

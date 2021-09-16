@@ -178,13 +178,13 @@ Application::Application(int argc, char* argv[])
 
 	program.add_argument("--thread")
 		.help("number of thread created")
-		.default_value(12)
+		.default_value(20)
 		.action([](const std::string& value) { return std::stoi(value); });
 
-	program.add_argument("--dataset_count")
-		.help("maximum number of dataset created of each file")
-		.default_value(12)
-		.action([](const std::string& value) { return std::stoi(value); });
+// 	program.add_argument("--dataset_count")
+// 		.help("maximum number of dataset created of each file")
+// 		.default_value(12)
+// 		.action([](const std::string& value) { return std::stoi(value); });
 
 	program.add_argument("--statistic_size")
 		.help("histogram statistic size")
@@ -193,7 +193,7 @@ Application::Application(int argc, char* argv[])
 
 	program.add_argument("--gdal_cache_size")
 		.help("gdal maximum cache size")
-		.default_value(std::string("1000"));
+		.default_value(std::string("0"));
 
 	program.add_argument("--file_cache_dir")
 		.help("file cache dir")
@@ -232,7 +232,7 @@ Application::Application(int argc, char* argv[])
 
 	port_ = program.get<int>("--port");
 	threads_ = program.get<int>("--thread");
-	int dataset_count = program.get<int>("--dataset_count");
+	//int dataset_count = program.get<int>("--dataset_count");
 	statistic_window_size_ = program.get<int>("--statistic_size");
 	gdal_cache_size_ = program.get<std::string>("--gdal_cache_size");
 
@@ -309,6 +309,33 @@ Application::Application(int argc, char* argv[])
 
 #endif
 
+	//读取容器id
+	std::ifstream inFile2("/etc/hostname", std::ios::binary | std::ios::in);
+	if (inFile2.is_open())
+	{
+		inFile2.seekg(0, std::ios_base::end);
+		int FileSize2 = inFile2.tellg();
+
+		inFile2.seekg(0, std::ios::beg);
+		std::vector<unsigned char> buffer;
+
+		buffer.resize(FileSize2);
+		inFile2.read((char*)buffer.data(), FileSize2);
+		inFile2.close();
+
+		std::string name = (char*)buffer.data();
+
+		int pos = name.find('\n');
+		if (pos != std::string::npos)
+		{
+			name = name.substr(0, pos);
+		}
+
+		g_container_id = std::move(name);
+	}
+
+	LOG(INFO) << "container_id : " << g_container_id;
+	
     std::string gdal_data_path = app_path_ + "data";
     CPLSetConfigOption("GDAL_DATA", gdal_data_path.c_str());
 
@@ -316,23 +343,10 @@ Application::Application(int argc, char* argv[])
 
 	LOG(INFO) << "GDAL_DATA : " << gdal_data_path;
 
-	//if (service_files_.empty())
-	//{
-	//	service_data_path_ = app_path_ + "../service_data";
-
-	//	LOG(INFO) << "service_data_path_ : " << service_data_path_;
-	//	get_filenames(service_data_path_, service_files_);
-	//}
-
-	//for (auto& file_name : service_files_)
-	//{
-	//	LOG(INFO) << "data: " << file_name;
-	//}
-
     address_ = net::ip::make_address("0.0.0.0");
 	doc_root_ = std::make_shared<std::string>("tile");
 
-	ResourcePool::GetInstance()->SetDatasetPoolMaxCount(dataset_count);
+	ResourcePool::GetInstance()->SetDatasetPoolMaxCount(threads_/*dataset_count*/);
 
 	CPLSetConfigOption("GDAL_CACHEMAX", gdal_cache_size_.c_str());
 	GDALSetCacheMax64(std::atoi(gdal_cache_size_.c_str()) * 1024 * 1024);
@@ -340,7 +354,7 @@ Application::Application(int argc, char* argv[])
 	int test_cache = GDALGetCacheMax64();
 
 	LOG(INFO) << "GDAL Version:  " << GDALVersionInfo("--version");
-	LOG(INFO) << "gdal_cache_size:  " << gdal_cache_size_ << "Mb" << "   dataset_count : " << dataset_count;
+	LOG(INFO) << "gdal_cache_size:  " << gdal_cache_size_ << "Mb";// << "   dataset_count : " << dataset_count;
 
 	//LoadConfig();
 
@@ -447,6 +461,11 @@ void Application::InitBandMap()
 
 void Application::Run()
 {
+	if (EtcdStorage::IsUseEtcdV3())
+	{
+		Start_InspectThread();
+	}
+	
 	StyleMap::StartStyleWatch();
 	ImageGroupManager::StartImageGroupWatch();
 

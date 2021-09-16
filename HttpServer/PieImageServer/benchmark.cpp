@@ -1,14 +1,46 @@
 #include "benchmark.h"
 #include <chrono>
+#include "CJsonObject.hpp"
+#include "etcd_storage.h"
 
 std::atomic_uint g_qps(0); 
 std::atomic_uint g_max_qps(0);
 std::atomic_llong g_tile_count(0);
 std::atomic_llong g_last_time(0);
+std::string g_container_id;
 
 std::shared_mutex TileTimeCount::s_mutex_;
 
 std::map<std::thread::id, std::list< std::pair<long long, long>>> TileTimeCount::time_count_map_;
+
+void Start_InspectThread()
+{
+	std::thread inspetc_thread
+	([]{
+
+		while (true)
+		{
+			unsigned long long tile_count = QPSLocker::GetTileCount();
+			unsigned int max_qps = QPSLocker::GetMaxQPS();
+			double average_time = TileTimeCount::GetAverageTileTime();
+			long long last_time = TileTimeCount::GetLastTime();
+
+			neb::CJsonObject oJson;
+			oJson.Add("tile_count", (uint64)tile_count);
+			oJson.Add("max_qps", (uint32)max_qps);
+			oJson.Add("average_time", average_time);
+			oJson.Add("last_time", (int64)last_time);
+
+			std::string json_str = oJson.ToString();
+
+			EtcdStorage etcd_storage;
+			etcd_storage.SetValue("benchmark/" + g_container_id, json_str, true);
+			std::this_thread::sleep_for(std::chrono::seconds(10));
+		}
+	});
+
+	inspetc_thread.detach();
+}
 
 void GetCurrentTimeMilliseconds(long long& milliseconds)
 {
