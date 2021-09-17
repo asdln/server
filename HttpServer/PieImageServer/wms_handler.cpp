@@ -184,7 +184,7 @@ bool WMSHandler::GetStyleString(const Url& url, const std::string& request_body,
 bool WMSHandler::GetDatasets(int epsg_code, const std::string& data_style_json, bool one_to_one
 	, const std::list<std::string>& data_paths, std::list<std::pair<DatasetPtr, StylePtr>>& datasets, Format& format)
 {
-	std::list<std::pair<std::string, std::string>> data_info;
+	std::list<std::tuple<std::string, std::string, std::string>> data_info;
 
 	if (one_to_one)
 	{
@@ -200,11 +200,11 @@ bool WMSHandler::GetDatasets(int epsg_code, const std::string& data_style_json, 
 		{
 			if (itr == style_strings.end())
 			{
-				data_info.emplace_back(std::make_pair(data_path, style_strings.back()));
+				data_info.emplace_back(std::make_tuple(data_path, style_strings.back(), ""));
 			}
 			else
 			{
-				data_info.emplace_back(std::make_pair(data_path, *itr));
+				data_info.emplace_back(std::make_tuple(data_path, *itr, ""));
 				itr++;
 			}
 		}
@@ -212,17 +212,25 @@ bool WMSHandler::GetDatasets(int epsg_code, const std::string& data_style_json, 
 
 	for (auto info : data_info)
 	{
-		const std::string& path = info.first;
-		std::string style_string = info.second;
+		const std::string& path = std::get<0>(info);
+		std::string style_string = std::get<1>(info);
+		const std::string& s3cachekey = std::get<2>(info);
 
 		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->AcquireDataset(path));
 		if (tiffDataset == nullptr)
 			continue;
 
 		std::shared_ptr<S3Dataset> s3Dataset = std::dynamic_pointer_cast<S3Dataset>(tiffDataset);
-		if (s3Dataset != nullptr && !g_s3_pyramid_dir.empty() && s3Dataset->IsHavePyramid() == false)
+		if (s3Dataset != nullptr && s3Dataset->IsHavePyramid() == false)
 		{
-			s3Dataset->SetS3CacheKey(g_s3_pyramid_dir);
+			if (!s3cachekey.empty())
+			{
+				s3Dataset->SetS3CacheKey(s3cachekey);
+			}
+			else if (!g_s3_pyramid_dir.empty())
+			{
+				s3Dataset->SetS3CacheKey(g_s3_pyramid_dir);
+			}
 		}
 
 		StylePtr style_clone = StyleManager::GetStyle(style_string, tiffDataset);
@@ -1018,15 +1026,17 @@ bool WMSHandler::GetThumbnail(const std::string& request_body, std::shared_ptr<H
 	Format format;
 	int width = 500;
 	int height = 500;
-	std::list<std::pair<std::string, std::string>> data_info;
+
+	std::list<std::tuple<std::string, std::string, std::string>> data_info;
 	QueryDataInfo(request_body, data_info, format, width, height);
 
 	Envelop group_env;
 	std::list<std::pair<DatasetPtr, StylePtr>> datasets;
 	for (auto info : data_info)
 	{
-		const std::string& path = info.first;
-		std::string style_string = info.second;
+		const std::string& path = std::get<0>(info);
+		std::string style_string = std::get<1>(info);
+		const std::string& s3cachekey = std::get<2>(info);
 
 		//std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->AcquireDataset(path));
 		auto tiffDataset = DatasetFactory::OpenDataset(path);
@@ -1034,9 +1044,16 @@ bool WMSHandler::GetThumbnail(const std::string& request_body, std::shared_ptr<H
 			continue;
 
 		std::shared_ptr<S3Dataset> s3Dataset = std::dynamic_pointer_cast<S3Dataset>(tiffDataset);
-		if (s3Dataset != nullptr && !g_s3_pyramid_dir.empty() && s3Dataset->IsHavePyramid() == false)
+		if (s3Dataset != nullptr && s3Dataset->IsHavePyramid() == false)
 		{
-			s3Dataset->SetS3CacheKey(g_s3_pyramid_dir);
+			if (!s3cachekey.empty())
+			{
+				s3Dataset->SetS3CacheKey(s3cachekey);
+			}
+			else if (!g_s3_pyramid_dir.empty())
+			{
+				s3Dataset->SetS3CacheKey(g_s3_pyramid_dir);
+			}
 		}
 
 		StylePtr style_clone = StyleManager::GetStyle(style_string, tiffDataset);

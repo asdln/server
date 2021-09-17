@@ -281,7 +281,7 @@ void CreateUID(std::string& uid)
 Format String2Format(const std::string& format_string);
 
 void QueryDataInfo(const std::string& request_body
-	, std::list<std::pair<std::string, std::string>>& data_info
+	, std::list<std::tuple<std::string, std::string, std::string>>& data_info
 	, Format& format, int& width, int& height)
 {
 	neb::CJsonObject oJson_info;
@@ -296,6 +296,7 @@ void QueryDataInfo(const std::string& request_body
 			{
 				neb::CJsonObject oJson_dataset_info = oJson_info[i];
 				std::string path = "";
+				std::string s3cachekey = "";
 				std::string style_string = "";
 				neb::CJsonObject oJson_style;
 
@@ -307,7 +308,8 @@ void QueryDataInfo(const std::string& request_body
 						style_string = oJson_style.ToString();
 					}
 
-					data_info.emplace_back(std::make_pair(path, style_string));
+					oJson_dataset_info.Get("s3cachekey", s3cachekey);
+					data_info.emplace_back(std::make_tuple(path, style_string, s3cachekey));
 				}
 			}
 		}
