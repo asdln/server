@@ -557,8 +557,12 @@ bool WMSHandler::GetImageInfo(const std::string& request_body, std::shared_ptr<H
 	for (auto& path : layers)
 	{
 		neb::CJsonObject oJson_img;
+
+		//先确定数据是否存在（有可能被删除了）
+		auto p = DatasetFactory::OpenDataset(path);
+
 		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->AcquireDataset(path));
-		if (tiffDataset != nullptr)
+		if (p != nullptr && tiffDataset != nullptr)
 		{
 			int band_count = tiffDataset->GetBandCount();
 			oJson_img.Add("band_count", band_count);
