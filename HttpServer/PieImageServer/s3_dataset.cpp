@@ -222,6 +222,108 @@ void S3Dataset::SetS3CacheKey(const std::string& s3cachekey)
 
 }
 
+template<typename T>
+void LinearSampleFromBlock(int nx, int ny, int index_left, int index_top, int index_right, int index_bottom, int width
+	, int height, int bufferWidth, int bufferHeight, int nTypeSize, double scale0, const std::vector<unsigned char* >& buffers
+	, int pixel_bytes_bin, void* pData, int type_bytes, int nBandCount, int* pBandMap, int have_nodata, double nodata_value)
+{
+	int block_count_x = index_right - index_left + 1;
+	int block_count_y = index_bottom - index_top + 1;
+
+	int level_left = index_left * 256;
+	int level_top = index_top * 256;
+
+	double res_x = (double)width / bufferWidth;
+	double res_y = (double)height / bufferHeight;
+
+	double mul = 1.0 / scale0;
+	for (int j = 0; j < bufferHeight; j++)
+	{
+		double y = (ny + 0.5 + j * res_y) * mul;
+		int int_y = (int)y;
+		double v = y - int_y;
+		int_y = int_y - level_top;
+
+		for (int i = 0; i < bufferWidth; i++)
+		{
+			double x = (nx + 0.5 + i * res_x) * mul;
+			int int_x = (int)x;
+			double u = x - int_x;
+			int_x = int_x - level_left;
+
+			int sample_x[4];
+			int sample_y[4];
+
+			sample_x[0] = int_x;
+			sample_y[0] = int_y;
+
+			sample_x[1] = int_x;
+			sample_y[1] = int_y + 1;
+
+			sample_x[2] = int_x + 1;
+			sample_y[2] = int_y;
+
+			sample_x[3] = int_x + 1;
+			sample_y[3] = int_y + 1;
+
+			unsigned char* src_data[4];
+
+			for (int w = 0; w < 4; w++)
+			{
+				int block_x_index = sample_x[w] / 256;
+				int block_y_index = sample_y[w] / 256;
+
+				sample_x[w] = sample_x[w] % 256;
+				sample_y[w] = sample_y[w] % 256;
+
+				int block_index = block_y_index * block_count_x + block_x_index;
+				unsigned char* src = buffers[block_index];
+
+				src = src + (sample_y[w] * 256 + sample_x[w]) * pixel_bytes_bin;
+				src_data[w] = src;
+			}
+
+			unsigned char* value1 = src_data[0];
+			unsigned char* value2 = src_data[1];
+			unsigned char* value3 = src_data[2];
+			unsigned char* value4 = src_data[3];
+
+			unsigned char* pDes = (unsigned char*)pData + (bufferWidth * j + i) * type_bytes * nBandCount;
+			double p1 = (1.0 - u) * (1.0 - v);
+			double p2 = (1.0 - u) * v;
+			double p3 = u * (1.0 - v);
+			double p4 = u * v;
+
+			for (int band = 0; band < nBandCount; band++)
+			{
+				int bandIndex = pBandMap[band] - 1;
+				int offset = bandIndex * nTypeSize;
+
+				const T& v1 = *((T*)(value1 + offset));
+				const T& v2 = *((T*)(value2 + offset));
+				const T& v3 = *((T*)(value3 + offset));
+				const T& v4 = *((T*)(value4 + offset));
+
+				//如果有无效值，则按照最邻近采样，解决黑边问题
+				if (have_nodata && (v1 == nodata_value || v2 == nodata_value || v3 == nodata_value || v4 == nodata_value))
+				{
+					int U = u + 0.5;
+					int V = v + 0.5;
+
+					std::array<int, 4> arr = { v1, v3, v2, v4 };
+					T value = arr.at(V * 2 + U);
+					memcpy(pDes + band * nTypeSize, &value, nTypeSize);
+				}
+				else
+				{
+					T value = p1 * v1 + p2 * v2 + p3 * v3 + p4 * v4 + 0.5;
+					memcpy(pDes + band * nTypeSize, &value, nTypeSize);
+				}
+			}
+		}
+	}
+}
+
 bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int bufferWidth
 	, int bufferHeight, DataType dataType, int nBandCount, int* pBandMap
 	, long long pixSpace , long long lineSapce, long long bandSpace, void* psExtraArg)
@@ -261,7 +363,7 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 		double min = scale0;
 		double max = scale0 * 2.0;
 		
-		if (scale >= min && scale <= max)
+		if (scale >= min && scale <= max || scale < 2.0)
 		{
 			break;
 		}
@@ -330,137 +432,71 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 	int block_count_y = index_bottom - index_top + 1;
 
 	int nTypeSize = GetDataTypeBytes(dataType);
-	int level_left = index_left * 256;
-	int level_top = index_top * 256;
 
-	double res_x = (double)width / bufferWidth;
-	double res_y = (double)height / bufferHeight;
+	int have_nodata;
+	double nodata_value;
+	nodata_value = poDataset_->GetRasterBand(1)->GetNoDataValue(&have_nodata);
 
-	double mul = 1.0 / scale0;
-	for (int j = 0; j < bufferHeight; j ++)
+	switch (dataType)
 	{
-		double y = (ny + 0.5 + j * res_y) * mul;
-		int int_y = (int)y;
-		double v = y - int_y;
-		int_y = int_y - level_top;
+	case DT_Byte:
+	{
+		LinearSampleFromBlock<unsigned char>(nx, ny, index_left, index_top, index_right
+			, index_bottom, width, height, bufferWidth, bufferHeight, nTypeSize, scale0
+			, buffers, pixel_bytes_bin, pData, type_bytes_, nBandCount, pBandMap, have_nodata, nodata_value);
+	}
+	break;
 
-		for (int i = 0; i < bufferWidth; i++)
-		{
-			double x = (nx + 0.5 + i * res_x) * mul;
-			int int_x = (int)x;
-			double u = x - int_x;
-			int_x = int_x - level_left;
+	case DT_UInt16:
+	{
+		LinearSampleFromBlock<unsigned short>(nx, ny, index_left, index_top, index_right
+			, index_bottom, width, height, bufferWidth, bufferHeight, nTypeSize, scale0
+			, buffers, pixel_bytes_bin, pData, type_bytes_, nBandCount, pBandMap, have_nodata, nodata_value);
+	}
+	break;
 
-			int sample_x[4];
-			int sample_y[4];
+	case DT_Int16:
+	{
+		LinearSampleFromBlock<short>(nx, ny, index_left, index_top, index_right
+			, index_bottom, width, height, bufferWidth, bufferHeight, nTypeSize, scale0
+			, buffers, pixel_bytes_bin, pData, type_bytes_, nBandCount, pBandMap, have_nodata, nodata_value);
+	}
+	break;
 
-			sample_x[0] = int_x;
-			sample_y[0] = int_y;
+	case DT_UInt32:
+	{
+		LinearSampleFromBlock<unsigned int>(nx, ny, index_left, index_top, index_right
+			, index_bottom, width, height, bufferWidth, bufferHeight, nTypeSize, scale0
+			, buffers, pixel_bytes_bin, pData, type_bytes_, nBandCount, pBandMap, have_nodata, nodata_value);
+	}
+	break;
 
-			sample_x[1] = int_x;
-			sample_y[1] = int_y + 1;
+	case DT_Int32:
+	{
+		LinearSampleFromBlock<int>(nx, ny, index_left, index_top, index_right
+			, index_bottom, width, height, bufferWidth, bufferHeight, nTypeSize, scale0
+			, buffers, pixel_bytes_bin, pData, type_bytes_, nBandCount, pBandMap, have_nodata, nodata_value);
+	}
+	break;
 
-			sample_x[2] = int_x + 1;
-			sample_y[2] = int_y;
+	case DT_Float32:
+	{
+		LinearSampleFromBlock<float>(nx, ny, index_left, index_top, index_right
+			, index_bottom, width, height, bufferWidth, bufferHeight, nTypeSize, scale0
+			, buffers, pixel_bytes_bin, pData, type_bytes_, nBandCount, pBandMap, have_nodata, nodata_value);
+	}
+	break;
 
-			sample_x[3] = int_x + 1;
-			sample_y[3] = int_y + 1;
+	case DT_Float64:
+	{
+		LinearSampleFromBlock<double>(nx, ny, index_left, index_top, index_right
+			, index_bottom, width, height, bufferWidth, bufferHeight, nTypeSize, scale0
+			, buffers, pixel_bytes_bin, pData, type_bytes_, nBandCount, pBandMap, have_nodata, nodata_value);
+	}
+	break;
 
-			unsigned char* src_data[4];
-
-			for (int w = 0; w < 4; w++)
-			{
-				int block_x_index = sample_x[w] / 256;
-				int block_y_index = sample_y[w] / 256;
-
-				sample_x[w] = sample_x[w] % 256;
-				sample_y[w] = sample_y[w] % 256;
-
-				int block_index = block_y_index * block_count_x + block_x_index;
-				unsigned char* src = buffers[block_index];
-
-				src = src + (sample_y[w] * 256 + sample_x[w]) * pixel_bytes_bin;
-				src_data[w] = src;
-			}
-
-			unsigned char* value1 = src_data[0];
-			unsigned char* value2 = src_data[1];
-			unsigned char* value3 = src_data[2];
-			unsigned char* value4 = src_data[3];
-
-			unsigned char* pDes = (unsigned char*)pData + (bufferWidth * j + i) * type_bytes_ * nBandCount;
-			double p1 = (1.0 - u) * (1.0 - v);
-			double p2 = (1.0 - u) * v;
-			double p3 = u * (1.0 - v);
-			double p4 = u * v;
-
-			for (int band = 0; band < nBandCount; band++)
-			{
-				int bandIndex = pBandMap[band] - 1;
-				int offset = bandIndex * nTypeSize;
-				switch (dataType)
-				{
-				case DT_Byte:
-				{
-					unsigned char value = p1 * *(value1 + offset) + p2 * *(value2 + offset)
-						+ p3 * *(value3 + offset) + p4 * *(value4 + offset) + 0.5;
-					memcpy(pDes + band * nTypeSize, &value, nTypeSize);
-				}
-				break;
-
-				case DT_UInt16:
-				{
-					unsigned short value = p1 * *((unsigned short*)(value1 + offset)) + p2 * *((unsigned short*)(value2 + offset))
-						+ p3 * *((unsigned short*)(value3 + offset)) + p4 * *((unsigned short*)(value4 + offset)) + 0.5;
-					memcpy(pDes + band * nTypeSize, &value, nTypeSize);
-				}
-				break;
-
-				case DT_Int16:
-				{
-					short value = p1 * *((short*)(value1 + offset)) + p2 * *((short*)(value2 + offset))
-						+ p3 * *((short*)(value3 + offset)) + p4 * *((short*)(value4 + offset)) + 0.5;
-					memcpy(pDes + band * nTypeSize, &value, nTypeSize);
-				}
-				break;
-
-				case DT_UInt32:
-				{
-					unsigned int value = p1 * *((unsigned int*)(value1 + offset)) + p2 * *((unsigned int*)(value2 + offset))
-						+ p3 * *((unsigned int*)(value3 + offset)) + p4 * *((unsigned int*)(value4 + offset)) + 0.5;
-					memcpy(pDes + band * nTypeSize, &value, nTypeSize);
-				}
-				break;
-
-				case DT_Int32:
-				{
-					int value = p1 * *((int*)(value1 + offset)) + p2 * *((int*)(value2 + offset))
-						+ p3 * *((int*)(value3 + offset)) + p4 * *((int*)(value4 + offset)) + 0.5;
-					memcpy(pDes + band * nTypeSize, &value, nTypeSize);
-				}
-				break;
-
-				case DT_Float32:
-				{
-					float value = p1 * *((float*)(value1 + offset)) + p2 * *((float*)(value2 + offset))
-						+ p3 * *((float*)(value3 + offset)) + p4 * *((float*)(value4 + offset)) + 0.5;
-					memcpy(pDes + band * nTypeSize, &value, nTypeSize);
-				}
-				break;
-
-				case DT_Float64:
-				{
-					double value = p1 * *((double*)(value1 + offset)) + p2 * *((double*)(value2 + offset))
-						+ p3 * *((double*)(value3 + offset)) + p4 * *((double*)(value4 + offset)) + 0.5;
-					memcpy(pDes + band * nTypeSize, &value, nTypeSize);
-				}
-				break;
-
-				default:
-					break;
-				}
-			}
-		}
+	default:
+		break;
 	}
 
 	for (auto p : buffers)

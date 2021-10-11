@@ -48,6 +48,8 @@ public:
 
     virtual int GetEPSG() override;
 
+    virtual std::string GetWKT() override;
+
     virtual MemoryPool* GetMemoryPool() override{ return mem_pool_;}
 
     bool IsUseRPC() { return m_bUsePRC; }

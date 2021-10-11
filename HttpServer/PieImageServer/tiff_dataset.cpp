@@ -236,6 +236,18 @@ int TiffDataset::GetEPSG()
 	return -1;
 }
 
+std::string TiffDataset::GetWKT()
+{
+	if (std::string(poDataset_->GetProjectionRef()).empty())
+		return nullptr;
+
+	char* wkt = nullptr;
+	if (poSpatialReference_)
+		poSpatialReference_->exportToWkt(&wkt);
+
+	return std::string(wkt);
+}
+
 bool TiffDataset::World2Pixel(double dProjX, double dProjY, double& dCol, double& dRow)
 {
 	if (m_bUsePRC)

@@ -52,6 +52,8 @@ public:
 
 	virtual int GetEPSG() = 0;
 
+	virtual std::string GetWKT() = 0;
+
 	virtual MemoryPool* GetMemoryPool() = 0;
 
 	virtual ~Dataset() {};

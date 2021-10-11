@@ -518,17 +518,19 @@ bool WMSHandler::GetLayInfo(const std::string& request_body, std::shared_ptr<Han
 	if (layers.empty())
 		return false;
 
-	std::vector<std::pair<Envelop, int>> envs;
+	std::vector<std::tuple<Envelop, int, std::string>> envs;
 	for (auto& path : layers)
 	{
 		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->AcquireDataset(path));
-		if(tiffDataset != nullptr)
-			envs.emplace_back(std::make_pair(tiffDataset->GetExtent(), tiffDataset->GetEPSG()));
+		if (tiffDataset != nullptr)
+		{
+			envs.emplace_back(std::make_tuple(tiffDataset->GetExtent(), tiffDataset->GetEPSG(), tiffDataset->GetWKT()));
+		}
 		else
 		{
 			Envelop env;
 			env.PutCoords(0, 0, 0, 0);
-			envs.emplace_back(std::make_pair(env, -1));
+			envs.emplace_back(std::make_tuple(env, -1, ""));
 		}
 
 		ResourcePool::GetInstance()->ReleaseDataset(tiffDataset);
@@ -575,6 +577,7 @@ bool WMSHandler::GetImageInfo(const std::string& request_body, std::shared_ptr<H
 			oJson_env.Add("top", env.GetYMax());
 			oJson_env.Add("bottom", env.GetYMin());
 
+			oJson_env.Add("wkt", tiffDataset->GetWKT());
 			oJson_env.Add("epsg", tiffDataset->GetEPSG());
 			oJson_img.Add("envelope", oJson_env);
 			oJson_img.Add("pyramid", tiffDataset->IsHavePyramid(), true);
@@ -671,7 +674,7 @@ bool WMSHandler::GetEnvlope(const std::string& request_body, std::shared_ptr<Han
 	if (layers.empty())
 		return false;
 
-	std::vector<std::pair<Envelop, int>> envs;
+	std::vector<std::tuple<Envelop, int, std::string>> envs;
 	for (auto& path : layers)
 	{
 		std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->AcquireDataset(path));
@@ -688,25 +691,25 @@ bool WMSHandler::GetEnvlope(const std::string& request_body, std::shared_ptr<Han
 				bool res = transformation2.Transform(env, dst);
 				if (res)
 				{
-					envs.emplace_back(std::make_pair(dst, 4326));
+					envs.emplace_back(std::make_tuple(dst, 4326, tiffDataset->GetWKT()));
 				}
 				else
 				{
 					Envelop env;
 					env.PutCoords(0, 0, 0, 0);
-					envs.emplace_back(std::make_pair(env, -1));
+					envs.emplace_back(std::make_tuple(env, -1, ""));
 				}
 			}
 			else
 			{
-				envs.emplace_back(std::make_pair(tiffDataset->GetExtent(), tiffDataset->GetEPSG()));
+				envs.emplace_back(std::make_tuple(tiffDataset->GetExtent(), tiffDataset->GetEPSG(), tiffDataset->GetWKT()));
 			}
 		}
 		else
 		{
 			Envelop env;
 			env.PutCoords(0, 0, 0, 0);
-			envs.emplace_back(std::make_pair(env, -1));
+			envs.emplace_back(std::make_tuple(env, -1, ""));
 		}
 
 		ResourcePool::GetInstance()->ReleaseDataset(tiffDataset);
@@ -729,7 +732,7 @@ bool WMSHandler::GetGroupEnvelope(const std::string& request_body, std::shared_p
 	if (groups.empty())
 		return false;
 
-	std::vector<std::pair<Envelop, int>> envs;
+	std::vector<std::tuple<Envelop, int, std::string>> envs;
 
 	for (auto& group : groups)
 	{
@@ -738,6 +741,7 @@ bool WMSHandler::GetGroupEnvelope(const std::string& request_body, std::shared_p
 
 		Envelop group_env;
 		int epsg_group = -9999;
+		std::string wkt;
 		for (auto& image_path : image_paths)
 		{
 			std::shared_ptr<TiffDataset> tiffDataset = std::dynamic_pointer_cast<TiffDataset>(ResourcePool::GetInstance()->AcquireDataset(image_path));
@@ -759,6 +763,7 @@ bool WMSHandler::GetGroupEnvelope(const std::string& request_body, std::shared_p
 
 				if (group_env.IsEmpty())
 				{
+					wkt = tiffDataset->GetWKT();
 					epsg_group = epsg;
 					group_env = env;
 				}
@@ -771,7 +776,7 @@ bool WMSHandler::GetGroupEnvelope(const std::string& request_body, std::shared_p
 			ResourcePool::GetInstance()->ReleaseDataset(tiffDataset);
 		}
 
-		envs.emplace_back(std::make_pair(group_env, epsg_group));
+		envs.emplace_back(std::make_tuple(group_env, epsg_group, wkt));
 	}
 
 	std::string json;

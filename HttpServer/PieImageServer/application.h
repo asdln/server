@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 #include <boost/asio/ip/address.hpp>
-#include <list>
+#include <map>
 #include <vector>
 
 class Application
@@ -30,7 +30,7 @@ protected:
 	std::shared_ptr<std::string> doc_root_;
 	int threads_;
 
-	std::string gdal_cache_size_ = "1000";
+	std::string gdal_cache_size_ = "0";
 
 	int statistic_window_size_;
 

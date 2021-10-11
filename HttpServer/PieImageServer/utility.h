@@ -177,7 +177,7 @@ void GetLayers(const std::string& request_body, std::vector<std::string>& paths)
 
 void GetGroups(const std::string& request_body, std::vector<std::string>& groups);
 
-void GetGeojson(const std::vector<std::pair<Envelop, int>>& envs, std::string& json);
+void GetGeojson(const std::vector<std::tuple<Envelop, int, std::string>>& envs, std::string& json);
 
 bool GetStyleStringFromInfoString(const std::string& info_string, std::string& styles_string);
 
