@@ -35,7 +35,7 @@ struct TileRecord
 	std::mutex processing_mutex_;
 
 	//当前瓦片是否已经处理完毕
-	volatile bool finished_ = false;
+	std::atomic_char finished_ = {0};
 
 	//下一级（被重采样一级）瓦片状态信息。初始化为0
 	std::atomic_char sub_tile_state_;
@@ -63,13 +63,13 @@ public:
 
 	bool FromJson(const std::string& json);
 
-	void Lock() { resource_pool->Lock(); }
-
-	void Unlock() { resource_pool->Unlock(); }
-
-	GDALDataset* AcquireNoLock() { return resource_pool->AcquireNoLock(); }
-
-	GDALDataset* Acquire() { return resource_pool->Acquire(); }
+// 	void Lock() { resource_pool->Lock(); }
+// 
+// 	void Unlock() { resource_pool->Unlock(); }
+// 
+// 	GDALDataset* AcquireNoLock() { return resource_pool->AcquireNoLock(); }
+// 
+// 	GDALDataset* Acquire() { return resource_pool->Acquire(); }
 
 	TileRecord* GetTileRecord(size_t index) { return tile_records_[index]; }
 
@@ -89,13 +89,15 @@ public:
 
 	void GetTileStatusCount(size_t& finished, size_t& unfinished);
 
-	bool NeedReleaseDataset();
-
-	void ReleaseDataset();
+// 	bool NeedReleaseDataset();
+// 
+// 	void ReleaseDataset();
 
 	std::mutex& GetMutex() { return mutex_global_; }
 
 	std::string& GetPath() { return path_; }
+
+	double GetNoDataValue(int& pbSuccess) { pbSuccess = have_nodata_value_; return nodata_value_; }
 
 	const Aws::String& GetRegion() { return aws_region_; }
 
@@ -110,6 +112,8 @@ public:
 	long long GetStartSec() { return start_sec_; }
 
 	int GetTimeLimitSec() { return time_limit_sec_; }
+
+	void GetDims(int z, int& cols, int& rows);
 
 protected:
 
@@ -133,13 +137,15 @@ protected:
 
 	std::mutex mutex_global_;
 
-	ResourcePool* resource_pool = nullptr;
+	//ResourcePool* resource_pool = nullptr;
 
 	std::vector<std::pair<size_t, size_t>> dims_;
 
 	std::vector<TileRecord*> tile_records_;
 	//TileRecord** tile_records_ = nullptr;
 
+	int have_nodata_value_ = 0;
+	double nodata_value_ = 0.0;
 	size_t img_width_ = 0;
 	size_t img_height_ = 0;
 	int band_count_ = 3;

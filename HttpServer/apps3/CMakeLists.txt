@@ -11,10 +11,10 @@ ENDIF()
 
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
 
-INCLUDE_DIRECTORIES(../aws-install/include)
-INCLUDE_DIRECTORIES(../lambda-install/include)
-LINK_DIRECTORIES(../aws-install/lib)
-LINK_DIRECTORIES(../lambda-install/lib)
+INCLUDE_DIRECTORIES(~/aws-install/include)
+INCLUDE_DIRECTORIES(~/lambda-install/include)
+LINK_DIRECTORIES(~/aws-install/lib)
+LINK_DIRECTORIES(~/lambda-install/lib)
 
 SET(SRC_LIST resource_pool.cpp
     task_record.cpp

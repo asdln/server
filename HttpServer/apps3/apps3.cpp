@@ -1,6 +1,7 @@
 ﻿// apps3.cpp : 此文件包含 "main" 函数。程序执行将在此处开始并结束。
 //
 
+#include <signal.h>
 #include <iostream>
 #include "gdal_priv.h"
 #include <string>
@@ -54,6 +55,7 @@ int make_tile(const std::string& path, int dataset_count, int thread_count
 #endif // !USE_FILE
 
 	GDALAllRegister();
+	//CPLSetConfigOption("GDAL_CACHEMAX", "0");
 
     TaskRecord* task_record = new TaskRecord(aws_region, save_bucket_name
         , aws_secret_access_key, aws_access_key_id, time_limit_sec, force);
@@ -172,6 +174,16 @@ static invocation_response my_handler(invocation_request const& req)
 
 int main(int argc, char* argv[])
 {
+#ifndef WIN32
+	sigset_t signal_mask;
+	sigemptyset (&signal_mask);
+	sigaddset (&signal_mask, SIGPIPE);
+	int rc = pthread_sigmask (SIG_BLOCK, &signal_mask, NULL);
+	if (rc != 0) 
+	{
+		std::cout << "ln_debug: block sigpipe error" << std::endl;
+	} 
+#endif
 
 #ifndef USE_FILE
 	run_handler(my_handler);
@@ -239,9 +251,13 @@ int main(int argc, char* argv[])
 
 	if (1)
 	{
-		return make_tile("D:/test/a/GF1_PMS2_E108.2_N27.4_20201108_L1A0005171705-PAN2_ortho_fuse.img", 4, 4, "cn-northwest-1"
+		return make_tile("d:/test/a/1_img25_pred.tif", 4, 4, "cn-northwest-1"
 			, "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ"
-			, "s3.cn-northwest-1.amazonaws.com.cn", "D:/test/a/", 15, 0);
+			, "s3.cn-northwest-1.amazonaws.com.cn", "pie-engine-test/NN/ln/x", 780, 1);
+
+// 		return make_tile("/vsis3/pie-engine-ai/ai-images/qVWnbPFqAB8yPzcYRDVkF/0/2f2945e0712c34e5606ff2261f9aaf60/GF2_PMS1_E113.7_N23.1_20190311_L1A0003877356-MSS1.tif", 4, 4, "cn-northwest-1"
+// 			, "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ"
+// 			, "s3.cn-northwest-1.amazonaws.com.cn", "pie-engine-test/NN/ln/x", 780, 0);
 	}
     
 	if(0)

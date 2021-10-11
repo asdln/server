@@ -287,7 +287,7 @@ TaskRecord::~TaskRecord()
 
 #else
 
-	Aws::Auth::AWSCredentials cred(aws_access_key_id, aws_secret_access_key);
+	Aws::Auth::AWSCredentials cred(aws_access_key_id_, aws_secret_access_key_);
 	Aws::S3::S3Client s3_client(cred, config);
 
 #endif
@@ -309,6 +309,8 @@ TaskRecord::~TaskRecord()
 	long long end_sec = std::chrono::duration_cast<std::chrono::seconds>(d).count();
 
 	std::cout << "process finished, total time: " << end_sec - start_sec_ << " seconds" << std::endl;
+
+	std::cout << "compute histogram ..." << std::endl;
 }
 
 bool TaskRecord::Open(const std::string& path, int dataset_count)
@@ -335,7 +337,6 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 	}
 
 	temp_str = std::string(temp_str.c_str() + 7, temp_str.size() - 7);
-	size_t pos = temp_str.find("/");
 
 	size_t rpos = temp_str.rfind('/');
 	if (rpos != std::string::npos)
@@ -347,8 +348,6 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 
 #endif // USE_FILE
 
-
-	GDALAllRegister();
 	//size_t img_width, size_t img_height, int band_count, GDALDataType type
 	GDALDataset* poDataset = (GDALDataset*)GDALOpen(path.c_str(), GA_ReadOnly);
 	if (poDataset == nullptr)
@@ -361,17 +360,18 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 	img_height_ = poDataset->GetRasterYSize();
 	band_count_ = poDataset->GetRasterCount();
 	type_ = poDataset->GetRasterBand(1)->GetRasterDataType();
+	nodata_value_ = poDataset->GetRasterBand(1)->GetNoDataValue(&have_nodata_value_);
+
 	GDALClose(poDataset);
 	poDataset = nullptr;
 
-	resource_pool = new ResourcePool;
-	resource_pool->SetPath(path);
-	resource_pool->SetDatasetPoolMaxCount(dataset_count);
-	resource_pool->Init();
+// 	resource_pool = new ResourcePool;
+// 	resource_pool->SetPath(path);
+// 	resource_pool->SetDatasetPoolMaxCount(dataset_count);
+//	resource_pool->Init();
 
 	int size = 256;
 	size_t index = 0;
-	size_t count = 0;
 	while (true)
 	{
 		index++;
@@ -393,11 +393,6 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 			{
 				TileRecord* tile_record = new TileRecord(i, j, index);
 				tile_records_.push_back(tile_record);
-
-				if (j == 0 && i == 0 && index == 2)
-				{
-					int x = 0;
-				}
 
 				//如果是1级，则数据已经准备好了(直接读原始数据)
 				if (index == 1)
@@ -491,7 +486,7 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 
 #else
 
-	Aws::Auth::AWSCredentials cred(aws_access_key_id, aws_secret_access_key);
+	Aws::Auth::AWSCredentials cred(aws_access_key_id_, aws_secret_access_key_);
 	Aws::S3::S3Client s3_client(cred, config);
 
 #endif
@@ -632,42 +627,48 @@ void TaskRecord::GetTileStatusCount(size_t& finished, size_t& unfinished)
 	}
 }
 
-bool TaskRecord::NeedReleaseDataset()
+// bool TaskRecord::NeedReleaseDataset()
+// {
+// 	return resource_pool->NeedReleaseDataset();
+// }
+
+// void TaskRecord::ReleaseDataset()
+// {
+// 	if (!NeedReleaseDataset())
+// 		return;
+// 
+// 	std::lock_guard<std::mutex> guard(mutex_global_);
+// 
+// 	size_t cols = dims_[0].first;
+// 	size_t rows = dims_[0].second;
+// 
+// 	for (size_t j = 0; j < rows; j++)
+// 	{
+// 		size_t finished_count = 0;
+// 		for (size_t i = 0; i < cols; i++)
+// 		{
+// 			TileRecord* tile_record = GetTileRecord(i, j, 1);
+// 			if (tile_record && tile_record->finished_)
+// 				finished_count++;
+// 		}
+// 
+// 		if (finished_count == cols)
+// 		{
+// 			TileRecord* tile_record = GetTileRecord(0, j, 1);
+// 
+// 			if (tile_record)
+// 			{
+// 				resource_pool->Release(tile_record->poDataset_);
+// 				tile_record->poDataset_ = nullptr;
+// 			}
+// 		}
+// 	}
+// }
+
+void TaskRecord::GetDims(int z, int& cols, int& rows)
 {
-	return resource_pool->NeedReleaseDataset();
-}
-
-void TaskRecord::ReleaseDataset()
-{
-	if (!NeedReleaseDataset())
-		return;
-
-	std::lock_guard<std::mutex> guard(mutex_global_);
-
-	size_t cols = dims_[0].first;
-	size_t rows = dims_[0].second;
-
-	for (size_t j = 0; j < rows; j++)
-	{
-		size_t finished_count = 0;
-		for (size_t i = 0; i < cols; i++)
-		{
-			TileRecord* tile_record = GetTileRecord(i, j, 1);
-			if (tile_record && tile_record->finished_)
-				finished_count++;
-		}
-
-		if (finished_count == cols)
-		{
-			TileRecord* tile_record = GetTileRecord(0, j, 1);
-
-			if (tile_record)
-			{
-				resource_pool->Release(tile_record->poDataset_);
-				tile_record->poDataset_ = nullptr;
-			}
-		}
-	}
+	cols = dims_[z - 1].first;
+	rows = dims_[z - 1].second;
 }
 
 void SaveTileData(const std::string& path, const Aws::String& save_bucket_name
@@ -776,6 +777,182 @@ void ResampleNearest(unsigned char* buffer1, unsigned char* buffer2
 
 			memcpy(dst, src, pixel_space);
 		}
+	}
+}
+
+template <typename T>
+void fourInOne(unsigned char* buffer1, unsigned char* buffer2
+	, unsigned char* buffer3, unsigned char* buffer4, unsigned char* buffer_dst
+	, int band_count, int type_bytes, GDALDataType data_type, int have_nodata, double nodata_value)
+{
+	int pixel_space = band_count * type_bytes;
+
+	for (size_t j = 0; j < 256; j++)
+	{
+		for (size_t i = 0; i < 256; i++)
+		{
+			unsigned char* dst = buffer_dst + (j * 256 + i) * pixel_space;
+
+			unsigned char* src1 = nullptr;
+			unsigned char* src2 = nullptr;
+			unsigned char* src3 = nullptr;
+			unsigned char* src4 = nullptr;
+
+			if (i < 128 && j < 128)
+			{
+				src1 = buffer1 + ((j * 2) * 256 + i * 2) * pixel_space;
+				src2 = buffer1 + ((j * 2) * 256 + i * 2 + 1) * pixel_space;
+				src3 = buffer1 + ((j * 2 + 1) * 256 + i * 2) * pixel_space;
+				src4 = buffer1 + ((j * 2 + 1) * 256 + i * 2 + 1) * pixel_space;
+			}
+			else if (i >= 128 && j < 128)
+			{
+				src1 = buffer2 + ((j * 2) * 256 + (i - 128) * 2) * pixel_space;
+				src2 = buffer2 + ((j * 2) * 256 + (i - 128) * 2 + 1) * pixel_space;
+				src3 = buffer2 + ((j * 2 + 1) * 256 + (i - 128) * 2) * pixel_space;
+				src4 = buffer2 + ((j * 2 + 1) * 256 + (i - 128) * 2 + 1) * pixel_space;
+			}
+			else if (i < 128 && j >= 128)
+			{
+				src1 = buffer3 + (((j - 128) * 2) * 256 + i * 2) * pixel_space;
+				src2 = buffer3 + (((j - 128) * 2) * 256 + i * 2 + 1) * pixel_space;
+				src3 = buffer3 + (((j - 128) * 2 + 1) * 256 + i * 2) * pixel_space;
+				src4 = buffer3 + (((j - 128) * 2 + 1) * 256 + i * 2 + 1) * pixel_space;
+			}
+			else if (i >= 125 && j >= 128)
+			{
+				src1 = buffer4 + (((j - 128) * 2) * 256 + (i - 128) * 2) * pixel_space;
+				src2 = buffer4 + (((j - 128) * 2) * 256 + (i - 128) * 2 + 1) * pixel_space;
+				src3 = buffer4 + (((j - 128) * 2 + 1) * 256 + (i - 128) * 2) * pixel_space;
+				src4 = buffer4 + (((j - 128) * 2 + 1) * 256 + (i - 128) * 2 + 1) * pixel_space;
+			}
+
+			for (int b = 0; b < band_count; b++)
+			{
+				unsigned char* src1_band = src1 + (size_t)b * type_bytes;
+				unsigned char* src2_band = src2 + (size_t)b * type_bytes;
+				unsigned char* src3_band = src3 + (size_t)b * type_bytes;
+				unsigned char* src4_band = src4 + (size_t)b * type_bytes;
+
+				unsigned char* dst_band = dst + (size_t)b * type_bytes;
+
+				double value = 0.0;
+
+				T* src1_band_t = (T*)src1_band;
+				T* src2_band_t = (T*)src2_band;
+				T* src3_band_t = (T*)src3_band;
+				T* src4_band_t = (T*)src4_band;
+				T* dst0_band_t = (T*)dst_band;
+
+				if (have_nodata)
+				{
+					unsigned char count = 4;
+					unsigned char tag1 = 1;
+					unsigned char tag2 = 1;
+					unsigned char tag3 = 1;
+					unsigned char tag4 = 1;
+
+					if (*src1_band_t == nodata_value)
+					{
+						tag1 = 0;
+						count--;
+					}
+
+					if (*src2_band_t == nodata_value)
+					{
+						tag2 = 0;
+						count--;
+					}
+
+					if (*src3_band_t == nodata_value)
+					{
+						tag3 = 0;
+						count--;
+					}
+
+					if (*src4_band_t == nodata_value)
+					{
+						tag4 = 0;
+						count--;
+					}
+
+					if (count == 0)
+					{
+						*dst0_band_t = nodata_value;
+					}
+					else
+					{
+						value = ((double)*src1_band_t * tag1 + *src2_band_t * tag2 + *src3_band_t * tag3 + *src4_band_t * tag4) * (1.0 / count);
+						*dst0_band_t = value;
+					}
+				}
+				else
+				{
+					value = ((double)*src1_band_t + *src2_band_t + *src3_band_t + *src4_band_t) * 0.25;
+					*dst0_band_t = value;
+				}
+			}
+		}
+	}
+}
+
+void ResampleFourInOne(unsigned char* buffer1, unsigned char* buffer2
+	, unsigned char* buffer3, unsigned char* buffer4, unsigned char* buffer_dst
+	, int band_count, int type_bytes, GDALDataType data_type, int have_nodata, double nodata_value)
+{
+	switch (data_type)
+	{
+	case GDT_Byte:
+	{
+		fourInOne<unsigned char>(buffer1, buffer2 , buffer3, buffer4, buffer_dst
+			, band_count, type_bytes, data_type, have_nodata, nodata_value);
+
+		break;
+	}
+	case GDT_UInt16:
+	{
+		fourInOne<unsigned short>(buffer1, buffer2, buffer3, buffer4, buffer_dst
+			, band_count, type_bytes, data_type, have_nodata, nodata_value);
+
+		break;
+	}
+	case GDT_Int16:
+	{
+		fourInOne<short>(buffer1, buffer2, buffer3, buffer4, buffer_dst
+			, band_count, type_bytes, data_type, have_nodata, nodata_value);
+
+		break;
+	}
+	case GDT_UInt32:
+	{
+		fourInOne<unsigned int>(buffer1, buffer2, buffer3, buffer4, buffer_dst
+			, band_count, type_bytes, data_type, have_nodata, nodata_value);
+
+		break;
+	}
+	case GDT_Int32:
+	{
+		fourInOne<int>(buffer1, buffer2, buffer3, buffer4, buffer_dst
+			, band_count, type_bytes, data_type, have_nodata, nodata_value);
+
+		break;
+	}
+	case GDT_Float32:
+	{
+		fourInOne<float>(buffer1, buffer2, buffer3, buffer4, buffer_dst
+			, band_count, type_bytes, data_type, have_nodata, nodata_value);
+
+		break;
+	}
+	case GDT_Float64:
+	{
+		fourInOne<double>(buffer1, buffer2, buffer3, buffer4, buffer_dst
+			, band_count, type_bytes, data_type, have_nodata, nodata_value);
+
+		break;
+	}
+	default:
+		break;
 	}
 }
 
@@ -930,6 +1107,257 @@ void ResampleLinear(unsigned char* buffer1, unsigned char* buffer2
 	}
 }
 
+void ProcessSingleTileFromImage(TileRecord* tile_record, TaskRecord* task_record, Aws::S3::S3Client* s3_client, GDALDataset* poDataset)
+{
+	int band_count = task_record->GetBandCount();
+	GDALDataType data_type = task_record->GetDataType();
+	std::string path = task_record->GetPath();
+	Aws::String save_obj_key = task_record->GetSaveKey();
+	Aws::String save_bucket = task_record->GetSaveBucket();
+
+	std::vector<int> band_map;
+	for (int i = 0; i < band_count; i++)
+	{
+		band_map.push_back(i + 1);
+	}
+
+	int type_bytes = GDALGetDataTypeSizeBytes(data_type);
+	size_t img_width = task_record->GetImgWidth();
+	size_t img_height = task_record->GetImgHeight();
+
+	int pixel_space = band_count * type_bytes;
+	int line_space = 256 * pixel_space;
+	int band_space = type_bytes;
+
+	if (tile_record->processing_mutex_.try_lock())
+	{
+		std::vector<unsigned char> buffer;
+		buffer.resize(256 * 256 * (size_t)band_count * type_bytes, 0);
+
+		int tile_size_img = 256;
+		int z = tile_record->z_;
+
+		while (z > 0)
+		{
+			z--;
+			tile_size_img *= 2;
+		}
+
+		size_t left = tile_record->col_ * tile_size_img;
+		size_t top = tile_record->row_ * tile_size_img;
+
+		int src_width = std::min((size_t)tile_size_img, img_width - left);
+		int src_height = std::min((size_t)tile_size_img, img_height - top);
+
+		int buffer_size_x = 256;
+		int buffer_size_y = 256;
+		int line_space_cp = line_space;
+		if (src_width != tile_size_img)
+		{
+			buffer_size_x = 256.0 * src_width / tile_size_img;
+			line_space_cp = buffer_size_x * pixel_space;
+		}
+
+		if (src_height != tile_size_img)
+		{
+			buffer_size_y = 256.0 * src_height / tile_size_img;
+		}
+
+		CPLErr err = poDataset->RasterIO(GF_Read, left, top, src_width, src_height, buffer.data()
+			, buffer_size_x, buffer_size_y, data_type, band_count, band_map.data(), pixel_space, line_space_cp, band_space);
+
+		if (err != CE_None)
+		{
+			std::cout << CPLGetLastErrorMsg() << std::endl;
+		}
+
+		if (buffer_size_x != 256)
+		{
+			unsigned char* pbuffer = buffer.data();
+
+			for (int m = buffer_size_y - 1; m >= 0; m--)
+			{
+				unsigned char* dst = pbuffer + m * 256 * pixel_space;
+				unsigned char* src = pbuffer + m * buffer_size_x * pixel_space;
+
+				memset(dst + buffer_size_x * pixel_space, 0, (256 - buffer_size_x) * pixel_space);
+
+				for (int n = buffer_size_x - 1; n >= 0; n--)
+				{
+					memcpy(dst + n * pixel_space, src + n * pixel_space, pixel_space);
+				}
+			}
+		}
+
+		SaveTileData(path, save_bucket, save_obj_key, s3_client, tile_record->col_, tile_record->row_, tile_record->z_, buffer);
+		tile_record->finished_ = true;
+
+		//标记上层瓦片
+		TileRecord* parent = task_record->GetTileRecord(tile_record->col_ / 2, tile_record->row_ / 2, tile_record->z_ + 1);
+		parent->sub_tile_state_++;
+
+		tile_record->processing_mutex_.unlock();
+	}
+}
+
+void ProcessSingleTileFromTile(TileRecord* tile_record, TaskRecord* task_record, Aws::S3::S3Client* s3_client)
+{
+	size_t tile_records_count = task_record->GetTileRecordsCount();
+	int band_count = task_record->GetBandCount();
+	GDALDataType data_type = task_record->GetDataType();
+	std::string path = task_record->GetPath();
+	Aws::String save_obj_key = task_record->GetSaveKey();
+	Aws::String save_bucket = task_record->GetSaveBucket();
+
+	int have_nodata = 0;
+	double nodata_value = task_record->GetNoDataValue(have_nodata);
+
+	std::vector<int> band_map;
+	for (int i = 0; i < band_count; i++)
+	{
+		band_map.push_back(i + 1);
+	}
+
+	int type_bytes = GDALGetDataTypeSizeBytes(data_type);
+	size_t img_width = task_record->GetImgWidth();
+	size_t img_height = task_record->GetImgHeight();
+
+	int pixel_space = band_count * type_bytes;
+	int line_space = 256 * pixel_space;
+	int band_space = type_bytes;
+
+	std::vector<unsigned char> buffer;
+	buffer.resize(256 * 256 * (size_t)band_count * type_bytes, 0);
+
+	std::vector<unsigned char> buffer1;
+	buffer1.resize(256 * 256 * (size_t)band_count * type_bytes, 0);
+
+	std::vector<unsigned char> buffer2;
+	buffer2.resize(256 * 256 * (size_t)band_count * type_bytes, 0);
+
+	std::vector<unsigned char> buffer3;
+	buffer3.resize(256 * 256 * (size_t)band_count * type_bytes, 0);
+
+	std::vector<unsigned char> buffer4;
+	buffer4.resize(256 * 256 * (size_t)band_count * type_bytes, 0);
+
+	unsigned char arrange = tile_record->sub_tile_arrange_;
+
+	if (arrange & 0x08)
+	{
+		LoadTileData(path, save_bucket, save_obj_key, s3_client, tile_record->col_ * 2, tile_record->row_ * 2, tile_record->z_ - 1, buffer1);
+	}
+
+	if (arrange & 0x04)
+	{
+		LoadTileData(path, save_bucket, save_obj_key, s3_client, tile_record->col_ * 2 + 1, tile_record->row_ * 2, tile_record->z_ - 1, buffer2);
+	}
+
+	if (arrange & 0x02)
+	{
+		LoadTileData(path, save_bucket, save_obj_key, s3_client, tile_record->col_ * 2, tile_record->row_ * 2 + 1, tile_record->z_ - 1, buffer3);
+	}
+
+	if (arrange & 0x01)
+	{
+		LoadTileData(path, save_bucket, save_obj_key, s3_client, tile_record->col_ * 2 + 1, tile_record->row_ * 2 + 1, tile_record->z_ - 1, buffer4);
+	}
+
+	//ResampleNearest(buffer1.data(), buffer2.data(), buffer3.data(), buffer4.data(), buffer.data(), pixel_space);
+	//ResampleLinear(buffer1.data(), buffer2.data(), buffer3.data(), buffer4.data(), buffer.data(), band_count, type_bytes, data_type);
+	ResampleFourInOne(buffer1.data(), buffer2.data(), buffer3.data(), buffer4.data(), buffer.data(), band_count, type_bytes, data_type, have_nodata, nodata_value);
+	SaveTileData(path, save_bucket, save_obj_key, s3_client, tile_record->col_, tile_record->row_, tile_record->z_, buffer);
+
+	tile_record->finished_ = true;
+
+	//标记上层瓦片
+	TileRecord* parent = task_record->GetTileRecord(tile_record->col_ / 2, tile_record->row_ / 2, tile_record->z_ + 1);
+	if (parent)
+	{
+		parent->sub_tile_state_++;
+	}
+}
+
+void ProcessStripTileFromImage(TileRecord* tile_record, TaskRecord* task_record, Aws::S3::S3Client* s3_client, GDALDataset* poDataset)
+{
+	size_t tile_records_count = task_record->GetTileRecordsCount();
+	int band_count = task_record->GetBandCount();
+	GDALDataType data_type = task_record->GetDataType();
+	std::string path = task_record->GetPath();
+	Aws::String save_obj_key = task_record->GetSaveKey();
+	Aws::String save_bucket = task_record->GetSaveBucket();
+
+	std::vector<int> band_map;
+	for (int i = 0; i < band_count; i++)
+	{
+		band_map.push_back(i + 1);
+	}
+
+	int type_bytes = GDALGetDataTypeSizeBytes(data_type);
+	size_t img_width = task_record->GetImgWidth();
+	size_t img_height = task_record->GetImgHeight();
+
+	int pixel_space = band_count * type_bytes;
+	int line_space = 256 * pixel_space;
+	int band_space = type_bytes;
+
+	int cols, rows;
+	task_record->GetDims(tile_record->z_, cols, rows);
+
+	constexpr int tile_size_img = 256 * 2;
+	size_t left = 0;
+	size_t top = tile_record->row_ * tile_size_img;
+
+	int src_width = img_width;
+	int src_height = std::min((size_t)tile_size_img, img_height - top);
+
+	int buffer_size_x = src_width * 0.5;
+	int buffer_size_y = src_height * 0.5;
+
+	std::vector<unsigned char> buffer;
+	buffer.resize((size_t)buffer_size_x * buffer_size_y * band_count * type_bytes, 0);
+
+	int line_space_cp = buffer_size_x * pixel_space;
+	CPLErr err = poDataset->RasterIO(GF_Read, left, top, src_width, src_height, buffer.data()
+		, buffer_size_x, buffer_size_y, data_type, band_count, band_map.data(), pixel_space, line_space_cp, band_space);
+
+	if (err != CE_None)
+	{
+		std::cout << CPLGetLastErrorMsg() << std::endl;
+	}
+
+	for (int m = 0; m < cols; m++)
+	{
+		TileRecord* tile_temp = task_record->GetTileRecord(m, tile_record->row_, tile_record->z_);
+		if (tile_temp->finished_ == false)
+		{
+			size_t sub_left = m * 256;
+			size_t sub_top = 0;
+
+			int sub_buffer_width = std::min((size_t)256, buffer_size_x - sub_left);
+			int sub_buffer_height = std::min((size_t)256, buffer_size_y - sub_top);
+
+			std::vector<unsigned char> sub_buffer;
+			sub_buffer.resize(256 * 256 * (size_t)band_count * type_bytes, 0);
+
+			for (int n = 0; n < sub_buffer_height; n++)
+			{
+				unsigned char* dst = sub_buffer.data() + n * 256 * pixel_space;
+				unsigned char* src = buffer.data() + (n * buffer_size_x + sub_left) * pixel_space;
+
+				memcpy(dst, src, sub_buffer_width * pixel_space);
+			}
+
+			SaveTileData(path, save_bucket, save_obj_key, s3_client, tile_temp->col_, tile_temp->row_, tile_temp->z_, sub_buffer);
+			tile_temp->finished_ = true;
+
+			//标记上层瓦片
+			TileRecord* parent = task_record->GetTileRecord(tile_temp->col_ / 2, tile_temp->row_ / 2, tile_temp->z_ + 1);
+			parent->sub_tile_state_++;
+		}
+	}
+}
+
 void DoTask(TaskRecord* task_record, Aws::S3::S3Client* s3_client)
 {
 	size_t tile_records_count = task_record->GetTileRecordsCount();
@@ -958,170 +1386,89 @@ void DoTask(TaskRecord* task_record, Aws::S3::S3Client* s3_client)
 	{
 		TileRecord* tile_record = task_record->GetTileRecord(i);
 
-		if (tile_record->finished_ == false)
+		//需要读原始影像
+		if (tile_record->z_ == 1 && tile_record->finished_ == false)
+		{
+			TileRecord* tile_header = task_record->GetTileRecord(0, tile_record->row_, tile_record->z_);
+			if (tile_header->processing_mutex_.try_lock())
+			{
+// 				if (tile_header->poDataset_ == nullptr)
+// 				{
+// 					std::mutex& mutex_global = task_record->GetMutex();
+// 					std::lock_guard<std::mutex> guard(mutex_global);
+// 
+// 					//必须再判断一次。因为lock之前有可能被其他线程改变
+// 					if (tile_header->poDataset_ == nullptr)
+// 					{
+// 						tile_header->poDataset_ = task_record->Acquire();
+// 						//std::cout << "dataset: " << tile_header->poDataset_ << std::endl;
+// 					}
+// 
+// 					//如果没有获取到资源，则返回。
+// 					if (tile_header->poDataset_ == nullptr)
+// 					{
+// 						//tile_record->finished_ = false;
+// 						tile_header->processing_mutex_.unlock();
+// 
+// 						std::this_thread::sleep_for(std::chrono::milliseconds(10));
+// 						continue;
+// 					}
+// 				}
+
+				//if (tile_header->dataset_lock_flag_mutex_.try_lock())
+				{
+					//如果条带中有大部分没有加载，则一次性读取整个条带
+					int cols, rows;
+					task_record->GetDims(tile_record->z_, cols, rows);
+
+					int finished_count = 0;
+
+					for (int m = 0; m < cols; m++)
+					{
+						TileRecord* tile_temp = task_record->GetTileRecord(m, tile_record->row_, tile_record->z_);
+						if (tile_temp->finished_ == 1)
+							finished_count++;
+					}
+
+					GDALDataset* poDataset = (GDALDataset*)GDALOpen(path.c_str(), GA_ReadOnly);
+
+					//如果有一半以上没加载，则整条带加载
+					if (finished_count < cols * 0.5)
+					{
+						ProcessStripTileFromImage(tile_record, task_record, s3_client, poDataset);
+					}
+					else //单块处理
+					{
+						ProcessSingleTileFromImage(tile_record, task_record, s3_client, poDataset);
+					}
+
+					GDALClose(poDataset);
+
+					//tile_header->dataset_lock_flag_mutex_.unlock();
+				}
+
+				tile_header->processing_mutex_.unlock();
+			}
+			else
+			{
+				std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			}
+			
+			break;
+		}
+		else if (tile_record->finished_ == false)
 		{
 			if (tile_record->processing_mutex_.try_lock())
 			{
 				if (tile_record->sub_tile_state_ == tile_record->sub_tile_state_expected_)
 				{
-					std::vector<unsigned char> buffer;
-					buffer.resize(256 * 256 * (size_t)band_count * type_bytes, 0);
-
-					//需要读原始影像
-					if (tile_record->z_ == 1)
-					{
-						//dataset存到每行瓦片的第一个瓦片里
-						//每行瓦片用同一个dataset，对于按行存储的数据，应该可以加速。
-						TileRecord* tile_header = task_record->GetTileRecord(0, tile_record->row_, tile_record->z_);
-
-						if (tile_header->poDataset_ == nullptr)
-						{
-							std::mutex& mutex_global = task_record->GetMutex();
-							std::lock_guard<std::mutex> guard(mutex_global);
-
-							//必须再判断一次。因为lock之前有可能被其他线程改变
-							if (tile_header->poDataset_ == nullptr)
-							{
-								tile_header->poDataset_ = task_record->Acquire();
-								//std::cout << "dataset: " << tile_header->poDataset_ << std::endl;
-							}
-
-							//如果没有获取到资源，则返回。
-							if (tile_header->poDataset_ == nullptr)
-							{
-								tile_record->finished_ = false;
-								tile_record->processing_mutex_.unlock();
-
-								std::this_thread::sleep_for(std::chrono::milliseconds(10));
-								continue;
-							}
-						}
-
-						//如果获取到了dataset，继续执行
-						//测试header的dataset是否被占用
-						if (tile_header->dataset_lock_flag_mutex_.try_lock())
-						{
-							int tile_size_img = 256;
-							int z = tile_record->z_;
-
-							while (z > 0)
-							{
-								z--;
-								tile_size_img *= 2;
-							}
-
-							size_t left = tile_record->col_ * tile_size_img;
-							size_t top = tile_record->row_ * tile_size_img;
-
-							int src_width = std::min((size_t)tile_size_img, img_width - left);
-							int src_height = std::min((size_t)tile_size_img, img_height - top);
-
-							int buffer_size_x = 256;
-							int buffer_size_y = 256;
-							int line_space_cp = line_space;
-							if (src_width != tile_size_img)
-							{
-								buffer_size_x = 256.0 * src_width / tile_size_img;
-								line_space_cp = buffer_size_x * pixel_space;
-							}
-
-							if (src_height != tile_size_img)
-							{
-								buffer_size_y = 256.0 * src_height / tile_size_img;
-							}
-
-							GDALDataset* poDataset = tile_header->poDataset_;
-							CPLErr err = poDataset->RasterIO(GF_Read, left, top, src_width, src_height, buffer.data()
-								, buffer_size_x, buffer_size_y, data_type, band_count, band_map.data(), pixel_space, line_space_cp, band_space);
-
-							if (err != CE_None)
-							{
-								std::cout << CPLGetLastErrorMsg() << std::endl;
-							}
-
-							if (buffer_size_x != 256)
-							{
-								unsigned char* pbuffer = buffer.data();
-
-								for (int m = buffer_size_y - 1; m >= 0; m--)
-								{
-									unsigned char* dst = pbuffer + m * 256 * pixel_space;
-									unsigned char* src = pbuffer + m * buffer_size_x * pixel_space;
-
-									memset(dst + buffer_size_x * pixel_space, 0, (256 - buffer_size_x) * pixel_space);
-
-									for (int n = buffer_size_x - 1; n >= 0; n--)
-									{
-										memcpy(dst + n * pixel_space, src + n * pixel_space, pixel_space);
-									}
-								}
-							}
-
-							SaveTileData(path, save_bucket, save_obj_key, s3_client, tile_record->col_, tile_record->row_, tile_record->z_, buffer);
-							tile_record->finished_ = true;
-
-							//标记上层瓦片
-							TileRecord* parent = task_record->GetTileRecord(tile_record->col_ / 2, tile_record->row_ / 2, tile_record->z_ + 1);
-							parent->sub_tile_state_++;
-
-							tile_header->dataset_lock_flag_mutex_.unlock();
-
-							tile_record->processing_mutex_.unlock();
-							break;
-						}
-					}
-					else
-					{
-						std::vector<unsigned char> buffer1;
-						buffer1.resize(256 * 256 * (size_t)band_count * type_bytes, 0);
-
-						std::vector<unsigned char> buffer2;
-						buffer2.resize(256 * 256 * (size_t)band_count * type_bytes, 0);
-
-						std::vector<unsigned char> buffer3;
-						buffer3.resize(256 * 256 * (size_t)band_count * type_bytes, 0);
-
-						std::vector<unsigned char> buffer4;
-						buffer4.resize(256 * 256 * (size_t)band_count * type_bytes, 0);
-
-						unsigned char arrange = tile_record->sub_tile_arrange_;
-						
-						if (arrange & 0x08)
-						{
-							LoadTileData(path, save_bucket, save_obj_key, s3_client, tile_record->col_ * 2, tile_record->row_ * 2, tile_record->z_ - 1, buffer1);
-						}
-
-						if (arrange & 0x04)
-						{
-							LoadTileData(path, save_bucket, save_obj_key, s3_client, tile_record->col_ * 2 + 1, tile_record->row_ * 2, tile_record->z_ - 1, buffer2);
-						}
-
-						if (arrange & 0x02)
-						{
-							LoadTileData(path, save_bucket, save_obj_key, s3_client, tile_record->col_ * 2, tile_record->row_ * 2 + 1, tile_record->z_ - 1, buffer3);
-						}
-
-						if (arrange & 0x01)
-						{
-							LoadTileData(path, save_bucket, save_obj_key, s3_client, tile_record->col_ * 2 + 1, tile_record->row_ * 2 + 1, tile_record->z_ - 1, buffer4);
-						}
-
-						//ResampleNearest(buffer1.data(), buffer2.data(), buffer3.data(), buffer4.data(), buffer.data(), pixel_space);
-						ResampleLinear(buffer1.data(), buffer2.data(), buffer3.data(), buffer4.data(), buffer.data(), band_count, type_bytes, data_type);
-						SaveTileData(path, save_bucket, save_obj_key, s3_client, tile_record->col_, tile_record->row_, tile_record->z_, buffer);
-
-						tile_record->finished_ = true;
-
-						//标记上层瓦片
-						TileRecord* parent = task_record->GetTileRecord(tile_record->col_ / 2, tile_record->row_ / 2, tile_record->z_ + 1);
-						if (parent)
-						{
-							parent->sub_tile_state_++;
-						}
-
-						tile_record->processing_mutex_.unlock();
-						break;
-					}
+					ProcessSingleTileFromTile(tile_record, task_record, s3_client);
+					tile_record->processing_mutex_.unlock();
+					break;
+				}
+				else
+				{
+					std::this_thread::sleep_for(std::chrono::milliseconds(10));
 				}
 
 				tile_record->processing_mutex_.unlock();
@@ -1129,7 +1476,7 @@ void DoTask(TaskRecord* task_record, Aws::S3::S3Client* s3_client)
 		}
 	}
 
-	task_record->ReleaseDataset();
+	//task_record->ReleaseDataset();
 }
 
 void ProcessLoop(TaskRecord* task_record, int& status)
@@ -1173,7 +1520,15 @@ void ProcessLoop(TaskRecord* task_record, int& status)
 
 	while (!task_record->IsReady())
 	{
-		DoTask(task_record, s3_client);
+		try
+		{
+			DoTask(task_record, s3_client);
+		}
+		catch (...)
+		{
+			std::cout << "ln_debug error occured" << std::endl;
+		}
+		
 		//std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
 		std::chrono::system_clock::duration d = std::chrono::system_clock::now().time_since_epoch();
@@ -1182,6 +1537,12 @@ void ProcessLoop(TaskRecord* task_record, int& status)
 		if ((now_sec - start_sec) > time_limit_sec)
 		{
 			status = code_not_finished;
+
+			if (s3_client != nullptr)
+			{
+				delete s3_client;
+			}
+
 			return;
 		}
 	}
