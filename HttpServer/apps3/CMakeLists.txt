@@ -22,6 +22,11 @@ SET(SRC_LIST resource_pool.cpp
     CJsonObject.cpp
     cJSON.c
     apps3.cpp
+    histogram.cpp
+    memory_pool.cpp
+    s3_dataset.cpp
+    tiff_dataset.cpp
+    type_def.cpp
     )
 
 ADD_EXECUTABLE(${PROJECT_NAME} ${SRC_LIST})

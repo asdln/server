@@ -22,6 +22,9 @@
 #include <aws/core/auth/AWSCredentials.h>
 #include <aws/core/auth/AWSCredentialsProvider.h>
 
+#include "histogram.h"
+#include "s3_dataset.h"
+
 #define USE_LAMBDA
 
 char const TAG[] = "LAMBDA_ALLOC";
@@ -89,7 +92,7 @@ bool AWSS3PutObject(const Aws::String& bucketName, const Aws::String& objectName
 		std::cout << "Error: PutObject: " <<
 			outcome.GetError().GetMessage() << std::endl;
 
-		std::cout << "bucket: " << bucketName << "/t" << "key: " << objectName << std::endl;
+		std::cout << "bucket: " << bucketName << "\t" << "key: " << objectName << std::endl;
 
 		return false;
 	}
@@ -195,6 +198,39 @@ bool AWSS3PutObject_File(const Aws::String& bucketName, const Aws::String& objec
 
 		return false;
 	}
+}
+
+HistogramPtr ReadAndSaveHistogramFile(Dataset* tiff_dataset, int band, bool use_external_no_data, double external_no_data_value)
+{
+	HistogramPtr histogram;
+	std::string histogram_content;
+	if (tiff_dataset->ReadHistogramFile(histogram_content))
+	{
+		neb::CJsonObject json_histograms(histogram_content);
+		neb::CJsonObject json_histogram;
+		if (json_histograms.Get("band" + std::to_string(band), json_histogram))
+		{
+			histogram = std::make_shared<Histogram>();
+			histogram->ImportFromJson(json_histogram);
+
+			std::cout << "get histogram from s3 file success, content: " << histogram_content << std::endl;
+		}
+		else
+		{
+			histogram = ComputerHistogram(tiff_dataset, band, false/*g_complete_statistic*/, use_external_no_data, external_no_data_value);
+			json_histograms.Add("band" + std::to_string(band), histogram->ExportToJson());
+			tiff_dataset->SaveHistogramFile(json_histograms.ToString());
+		}
+	}
+	else
+	{
+		histogram = ComputerHistogram(tiff_dataset, band, false/*g_complete_statistic*/, use_external_no_data, external_no_data_value);
+		neb::CJsonObject json_histograms;
+		json_histograms.Add("band" + std::to_string(band), histogram->ExportToJson());
+		tiff_dataset->SaveHistogramFile(json_histograms.ToString());
+	}
+
+	return histogram;
 }
 
 TaskRecord::TaskRecord(const std::string& region, const std::string& save_bucket_name
@@ -310,7 +346,23 @@ TaskRecord::~TaskRecord()
 
 	std::cout << "process finished, total time: " << end_sec - start_sec_ << " seconds" << std::endl;
 
-	std::cout << "compute histogram ..." << std::endl;
+	std::cout << "begin compute histogram ..." << std::endl;
+
+	S3Dataset* dataset = new S3Dataset;
+	if (dataset->Open(path_))
+	{
+		for (int i = 0; i < band_count_; i++)
+		{
+			ReadAndSaveHistogramFile(dataset, i + 1, have_nodata_value_, nodata_value_);
+		}
+	}
+
+	delete dataset;
+	dataset = nullptr;
+
+	d = std::chrono::system_clock::now().time_since_epoch();
+	long long end_sec2 = std::chrono::duration_cast<std::chrono::seconds>(d).count();
+	std::cout << "compute histogram finished, total time: " << end_sec2 - end_sec << " seconds" << std::endl;
 }
 
 bool TaskRecord::Open(const std::string& path, int dataset_count)

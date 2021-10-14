@@ -1,0 +1,37 @@
+参数举例：
+{
+  "path": "/vsis3/pie-engine-test/image/7f82abba/GF2_PMS2__L1A0001471436-MSS2.tif",
+  "dataset_count": 4,
+  "thread_count": 4,
+  "aws_region": "cn-northwest-1",
+  "aws_s3_endpoint": "s3.cn-northwest-1.amazonaws.com.cn",
+  "save_bucket_name": "pie-engine-test/make-tile-test/image/7f82abba",
+  "time_limit_sec": 780,
+  "force": 0
+}
+
+参数说明：
+
+dataset_count	gdal文件句柄的数量，该参数值应小于等于thread_count。句柄数越多，占用内存越大
+thread_count	并发处理线程数
+save_bucket_name	生成的瓦片的存放位置
+time_limit_sec	程序执行的时间限制，单位为秒。780表示执行13分钟后程序自己退出。时间不会很精确，780后，所有线程处理完当前瓦片后，会返回。如果当前瓦片生成速度较慢，则会造成返回时间超过780秒。程序设置13分钟返回，理论上最慢也不会超过15分钟
+force		是否强制重新生成瓦片缓存。值为1，会删除之前全部生成的，重新执行。值为0，则会再上次基础上，继续生成。
+
+
+返回值json格式：
+
+{
+  "code": 0,
+  "info": "ok"
+}
+
+说明：
+
+code 	值为0，表示生成完毕。值为1，表示部分完成，需要再次调用。值为-1，表示程序出错
+info	描述信息
+
+
+使用方法：
+
+调用一次lambda后，如果返回code值为0，则执行完毕。如果返回值为1，则需要原参数再次调用lambda（force为0）
