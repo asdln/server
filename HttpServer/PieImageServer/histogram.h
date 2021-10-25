@@ -1,16 +1,69 @@
 #pragma once
 
 #include <memory>
-#include "utility.h"
+#include <string>
+#include <vector>
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/split_member.hpp>
+#include "type_def.h"
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/shared_ptr.hpp>
 
 class Dataset;
+class Histogram;
+typedef std::shared_ptr<Histogram> HistogramPtr;
 
 class Histogram
 {
+	friend class boost::serialization::access;
+	BOOST_SERIALIZATION_SPLIT_MEMBER()
+
 public:
 
 	Histogram();
 	~Histogram();
+
+	template<class Archive>
+	void save(Archive& ar, const unsigned int version) const
+	{
+		// note, version is always the latest when saving
+		ar& minimum_;
+		ar& maximum_;
+		ar& mean_;
+		ar& std_dev_;
+		ar& step_;
+		ar& class_count_;
+
+		for (int i = 0; i < class_count_; i ++)
+		{
+			ar& histogram_[i];
+		}
+	}
+
+
+	template<class Archive>
+	void load(Archive& ar, const unsigned int version)
+	{
+		ar& minimum_;
+		ar& maximum_;
+		ar& mean_;
+		ar& std_dev_;
+		ar& step_;
+		ar& class_count_;
+
+		if (histogram_)
+		{
+			delete histogram_;
+			histogram_ = nullptr;
+		}
+
+		histogram_ = new double[class_count_];
+
+		for (int i = 0; i < class_count_; i++)
+		{
+			ar& histogram_[i];
+		}
+	}
 
 	void SetStats(double dMin, double dMax, double dMean, double dStdDev);
 
@@ -64,7 +117,23 @@ protected:
 
 };
 
-typedef std::shared_ptr<Histogram> HistogramPtr;
+class Histogram_ContainerSTL
+{
+	friend class boost::serialization::access;
+
+public:
+	
+	template<class Archive>
+	void serialize(Archive& ar, const unsigned int version)
+	{
+		ar& histograms;
+	}
+
+public:
+
+	std::vector<HistogramPtr> histograms;
+};
+
 
 HistogramPtr ComputerHistogram(Dataset* dataset, int band, bool complete_statistic = false, bool use_external_no_data = false, double external_no_data_value = 0.0);
 

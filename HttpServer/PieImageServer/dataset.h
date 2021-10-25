@@ -1,7 +1,7 @@
 #pragma once
 
 #include <memory>
-#include "utility.h"
+#include "type_def.h"
 #include "histogram.h"
 #include "memory_pool.h"
 
@@ -55,6 +55,10 @@ public:
 	virtual std::string GetWKT() = 0;
 
 	virtual MemoryPool* GetMemoryPool() = 0;
+
+	virtual bool ReadHistogramFile(std::string& file_content) = 0;
+
+	virtual bool SaveHistogramFile(const std::string& file_content) = 0;
 
 	virtual ~Dataset() {};
 };

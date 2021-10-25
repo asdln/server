@@ -2,6 +2,12 @@
 #include "dataset_factory.h"
 #include "gdal_priv.h"
 #include <boost/lexical_cast.hpp>
+#include <iostream>
+#include "etcd_storage.h"
+
+#include <boost/serialization/access.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
 
 ResourcePool* ResourcePool::instance_ = nullptr;
 std::mutex ResourcePool::mutex_;
@@ -238,6 +244,104 @@ OGRSpatialReference* ResourcePool::GetSpatialReference(int epsg_code)
 	return nullptr;
 }
 
+HistogramPtr ReadAndSaveHistogramFile(Dataset* dataset, int band, bool have_nodata_value_, double nodata_value_, std::string& histogram_content)
+{
+	HistogramPtr histogram_res = nullptr;
+ 	int band_count = dataset->GetBandCount();
+ 
+ 	if (dataset->ReadHistogramFile(histogram_content))
+ 	{
+ 		std::cout << "histogram file already exist..." << std::endl;
+ 
+ 		Histogram_ContainerSTL container;
+ 		std::istringstream is(histogram_content);
+ 		boost::archive::binary_iarchive ia(is);
+ 		ia >> container;
+ 
+ 		histogram_res = container.histograms[band - 1];
+ 	}
+ 	else
+ 	{
+ 		std::cout << "begin compute histogram ..." << std::endl;
+ 		Histogram_ContainerSTL container;
+ 
+ 		for (int i = 0; i < band_count; i++)
+ 		{
+ 			HistogramPtr histogram = ComputerHistogram(dataset, i + 1, false/*g_complete_statistic*/, have_nodata_value_, nodata_value_);
+ 			container.histograms.push_back(histogram);
+ 
+ 			if (band == i + 1)
+ 			{
+ 				histogram_res = histogram;
+ 			}
+ 		}
+ 
+ 		std::ostringstream os;
+ 		boost::archive::binary_oarchive oa(os);
+ 		oa << container;
+ 
+ 		histogram_content = os.str();
+ 		dataset->SaveHistogramFile(histogram_content);
+ 
+ 		std::cout << "end compute histogram ..." << std::endl;
+ 	}
+
+	return histogram_res;
+}
+
+HistogramPtr GetHistogramFromEtcdOrCalc(const std::string& key, Dataset* tiff_dataset, int band, bool use_external_no_data, double external_no_data_value)
+{
+	//如果使用etcd，则先从etcd获取
+	EtcdStorage etcd_storage;
+	HistogramPtr histogram = nullptr;
+	if (etcd_storage.IsUseEtcd())
+	{
+		std::string histogram_key = key + "_histogram";
+		if (etcd_storage.Lock(histogram_key))
+		{
+			std::string histograms_str;
+			if (etcd_storage.GetValue(histogram_key, histograms_str))
+			{
+				Histogram_ContainerSTL container;
+				std::istringstream is(histograms_str);
+				boost::archive::binary_iarchive ia(is);
+				ia >> container;
+
+				histogram = container.histograms[band - 1];
+			}
+			else
+			{
+				std::string histogram_content;
+				histogram = ReadAndSaveHistogramFile(tiff_dataset, band, use_external_no_data, external_no_data_value, histogram_content);
+				etcd_storage.SetValue(histogram_key, histogram_content, true);
+			}
+
+			etcd_storage.Unlock(histogram_key);
+		}
+	}
+	else
+	{
+		std::string histogram_content;
+		if (tiff_dataset->ReadHistogramFile(histogram_content))
+		{
+			std::cout << "histogram file already exist..." << std::endl;
+
+ 			Histogram_ContainerSTL container;
+ 			std::istringstream is(histogram_content);
+ 			boost::archive::binary_iarchive ia(is);
+ 			ia >> container;
+ 
+ 			histogram = container.histograms[band - 1];
+		}
+		else
+		{
+			histogram = ComputerHistogram(tiff_dataset, band, g_complete_statistic, use_external_no_data, external_no_data_value);
+		}
+	}
+
+	return histogram;
+}
+
 HistogramPtr ResourcePool::GetHistogram(Dataset* tiff_dataset, int band, bool use_external_no_data, double external_no_data_value)
 {
 	std::string key = tiff_dataset->file_path();
@@ -270,7 +374,7 @@ HistogramPtr ResourcePool::GetHistogram(Dataset* tiff_dataset, int band, bool us
 			std::vector<HistogramPtr> vec_histogram;
 			vec_histogram.resize(band);
 
-			histogram = ComputerHistogram(tiff_dataset, band, g_complete_statistic, use_external_no_data, external_no_data_value);
+			histogram = GetHistogramFromEtcdOrCalc(key, tiff_dataset, band, use_external_no_data, external_no_data_value);
 			vec_histogram[band - 1] = histogram;
 			map_histogram_.emplace(key, vec_histogram);
 		}
@@ -280,7 +384,7 @@ HistogramPtr ResourcePool::GetHistogram(Dataset* tiff_dataset, int band, bool us
 			if (vec_histogram.size() < band)
 			{
 				vec_histogram.resize(band);
-				histogram = ComputerHistogram(tiff_dataset, band, g_complete_statistic, use_external_no_data, external_no_data_value);
+				histogram = GetHistogramFromEtcdOrCalc(key, tiff_dataset, band, use_external_no_data, external_no_data_value);
 				vec_histogram[band - 1] = histogram;
 			}
 			else
@@ -288,7 +392,7 @@ HistogramPtr ResourcePool::GetHistogram(Dataset* tiff_dataset, int band, bool us
 				histogram = vec_histogram[band - 1];
 				if (histogram == nullptr)
 				{
-					histogram = ComputerHistogram(tiff_dataset, band, g_complete_statistic, use_external_no_data, external_no_data_value);
+					histogram = GetHistogramFromEtcdOrCalc(key, tiff_dataset, band, use_external_no_data, external_no_data_value);
 					vec_histogram[band - 1] = histogram;
 				}
 			}

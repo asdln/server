@@ -186,10 +186,10 @@ Application::Application(int argc, char* argv[])
 // 		.default_value(12)
 // 		.action([](const std::string& value) { return std::stoi(value); });
 
-	program.add_argument("--statistic_size")
-		.help("histogram statistic size")
-		.default_value(1024)
-		.action([](const std::string& value) { return std::stoi(value); });
+// 	program.add_argument("--statistic_size")
+// 		.help("histogram statistic size")
+// 		.default_value(1024)
+// 		.action([](const std::string& value) { return std::stoi(value); });
 
 	program.add_argument("--gdal_cache_size")
 		.help("gdal maximum cache size")
@@ -233,7 +233,7 @@ Application::Application(int argc, char* argv[])
 	port_ = program.get<int>("--port");
 	threads_ = program.get<int>("--thread");
 	//int dataset_count = program.get<int>("--dataset_count");
-	statistic_window_size_ = program.get<int>("--statistic_size");
+	//statistic_window_size_ = program.get<int>("--statistic_size");
 	gdal_cache_size_ = program.get<std::string>("--gdal_cache_size");
 
     EtcdStorage::host_v2_ = program.get<std::string>("--etcd_v2_host");
@@ -358,7 +358,7 @@ Application::Application(int argc, char* argv[])
 
 	//LoadConfig();
 
-	LOG(INFO) << "thread : " << threads_ << "   port : " << port_ << "    statistic_size: " << statistic_window_size_;
+	LOG(INFO) << "thread : " << threads_ << "   port : " << port_;// << "    statistic_size: " << statistic_window_size_;
 
     if(EtcdStorage::use_etcd_v2_)
     {

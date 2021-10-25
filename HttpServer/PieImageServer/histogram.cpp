@@ -1,10 +1,10 @@
 #include "histogram.h"
-#include "utility.h"
 #include<algorithm>
 #include <cmath>
 #include "dataset.h"
 #include "string.h"
-#include "application.h"
+#include <iostream>
+#include <chrono>
 
 bool g_complete_statistic = false;
 
@@ -390,7 +390,7 @@ HistogramPtr ComputerHistogram(Dataset* dataset, int band, bool complete_statist
 	int m_nSizeY = dataset->GetRasterYSize();
 
 	DataType data_type = dataset->GetDataType();
-	int hist_window_size = global_app->StatisticSize();
+	int hist_window_size = 1024;
 
 	int have_no_data = 0;
 	double no_data_value = dataset->GetNoDataValue(band, &have_no_data);
@@ -496,6 +496,8 @@ HistogramPtr ComputerHistogram(Dataset* dataset, int band, bool complete_statist
 		unsigned char* pData = nullptr;
 		pData = dataset->GetMemoryPool()->malloc(GetDataTypeBytes(data_type) * (size_t)block_x * block_y * sample_block);
 
+		std::cout << "blocks: " << sample_block << "\tblock_x: " << block_x << "\tblock_y: " << block_y << std::endl;
+
 		unsigned char* buffer_temp = pData;
 		double step = (double)src_block_count / sample_block;
 		for (int i = 0; i < sample_block; i++)
@@ -522,7 +524,6 @@ HistogramPtr ComputerHistogram(Dataset* dataset, int band, bool complete_statist
 		histogram->SetClassCount(hist_class);
 		//delete[] (char*)pData;
 		dataset->GetMemoryPool()->free((unsigned char*)pData);
-
 		return histogram;
 	}
 }

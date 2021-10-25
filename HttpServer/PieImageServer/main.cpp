@@ -10,6 +10,7 @@
 #include <boost/pool/pool.hpp>
 #include <aws/core/Aws.h>
 #include <signal.h>
+#include "test.h"
 
 using namespace boost;
 
@@ -25,6 +26,8 @@ void sig_handler(int sig)
 int main(int argc, char* argv[])
 {
 	signal(SIGINT, sig_handler);
+
+	//tiff_dataset_test();
 
 	//if (argc != 5)
 	//{

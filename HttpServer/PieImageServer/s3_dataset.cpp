@@ -1,16 +1,12 @@
 #include "s3_dataset.h"
 #include <iostream>
 #include <fstream>
-
+#include <array>
 #include <aws/s3/model/PutObjectRequest.h>
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/core/utils/stream/PreallocatedStreamBuf.h>
 #include <aws/core/auth/AWSCredentials.h>
 #include "gdal_priv.h"
-
-#define GOOGLE_GLOG_DLL_DECL 
-#define GLOG_NO_ABBREVIATED_SEVERITIES
-#include "glog/logging.h"
 
 Aws::String g_aws_region;
 
@@ -44,6 +40,76 @@ bool AWSS3GetObject(Aws::S3::S3Client* s3_client, const Aws::String& fromBucket,
 		auto err = get_object_outcome.GetError();
 		std::cout << "Error: GetObject: " <<
 			err.GetExceptionName() << ": " << err.GetMessage() << "\t" << objectKey << std::endl;
+
+		return false;
+	}
+}
+
+bool AWSS3GetObject2(Aws::S3::S3Client* s3_client, const Aws::String& fromBucket
+	, const Aws::String& objectKey,
+	std::vector<unsigned char>& buffer)
+{
+	Aws::S3::Model::GetObjectRequest object_request;
+	object_request.SetBucket(fromBucket);
+	object_request.SetKey(objectKey);
+
+	Aws::S3::Model::GetObjectOutcome get_object_outcome =
+		s3_client->GetObject(object_request);
+
+	if (get_object_outcome.IsSuccess())
+	{
+		auto& retrieved_file = get_object_outcome.GetResultWithOwnership().GetBody();
+		size_t content_bytes = get_object_outcome.GetResultWithOwnership().GetContentLength();
+
+		if (buffer.size() < content_bytes)
+		{
+			buffer.resize(content_bytes, 0);
+		}
+
+		retrieved_file.read((char*)buffer.data(), content_bytes);
+		return true;
+	}
+	else
+	{
+		auto err = get_object_outcome.GetError();
+		std::cout << "Error: GetObject: " <<
+			err.GetExceptionName() << ": " << err.GetMessage() << std::endl;
+
+		std::cout << "bucket: " << fromBucket << "\t" << "key: " << objectKey << std::endl;
+
+		return false;
+	}
+}
+
+bool AWSS3PutObject2(Aws::S3::S3Client* s3_client, const Aws::String& bucketName
+	, const Aws::String& objectName
+	, std::vector<unsigned char>& buffer)
+{
+	Aws::S3::Model::PutObjectRequest request;
+	request.SetBucket(bucketName);
+	request.SetKey(objectName);
+
+	auto sbuff = Aws::New<Aws::Utils::Stream::PreallocatedStreamBuf>("whatever string",
+		buffer.data(), buffer.size());
+
+	auto sbody = Aws::MakeShared<Aws::IOStream>("whatever string", sbuff);
+	request.SetBody(sbody);
+
+	Aws::S3::Model::PutObjectOutcome outcome =
+		s3_client->PutObject(request);
+
+	if (outcome.IsSuccess()) {
+
+		//std::cout << "Added object '" << objectName << "' to bucket '"
+		//	<< bucketName << "'" << std::endl;;
+		return true;
+	}
+	else
+	{
+		std::cout << "Error: PutObject: " <<
+			outcome.GetError().GetMessage() << std::endl;
+
+		std::cout << "bucket: " << bucketName << "\t" << "key: " << objectName << std::endl;
 
 		return false;
 	}
@@ -133,17 +199,20 @@ bool S3Dataset::Open(const std::string& path)
 
 	try
 	{
-		Aws::Client::ClientConfiguration config;
-
-		if (g_aws_access_key_id.empty())
+		if (s3_client_ == nullptr)
 		{
-			std::cout << "error: getenv(\"AWS_ACCESS_KEY_ID\")" << g_aws_access_key_id << std::endl;
+			Aws::Client::ClientConfiguration config;
+
+			if (g_aws_access_key_id.empty())
+			{
+				std::cout << "error: getenv(\"AWS_ACCESS_KEY_ID\")" << g_aws_access_key_id << std::endl;
+			}
+
+			config.region = g_aws_region;
+
+			Aws::Auth::AWSCredentials cred(g_aws_access_key_id, g_aws_secret_access_key);
+			s3_client_ = new Aws::S3::S3Client(cred, config);
 		}
-
-		config.region = g_aws_region;
-
-		Aws::Auth::AWSCredentials cred(g_aws_access_key_id, g_aws_secret_access_key);
-		s3_client_ = new Aws::S3::S3Client(cred, config);
 	}
 	catch (...)
 	{
@@ -334,14 +403,13 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 	//如果没有金字塔，隔一段时间再判断一下
 	if (!s3_bucket_name_.empty() && switch_ == false)
 	{
-		boost::posix_time::ptime time_now = boost::posix_time::microsec_clock::universal_time();
-		boost::posix_time::millisec_posix_time_system_config::time_duration_type time_elapse = time_now - time_for_change_;
+		long long time_now = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
 		//20秒
-		if (time_elapse.total_seconds() >= 20)
+		if (time_now - time_for_change_ >= 20)
 		{
 			switch_ = true;
-			LOG(ERROR) << "change s3 pyramid check status to true";
+			std::cout << "change s3 pyramid check status to true" << std::endl;
 		}
 	}
 
@@ -403,7 +471,7 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 					mem_pool_->free(p);
 				}
 
-				LOG(ERROR) << "error: can not load s3 tile data, use origin tiff instead";
+				std::cout << "error: can not load s3 tile data, use origin tiff instead" << std::endl; 
 				s3_failed_count_++;
 
 				//连续4次读取不成功，则认为没有s3金字塔
@@ -411,8 +479,8 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 				{
 					s3_failed_count_ = 0;
 					switch_ = false;
-					time_for_change_ = boost::posix_time::microsec_clock::universal_time();
-					LOG(ERROR) << "change s3 pyramid check status to false";
+					time_for_change_ = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+					std::cout << "change s3 pyramid check status to false" << std::endl;
 				}
 
 				return TiffDataset::Read(nx, ny, width, height, pData, bufferWidth, bufferHeight
@@ -507,4 +575,40 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 	}
 
 	return true;
+}
+
+bool S3Dataset::ReadHistogramFile(std::string& file_content)
+{
+	std::string str_prefix = ".pyra/histogram.json";
+
+	Aws::String key_name = s3_key_name_;
+	key_name += str_prefix;
+
+	std::vector<unsigned char> buffer;
+	if (AWSS3GetObject2(s3_client_, s3_bucket_name_, key_name, buffer))
+	{
+		std::string string_json(buffer.begin(), buffer.end());
+		file_content = string_json;
+		return true;
+	}
+
+	return false;
+}
+
+bool S3Dataset::SaveHistogramFile(const std::string& file_content)
+{
+	std::string str_prefix = ".pyra/histogram.json";
+
+	Aws::String key_name = s3_key_name_;
+	key_name += str_prefix;
+
+	std::vector<unsigned char> buffer;
+	buffer.assign(file_content.begin(), file_content.end());
+
+	if (AWSS3PutObject2(s3_client_, s3_bucket_name_, key_name, buffer))
+	{
+		return true;
+	}
+
+	return false;
 }

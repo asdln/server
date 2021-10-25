@@ -46,6 +46,26 @@ bool EtcdStorage::GetSubKeys(const std::string& key, std::list<std::string>& sub
 #endif
 }
 
+bool EtcdStorage::Lock(const std::string& key)
+{
+#ifdef ETCD_V2
+    return false;
+#else
+	EtcdV3 etcdv3(address_v3_);
+	return etcdv3.Lock(key);
+#endif
+}
+
+bool EtcdStorage::Unlock(const std::string& key)
+{
+#ifdef ETCD_V2
+	return false;
+#else
+	EtcdV3 etcdv3(address_v3_);
+	return etcdv3.Unlock(key);
+#endif
+}
+
 bool EtcdStorage::GetValue(const std::string& key, std::string& value)
 {
 #ifdef ETCD_V2

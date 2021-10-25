@@ -19,6 +19,10 @@ public:
 
     bool GetSubKeys(const std::string& key, std::list<std::string>& sub_keys);
 
+    bool Lock(const std::string& key);
+
+    bool Unlock(const std::string& key);
+
     bool IsUseEtcd() { return use_etcd_v2_ || use_etcd_v3_; }
 
     static bool IsUseEtcdV3() { return use_etcd_v3_; }

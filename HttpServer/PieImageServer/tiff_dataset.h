@@ -52,6 +52,10 @@ public:
 
     virtual MemoryPool* GetMemoryPool() override{ return mem_pool_;}
 
+    virtual bool ReadHistogramFile(std::string& file_content) override;
+
+    virtual bool SaveHistogramFile(const std::string& file_content) override;
+
     bool IsUseRPC() { return m_bUsePRC; }
 
     ~TiffDataset();

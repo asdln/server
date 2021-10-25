@@ -185,6 +185,7 @@
     <ClCompile Include="style.cpp" />
     <ClCompile Include="style_manager.cpp" />
     <ClCompile Include="style_map.cpp" />
+    <ClCompile Include="test.cpp" />
     <ClCompile Include="tile_processor.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="jpg_compress.cpp" />
@@ -192,6 +193,7 @@
     <ClCompile Include="stretch.cpp" />
     <ClCompile Include="tiff_dataset.cpp" />
     <ClCompile Include="true_color_style.cpp" />
+    <ClCompile Include="type_def.cpp" />
     <ClCompile Include="url.cpp" />
     <ClCompile Include="utility.cpp" />
     <ClCompile Include="webp_compress.cpp" />
@@ -234,12 +236,14 @@
     <ClInclude Include="style.h" />
     <ClInclude Include="style_manager.h" />
     <ClInclude Include="style_map.h" />
+    <ClInclude Include="test.h" />
     <ClInclude Include="tile_processor.h" />
     <ClInclude Include="jpg_compress.h" />
     <ClInclude Include="min_max_stretch.h" />
     <ClInclude Include="stretch.h" />
     <ClInclude Include="tiff_dataset.h" />
     <ClInclude Include="true_color_style.h" />
+    <ClInclude Include="type_def.h" />
     <ClInclude Include="url.h" />
     <ClInclude Include="utility.h" />
     <ClInclude Include="webp_compress.h" />

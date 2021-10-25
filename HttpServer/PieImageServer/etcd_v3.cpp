@@ -163,4 +163,52 @@ bool EtcdV3::GetSubKeys(const std::string& key, std::list<std::string>& sub_keys
 	return true;
 }
 
+bool EtcdV3::Lock(const std::string& key)
+{
+	try
+	{
+		etcd::Client& etcd = GetEtcdClient(address_);
+		pplx::task<etcd::Response> response_task = etcd.lock(prefix_ + key);
+
+		etcd::Response response = response_task.get(); // can throw
+		if (!response.is_ok())
+		{
+			LOG(ERROR) << "Lock failed, details: " << response.error_message();
+			LOG(ERROR) << "key:  " << prefix_ + key;
+			return false;
+		}
+	}
+	catch (...)
+	{
+		LOG(ERROR) << "Etcd Lock failed, key is: " << prefix_ + key;
+		return false;
+	}
+
+	return true;
+}
+
+bool EtcdV3::Unlock(const std::string& key)
+{
+	try
+	{
+		etcd::Client& etcd = GetEtcdClient(address_);
+		pplx::task<etcd::Response> response_task = etcd.unlock(prefix_ + key);
+
+		etcd::Response response = response_task.get(); // can throw
+		if (!response.is_ok())
+		{
+			LOG(ERROR) << "Unlock failed, details: " << response.error_message();
+			LOG(ERROR) << "key:  " << prefix_ + key;
+			return false;
+		}
+	}
+	catch (...)
+	{
+		LOG(ERROR) << "Etcd Unlock failed, key is: " << prefix_ + key;
+		return false;
+	}
+
+	return true;
+}
+
 #endif

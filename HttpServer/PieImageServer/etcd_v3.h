@@ -19,6 +19,10 @@ public:
 
 	bool GetSubKeys(const std::string& key, std::list<std::string>& sub_keys);
 
+	bool Lock(const std::string& key);
+
+	bool Unlock(const std::string& key);
+
 	static const std::string GetPrefix() { return prefix_; }
 
 protected:

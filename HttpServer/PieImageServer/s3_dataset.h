@@ -2,7 +2,7 @@
 
 #include "tiff_dataset.h"
 
-#include<boost/date_time/posix_time/posix_time.hpp>
+#include <chrono>
 
 #include <aws/core/Aws.h>
 #include <aws/s3/S3Client.h>
@@ -19,6 +19,12 @@ public:
 		void* psExtraArg = nullptr) override;
 
 	void SetS3CacheKey(const std::string& s3cachekey);
+
+	void SetS3Client(Aws::S3::S3Client* s3_client) { s3_client_ = s3_client; }
+
+	virtual bool ReadHistogramFile(std::string& file_content) override;
+
+	virtual bool SaveHistogramFile(const std::string& file_content) override;
 
 	~S3Dataset() { if (s3_client_) delete s3_client_; }
 
@@ -38,5 +44,5 @@ protected:
 
 	int s3_failed_count_ = 0;
 
-	boost::posix_time::ptime time_for_change_ = boost::posix_time::microsec_clock::universal_time();
+	long long time_for_change_ = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 };

@@ -15,7 +15,7 @@ public:
 
 	void Run();
 
-	int StatisticSize() { return statistic_window_size_; }
+	//int StatisticSize() { return statistic_window_size_; }
 
 protected:
 
@@ -32,7 +32,7 @@ protected:
 
 	std::string gdal_cache_size_ = "0";
 
-	int statistic_window_size_;
+	//int statistic_window_size_;
 
 	std::string app_path_;
 

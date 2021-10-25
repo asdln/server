@@ -42,9 +42,11 @@ SET(SRC_LIST main.cpp
     style.cpp
     style_manager.cpp
     style_map.cpp
+    test.cpp
     tiff_dataset.cpp
     tile_processor.cpp
     true_color_style.cpp
+    type_def.cpp
     url.cpp
     utility.cpp
     webp_compress.cpp
@@ -63,6 +65,7 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME} glog)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -lpthread)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -lboost_regex)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -lboost_filesystem)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} -lboost_serialization)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -lgdal)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -lwebp)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -lpng)
