@@ -20,6 +20,8 @@ public:
 
 	void SetS3CacheKey(const std::string& s3cachekey);
 
+	void SetS3Client(Aws::S3::S3Client* s3_client) { s3_client_ = s3_client; }
+
 	virtual bool ReadHistogramFile(std::string& file_content) override;
 
 	virtual bool SaveHistogramFile(const std::string& file_content) override;

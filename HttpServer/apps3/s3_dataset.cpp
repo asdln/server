@@ -75,7 +75,7 @@ bool AWSS3GetObject2(Aws::S3::S3Client* s3_client, const Aws::String& fromBucket
 		std::cout << "Error: GetObject: " <<
 			err.GetExceptionName() << ": " << err.GetMessage() << std::endl;
 
-		std::cout << "bucket: " << fromBucket << "/t" << "key: " << objectKey << std::endl;
+		std::cout << "bucket: " << fromBucket << "\t" << "key: " << objectKey << std::endl;
 
 		return false;
 	}
@@ -199,17 +199,20 @@ bool S3Dataset::Open(const std::string& path)
 
 	try
 	{
-		Aws::Client::ClientConfiguration config;
-
-		if (g_aws_access_key_id.empty())
+		if (s3_client_ == nullptr)
 		{
-			std::cout << "error: getenv(\"AWS_ACCESS_KEY_ID\")" << g_aws_access_key_id << std::endl;
+			Aws::Client::ClientConfiguration config;
+
+			if (g_aws_access_key_id.empty())
+			{
+				std::cout << "error: getenv(\"AWS_ACCESS_KEY_ID\")" << g_aws_access_key_id << std::endl;
+			}
+
+			config.region = g_aws_region;
+
+			Aws::Auth::AWSCredentials cred(g_aws_access_key_id, g_aws_secret_access_key);
+			s3_client_ = new Aws::S3::S3Client(cred, config);
 		}
-
-		config.region = g_aws_region;
-
-		Aws::Auth::AWSCredentials cred(g_aws_access_key_id, g_aws_secret_access_key);
-		s3_client_ = new Aws::S3::S3Client(cred, config);
 	}
 	catch (...)
 	{
@@ -602,7 +605,7 @@ bool S3Dataset::SaveHistogramFile(const std::string& file_content)
 	std::vector<unsigned char> buffer;
 	buffer.assign(file_content.begin(), file_content.end());
 
-	if (AWSS3GetObject2(s3_client_, s3_bucket_name_, key_name, buffer))
+	if (AWSS3PutObject2(s3_client_, s3_bucket_name_, key_name, buffer))
 	{
 		return true;
 	}

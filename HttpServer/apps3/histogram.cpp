@@ -3,7 +3,8 @@
 #include <cmath>
 #include "dataset.h"
 #include "string.h"
-
+#include <iostream>
+#include <chrono>
 
 bool g_complete_statistic = false;
 
@@ -495,6 +496,8 @@ HistogramPtr ComputerHistogram(Dataset* dataset, int band, bool complete_statist
 		unsigned char* pData = nullptr;
 		pData = dataset->GetMemoryPool()->malloc(GetDataTypeBytes(data_type) * (size_t)block_x * block_y * sample_block);
 
+		std::cout << "blocks: " << sample_block << "\tblock_x: " << block_x << "\tblock_y: " << block_y << std::endl;
+
 		unsigned char* buffer_temp = pData;
 		double step = (double)src_block_count / sample_block;
 		for (int i = 0; i < sample_block; i++)
@@ -521,7 +524,6 @@ HistogramPtr ComputerHistogram(Dataset* dataset, int band, bool complete_statist
 		histogram->SetClassCount(hist_class);
 		//delete[] (char*)pData;
 		dataset->GetMemoryPool()->free((unsigned char*)pData);
-
 		return histogram;
 	}
 }
@@ -570,95 +572,3 @@ const double* Histogram::GetHistogram()
 {
 	return histogram_;
 }
-
-void Histogram::ImportFromJson(const neb::CJsonObject& json)
-{
-	//neb::CJsonObject oJson(json);
-
-	json.Get("minimum_", minimum_);
-	json.Get("maximum_", maximum_);
-	json.Get("mean_", mean_);
-	json.Get("std_dev_", std_dev_);
-	json.Get("step_", step_);
-	json.Get("class_count_", class_count_);
-
-	neb::CJsonObject histogram_array;
-	json.Get("histogram_", histogram_array);
-
-	if (nullptr != histogram_)
-	{
-		delete[] histogram_;
-		histogram_ = nullptr;
-	}
-
-	histogram_ = new double[class_count_];
-
-	if (histogram_array.IsArray())
-	{
-		int array_size = histogram_array.GetArraySize();
-		for (int i = 0; i < array_size; i ++)
-		{
-			double value;
-			histogram_array.Get(i, value);
-
-			if (i < class_count_)
-			{
-				histogram_[i] = value;
-			}
-		}
-	}
-}
-
-neb::CJsonObject Histogram::ExportToJson()
-{
-	neb::CJsonObject oJson;
-	oJson.Add("minimum_", minimum_);
-	oJson.Add("maximum_", maximum_);
-	oJson.Add("mean_", mean_);
-	oJson.Add("std_dev_", std_dev_);
-	oJson.Add("step_", step_);
-	oJson.Add("class_count_", class_count_);
-
-	neb::CJsonObject histogram_array;
-	for (int i = 0; i < class_count_; i++)
-	{
-		histogram_array.Add(i, histogram_[i]);
-	}
-
-	oJson.Add("histogram_", histogram_array);
-
-	return oJson;
-}
-
-// std::vector<HistogramPtr> HistogramsSerielizer::FromJson(const std::string& json)
-// {
-// 	std::vector<HistogramPtr> results;
-// 	neb::CJsonObject oJsons(json);
-// 	if (oJsons.IsArray())
-// 	{
-// 		int array_size = oJsons.GetArraySize();
-// 		for (int i = 0; i < array_size; i++)
-// 		{
-// 			neb::CJsonObject oJson;
-// 			oJson.Get(i, oJson);
-// 
-// 			auto historgram = std::make_shared<Histogram>();
-// 			historgram->ImportFromJson(oJson.ToString());
-// 			results.push_back(historgram);
-// 		}
-// 	}
-// 
-// 	return results;
-// }
-// 
-// std::string HistogramsSerielizer::ToJson(const std::vector<HistogramPtr>& histograms)
-// {
-// 	neb::CJsonObject oJsons;
-// 
-// 	for (int i = 0; i < histograms.size(); i++)
-// 	{
-// 		oJsons.Add(histograms[i]->ExportToJson());
-// 	}
-// 
-// 	return oJsons.ToString();
-// }

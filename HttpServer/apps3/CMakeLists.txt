@@ -13,6 +13,7 @@ MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
 
 INCLUDE_DIRECTORIES(~/aws-install/include)
 INCLUDE_DIRECTORIES(~/lambda-install/include)
+
 LINK_DIRECTORIES(~/aws-install/lib)
 LINK_DIRECTORIES(~/lambda-install/lib)
 
@@ -35,6 +36,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE -lgdal)
 target_link_libraries(${PROJECT_NAME} PRIVATE -lpthread)
 target_link_libraries(${PROJECT_NAME} PRIVATE -laws-cpp-sdk-core)
 target_link_libraries(${PROJECT_NAME} PRIVATE -laws-cpp-sdk-s3)
+target_link_libraries(${PROJECT_NAME} PRIVATE -lboost_serialization)
 
 target_compile_features(${PROJECT_NAME} PRIVATE "cxx_std_11")
 target_compile_options(${PROJECT_NAME} PRIVATE "-Wall" "-Wextra")

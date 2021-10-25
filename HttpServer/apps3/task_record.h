@@ -121,6 +121,8 @@ protected:
 
 	Aws::String save_key_name_;
 
+	std::string save_bucket_key_;
+
 	std::string path_;
 
 	int force_ = 0;

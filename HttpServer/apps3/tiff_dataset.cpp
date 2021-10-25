@@ -3,6 +3,7 @@
 #include "gdal_priv.h"
 #include "ogr_spatialref.h"
 #include "gdal_alg.h"
+#include <fstream>
 
 TiffDataset::~TiffDataset()
 {
@@ -400,10 +401,43 @@ const std::string& TiffDataset::file_path()
 
 bool TiffDataset::ReadHistogramFile(std::string& file_content)
 {
+	std::string histogram_file = file_path_ + ".histogram.json";
+
+	std::ifstream inFile2(histogram_file, std::ios::binary | std::ios::in);
+	if (inFile2.is_open())
+	{
+		inFile2.seekg(0, std::ios_base::end);
+		int FileSize2 = inFile2.tellg();
+
+		inFile2.seekg(0, std::ios::beg);
+
+		std::vector<unsigned char> buffer;
+		//char* buffer2 = new char[FileSize2];
+		buffer.resize(FileSize2);
+		inFile2.read((char*)buffer.data(), FileSize2);
+		inFile2.close();
+
+		std::string string_json(buffer.begin(), buffer.end());
+		file_content = string_json;
+
+		return true;
+	}
+
 	return false;
 }
 
 bool TiffDataset::SaveHistogramFile(const std::string& file_content)
 {
+	std::string histogram_file = file_path_ + ".histogram.json";
+
+	std::ofstream outFile(histogram_file, std::ios::binary | std::ios::out);
+	if (outFile.is_open())
+	{
+		outFile.write(file_content.data(), file_content.size());
+		outFile.close();
+
+		return true;
+	}
+
 	return false;
 }

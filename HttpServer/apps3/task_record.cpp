@@ -6,6 +6,10 @@
 #include <sstream>
 #include <chrono>
 
+#include <boost/serialization/access.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+
 #ifdef USE_FILE
 #include "jpg_compress.h"
 #include <filesystem>
@@ -200,45 +204,13 @@ bool AWSS3PutObject_File(const Aws::String& bucketName, const Aws::String& objec
 	}
 }
 
-HistogramPtr ReadAndSaveHistogramFile(Dataset* tiff_dataset, int band, bool use_external_no_data, double external_no_data_value)
-{
-	HistogramPtr histogram;
-	std::string histogram_content;
-	if (tiff_dataset->ReadHistogramFile(histogram_content))
-	{
-		neb::CJsonObject json_histograms(histogram_content);
-		neb::CJsonObject json_histogram;
-		if (json_histograms.Get("band" + std::to_string(band), json_histogram))
-		{
-			histogram = std::make_shared<Histogram>();
-			histogram->ImportFromJson(json_histogram);
-
-			std::cout << "get histogram from s3 file success, content: " << histogram_content << std::endl;
-		}
-		else
-		{
-			histogram = ComputerHistogram(tiff_dataset, band, false/*g_complete_statistic*/, use_external_no_data, external_no_data_value);
-			json_histograms.Add("band" + std::to_string(band), histogram->ExportToJson());
-			tiff_dataset->SaveHistogramFile(json_histograms.ToString());
-		}
-	}
-	else
-	{
-		histogram = ComputerHistogram(tiff_dataset, band, false/*g_complete_statistic*/, use_external_no_data, external_no_data_value);
-		neb::CJsonObject json_histograms;
-		json_histograms.Add("band" + std::to_string(band), histogram->ExportToJson());
-		tiff_dataset->SaveHistogramFile(json_histograms.ToString());
-	}
-
-	return histogram;
-}
-
 TaskRecord::TaskRecord(const std::string& region, const std::string& save_bucket_name
 	, const std::string& aws_secret_access_key
 	, const std::string& aws_access_key_id, int time_limit_sec, int force) : time_limit_sec_(time_limit_sec), force_(force)
 {
 	aws_region_ = Aws::String(region.c_str(), region.size());
 	std::string save_bucket_name_temp = save_bucket_name;
+	save_bucket_key_ = save_bucket_name;
 	
 	//去掉最前面的/和最后面的/	
 	{
@@ -346,23 +318,65 @@ TaskRecord::~TaskRecord()
 
 	std::cout << "process finished, total time: " << end_sec - start_sec_ << " seconds" << std::endl;
 
-	std::cout << "begin compute histogram ..." << std::endl;
-
 	S3Dataset* dataset = new S3Dataset;
+	std::cout << "s3cachekey " << save_bucket_key_ << std::endl;
+
+#ifndef USE_FILE
+
+#ifdef USE_LAMBDA
+	dataset->SetS3Client(&s3_client);
+#endif
+
+#endif // !USE_FILE
+
 	if (dataset->Open(path_))
 	{
-		for (int i = 0; i < band_count_; i++)
+		dataset->SetS3CacheKey(save_bucket_key_);
+
+		HistogramPtr histogram_res = nullptr;
+		int band_count = dataset->GetBandCount();
+
+		std::string histogram_content;
+		if (dataset->ReadHistogramFile(histogram_content))
 		{
-			ReadAndSaveHistogramFile(dataset, i + 1, have_nodata_value_, nodata_value_);
+			std::cout << "histogram file already exist..." << std::endl;
+		}
+		else
+		{
+			std::cout << "begin compute histogram ..." << std::endl;
+			Histogram_ContainerSTL container;
+
+			for (int i = 0; i < band_count; i++)
+			{
+				HistogramPtr histogram = ComputerHistogram(dataset, i + 1, false/*g_complete_statistic*/, have_nodata_value_, nodata_value_);
+				container.histograms.push_back(histogram);
+			}
+
+			std::ostringstream os;
+			boost::archive::binary_oarchive oa(os);
+			oa << container;
+
+			histogram_content = os.str();
+			dataset->SaveHistogramFile(histogram_content);
+
+			std::cout << "end compute histogram ..." << std::endl;
 		}
 	}
+
+#ifndef USE_FILE
+
+#ifdef USE_LAMBDA
+	dataset->SetS3Client(nullptr);
+#endif
+
+#endif // !USE_FILE
 
 	delete dataset;
 	dataset = nullptr;
 
 	d = std::chrono::system_clock::now().time_since_epoch();
 	long long end_sec2 = std::chrono::duration_cast<std::chrono::seconds>(d).count();
-	std::cout << "compute histogram finished, total time: " << end_sec2 - end_sec << " seconds" << std::endl;
+	std::cout << "histogram total time: " << end_sec2 - end_sec << " seconds" << std::endl;
 }
 
 bool TaskRecord::Open(const std::string& path, int dataset_count)

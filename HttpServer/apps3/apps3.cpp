@@ -171,7 +171,6 @@ static invocation_response my_handler(invocation_request const& req)
 #endif
 
 
-
 int main(int argc, char* argv[])
 {
 #ifndef WIN32

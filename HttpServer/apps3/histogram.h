@@ -3,8 +3,11 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/split_member.hpp>
 #include "type_def.h"
-#include "CJsonObject.hpp"
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/shared_ptr.hpp>
 
 class Dataset;
 class Histogram;
@@ -12,10 +15,55 @@ typedef std::shared_ptr<Histogram> HistogramPtr;
 
 class Histogram
 {
+	friend class boost::serialization::access;
+	BOOST_SERIALIZATION_SPLIT_MEMBER()
+
 public:
 
 	Histogram();
 	~Histogram();
+
+	template<class Archive>
+	void save(Archive& ar, const unsigned int version) const
+	{
+		// note, version is always the latest when saving
+		ar& minimum_;
+		ar& maximum_;
+		ar& mean_;
+		ar& std_dev_;
+		ar& step_;
+		ar& class_count_;
+
+		for (int i = 0; i < class_count_; i ++)
+		{
+			ar& histogram_[i];
+		}
+	}
+
+
+	template<class Archive>
+	void load(Archive& ar, const unsigned int version)
+	{
+		ar& minimum_;
+		ar& maximum_;
+		ar& mean_;
+		ar& std_dev_;
+		ar& step_;
+		ar& class_count_;
+
+		if (histogram_)
+		{
+			delete histogram_;
+			histogram_ = nullptr;
+		}
+
+		histogram_ = new double[class_count_];
+
+		for (int i = 0; i < class_count_; i++)
+		{
+			ar& histogram_[i];
+		}
+	}
 
 	void SetStats(double dMin, double dMax, double dMean, double dStdDev);
 
@@ -32,10 +80,6 @@ public:
 	void SetClassCount(int count) { class_count_ = count; }
 
 	int GetClassCount() { return class_count_; }
-
-	void ImportFromJson(const neb::CJsonObject& json);
-
-	neb::CJsonObject ExportToJson();
 
 protected:
 
@@ -72,6 +116,39 @@ protected:
 	int class_count_ = 256;  //Лђеп65536
 
 };
+
+class Histogram_ContainerSTL
+{
+	friend class boost::serialization::access;
+
+public:
+	
+// 	BOOST_SERIALIZATION_SPLIT_MEMBER()
+// 
+// 	template<class Archive>
+// 	void save(Archive& ar, const unsigned int version) const
+// 	{
+// 		ar& histograms;
+// 	}
+// 
+// 
+// 	template<class Archive>
+// 	void load(Archive& ar, const unsigned int version)
+// 	{
+// 		ar& histograms;
+// 	}
+
+	template<class Archive>
+	void serialize(Archive& ar, const unsigned int version)
+	{
+		ar& histograms;
+	}
+
+public:
+
+	std::vector<HistogramPtr> histograms;
+};
+
 
 // class HistogramsSerielizer
 // {
