@@ -38,3 +38,5 @@ void GetGeojson(const std::vector<std::tuple<Envelop, int, std::string>>& envs, 
 bool GetStyleStringFromInfoString(const std::string& info_string, std::string& styles_string);
 
 void GetStylesFromStyleString(const std::string& styles_string, std::list<std::string>& style_strings);
+
+std::string ReplaceStringInStd(const std::string& strOrigin, const std::string& strToReplace, const std::string& strNewChar);

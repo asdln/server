@@ -13,6 +13,50 @@
 #include <vector>
 #include "CJsonObject.hpp"
 
+//************************************
+// Method:        ReplaceStringInStd
+// Describe:        使用指定子串替换字符串中的字符串，如果要替换的字符串为空，则移除原序列中的指定子串
+// FullName:      ReplaceStringInStd
+// Access:          public 
+// Returns:        std::string
+// Returns Describe:    返回替换操作后的字符串副本
+// Parameter:    std::string strOrigin      ；原字符串
+// Parameter:    std::string strToReplace   ；需要替换的字符换
+// Parameter:    std::string strNewChar     ；替换后的字符换，当该字符串为空时，该函数的功能变成
+//************************************
+std::string ReplaceStringInStd(const std::string& strOrigin, const std::string& strToReplace, const std::string& strNewChar)
+{
+	std::string strFinal = strOrigin;
+	if (strFinal.empty())
+	{
+		return strFinal;
+	}
+
+	if (strNewChar.empty())
+	{
+		size_t pos = std::string::npos;
+
+		// Search for the substring in string in a loop untill nothing is found
+		while ((pos = strFinal.find(strToReplace)) != std::string::npos)
+		{
+			// If found then erase it from string
+			strFinal.erase(pos, strToReplace.length());
+		}
+	}
+	else
+	{
+		for (std::string::size_type pos(0); pos != std::string::npos; pos += strNewChar.length())
+		{
+			pos = strFinal.find(strToReplace, pos);
+			if (pos != std::string::npos)
+				strFinal.replace(pos, strToReplace.length(), strNewChar);
+			else
+				break;
+		}
+	}
+	return   strFinal;
+}
+
 void GetEnvFromTileIndex(int nx, int ny, int nz, Envelop& env, int epsg)
 {
 	size_t nTileCountX = pow(2.0, nz) + 0.5;

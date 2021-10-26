@@ -412,6 +412,8 @@ HistogramPtr ComputerHistogram(Dataset* dataset, int band, bool complete_statist
 			dFactor = 1.0;
 		}
 
+		std::cout << "calc histogram, band" << band << "   " << std::endl;
+
 		double dReadWidth, dReadHeight;
 		dReadWidth = m_nSizeX;
 		dReadHeight = m_nSizeY;
@@ -496,7 +498,7 @@ HistogramPtr ComputerHistogram(Dataset* dataset, int band, bool complete_statist
 		unsigned char* pData = nullptr;
 		pData = dataset->GetMemoryPool()->malloc(GetDataTypeBytes(data_type) * (size_t)block_x * block_y * sample_block);
 
-		std::cout << "blocks: " << sample_block << "\tblock_x: " << block_x << "\tblock_y: " << block_y << std::endl;
+		std::cout << "calc histogram, band" << band << ", blocks: " << sample_block << "\tblock_x : " << block_x << "\tblock_y : " << block_y << std::endl;
 
 		unsigned char* buffer_temp = pData;
 		double step = (double)src_block_count / sample_block;

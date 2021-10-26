@@ -105,6 +105,11 @@ bool WMSHandler::Handle(const Url& url, const std::string& request_body, std::sh
 		{
 			return Inspect(request_body, result);
 		}
+		else if (request.compare("Test") == 0)
+		{
+			return Test(request_body, result);
+		}
+
 // 		else if (request.compare("GetThumbnail") == 0)
 // 		{
 // 			return GetThumbnail(request_body, result);
@@ -1020,6 +1025,18 @@ bool WMSHandler::Inspect(const std::string& request_body, std::shared_ptr<Handle
 
 	auto string_body = CreateStringResponse(http::status::ok, result->version(), result->keep_alive(), json_str);
 	result->set_string_body(string_body);
+
+	return true;
+}
+
+bool WMSHandler::Test(const std::string& request_body, std::shared_ptr<HandleResult> result)
+{
+	std::cout << "begin test..." << std::endl;
+
+	EtcdStorage etcd_storage;
+	etcd_storage.SetValue("test_time", "time_value", true, 10);
+
+	std::cout << "end test..." << std::endl;
 
 	return true;
 }

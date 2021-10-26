@@ -4,6 +4,7 @@
 #include "ogr_spatialref.h"
 #include "gdal_alg.h"
 #include <fstream>
+#include <iostream>
 
 TiffDataset::~TiffDataset()
 {
@@ -401,6 +402,8 @@ const std::string& TiffDataset::file_path()
 
 bool TiffDataset::ReadHistogramFile(std::string& file_content)
 {
+	std::cout << "ln_debug: read histogram info from file" << std::endl;
+
 	std::string histogram_file = file_path_ + ".histogram.json";
 
 	std::ifstream inFile2(histogram_file, std::ios::binary | std::ios::in);
@@ -428,6 +431,8 @@ bool TiffDataset::ReadHistogramFile(std::string& file_content)
 
 bool TiffDataset::SaveHistogramFile(const std::string& file_content)
 {
+	std::cout << "ln_debug: save histogram info to file" << std::endl;
+
 	std::string histogram_file = file_path_ + ".histogram.json";
 
 	std::ofstream outFile(histogram_file, std::ios::binary | std::ios::out);

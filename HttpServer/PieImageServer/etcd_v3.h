@@ -11,7 +11,8 @@ public:
 
 	EtcdV3(const std::string& address);
 
-	bool SetValue(const std::string& key, const std::string& value, bool set_ttl = true);
+	//ttl µ¥Î» Îª Ãë
+	bool SetValue(const std::string& key, const std::string& value, bool set_ttl, int ttl);
 
 	bool GetValue(const std::string& key, std::string& value);
 

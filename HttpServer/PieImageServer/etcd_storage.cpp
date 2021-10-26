@@ -25,14 +25,14 @@ EtcdStorage::EtcdStorage()
 {
 }
 
-bool EtcdStorage::SetValue(const std::string& key, const std::string& value, bool set_ttl)
+bool EtcdStorage::SetValue(const std::string& key, const std::string& value, bool set_ttl, int ttl)
 {
 #ifdef ETCD_V2
     EtcdV2 etcdv2(host_v2_, port_v2_);
     return etcdv2.SetValue(key, value, set_ttl);
 #else
     EtcdV3 etcdv3(address_v3_);
-    return etcdv3.SetValue(key, value, set_ttl);
+    return etcdv3.SetValue(key, value, set_ttl, ttl);
 #endif
 }
 

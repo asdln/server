@@ -55,6 +55,8 @@ public:
 
 	bool Inspect(const std::string& request_body, std::shared_ptr<HandleResult> result);
 
+	bool Test(const std::string& request_body, std::shared_ptr<HandleResult> result);
+
 	bool GetThumbnail(const std::string& request_body, std::shared_ptr<HandleResult> result);
 
 protected:

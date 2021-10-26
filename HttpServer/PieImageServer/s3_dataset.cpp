@@ -379,7 +379,7 @@ void LinearSampleFromBlock(int nx, int ny, int index_left, int index_top, int in
 					int U = u + 0.5;
 					int V = v + 0.5;
 
-					std::array<int, 4> arr = { v1, v3, v2, v4 };
+					std::array<T, 4> arr = { v1, v3, v2, v4 };
 					T value = arr.at(V * 2 + U);
 					memcpy(pDes + band * nTypeSize, &value, nTypeSize);
 				}
@@ -579,6 +579,9 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 
 bool S3Dataset::ReadHistogramFile(std::string& file_content)
 {
+	if (s3_bucket_name_.empty())
+		return false;
+
 	std::string str_prefix = ".pyra/histogram.json";
 
 	Aws::String key_name = s3_key_name_;
@@ -587,16 +590,22 @@ bool S3Dataset::ReadHistogramFile(std::string& file_content)
 	std::vector<unsigned char> buffer;
 	if (AWSS3GetObject2(s3_client_, s3_bucket_name_, key_name, buffer))
 	{
+		std::cout << "ln_debug: read histogram info from s3 succeeded" << std::endl;
+
 		std::string string_json(buffer.begin(), buffer.end());
 		file_content = string_json;
 		return true;
 	}
 
+	std::cout << "ln_debug: read histogram info from s3 failed" << std::endl;
 	return false;
 }
 
 bool S3Dataset::SaveHistogramFile(const std::string& file_content)
 {
+	if (s3_bucket_name_.empty())
+		return false;
+
 	std::string str_prefix = ".pyra/histogram.json";
 
 	Aws::String key_name = s3_key_name_;
@@ -607,8 +616,12 @@ bool S3Dataset::SaveHistogramFile(const std::string& file_content)
 
 	if (AWSS3PutObject2(s3_client_, s3_bucket_name_, key_name, buffer))
 	{
+		std::cout << "ln_debug: save histogram info to s3 succeeded" << std::endl;
+
 		return true;
 	}
+
+	std::cout << "ln_debug: save histogram info to s3 failed" << std::endl;
 
 	return false;
 }

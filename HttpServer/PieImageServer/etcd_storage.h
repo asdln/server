@@ -11,7 +11,8 @@ public:
 
 	EtcdStorage();
 
-	bool SetValue(const std::string& key, const std::string& value, bool set_ttl/* = true*/);
+    // ttlµ•Œª «√Î
+	bool SetValue(const std::string& key, const std::string& value, bool set_ttl/* = true*/, int ttl = 18000);
 
 	bool GetValue(const std::string& key, std::string& value);
 

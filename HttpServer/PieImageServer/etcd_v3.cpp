@@ -36,7 +36,7 @@ EtcdV3::EtcdV3(const std::string& address) : address_(address)
 
 }
 
-bool EtcdV3::SetValue(const std::string& key, const std::string& value, bool set_ttl)
+bool EtcdV3::SetValue(const std::string& key, const std::string& value, bool set_ttl, int ttl)
 {
 	try
 	{
@@ -46,7 +46,8 @@ bool EtcdV3::SetValue(const std::string& key, const std::string& value, bool set
 
 		if (set_ttl)
 		{
-			etcd::Response resp = etcd.leasegrant(18000).get();
+			//ttl 单位为 秒
+			etcd::Response resp = etcd.leasegrant(ttl).get();
             response_task = etcd.set(prefix_ + key, value, resp.value().lease());
 		}
 		else
@@ -191,10 +192,11 @@ bool EtcdV3::Unlock(const std::string& key)
 {
 	try
 	{
+		//直接删除锁定目录。使用unlock不行，不知道什么原因
 		etcd::Client& etcd = GetEtcdClient(address_);
-		pplx::task<etcd::Response> response_task = etcd.unlock(prefix_ + key);
-
-		etcd::Response response = response_task.get(); // can throw
+		etcd::Response response = etcd.rmdir(prefix_ + key, true).get();
+// 		pplx::task<etcd::Response> response_task = etcd.unlock(prefix_ + key);
+// 		etcd::Response response = response_task.get();
 		if (!response.is_ok())
 		{
 			LOG(ERROR) << "Unlock failed, details: " << response.error_message();
