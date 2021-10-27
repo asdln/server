@@ -59,6 +59,8 @@ public:
 
 	bool Open(const std::string& path, int dataset_count);
 
+	void DoStatistic();
+
 	std::string ToJson();
 
 	bool FromJson(const std::string& json);

@@ -379,7 +379,7 @@ void LinearSampleFromBlock(int nx, int ny, int index_left, int index_top, int in
 					int U = u + 0.5;
 					int V = v + 0.5;
 
-					std::array<int, 4> arr = { v1, v3, v2, v4 };
+					std::array<T, 4> arr = { v1, v3, v2, v4 };
 					T value = arr.at(V * 2 + U);
 					memcpy(pDes + band * nTypeSize, &value, nTypeSize);
 				}

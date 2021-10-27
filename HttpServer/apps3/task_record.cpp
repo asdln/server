@@ -317,66 +317,6 @@ TaskRecord::~TaskRecord()
 	long long end_sec = std::chrono::duration_cast<std::chrono::seconds>(d).count();
 
 	std::cout << "process finished, total time: " << end_sec - start_sec_ << " seconds" << std::endl;
-
-	S3Dataset* dataset = new S3Dataset;
-	std::cout << "s3cachekey " << save_bucket_key_ << std::endl;
-
-#ifndef USE_FILE
-
-#ifdef USE_LAMBDA
-	dataset->SetS3Client(&s3_client);
-#endif
-
-#endif // !USE_FILE
-
-	if (dataset->Open(path_))
-	{
-		dataset->SetS3CacheKey(save_bucket_key_);
-
-		HistogramPtr histogram_res = nullptr;
-		int band_count = dataset->GetBandCount();
-
-		std::string histogram_content;
-		if (dataset->ReadHistogramFile(histogram_content))
-		{
-			std::cout << "histogram file already exist..." << std::endl;
-		}
-		else
-		{
-			std::cout << "begin compute histogram ..." << std::endl;
-			Histogram_ContainerSTL container;
-
-			for (int i = 0; i < band_count; i++)
-			{
-				HistogramPtr histogram = ComputerHistogram(dataset, i + 1, false/*g_complete_statistic*/, have_nodata_value_, nodata_value_);
-				container.histograms.push_back(histogram);
-			}
-
-			std::ostringstream os;
-			boost::archive::binary_oarchive oa(os);
-			oa << container;
-
-			histogram_content = os.str();
-			dataset->SaveHistogramFile(histogram_content);
-
-			std::cout << "end compute histogram ..." << std::endl;
-		}
-	}
-
-#ifndef USE_FILE
-
-#ifdef USE_LAMBDA
-	dataset->SetS3Client(nullptr);
-#endif
-
-#endif // !USE_FILE
-
-	delete dataset;
-	dataset = nullptr;
-
-	d = std::chrono::system_clock::now().time_since_epoch();
-	long long end_sec2 = std::chrono::duration_cast<std::chrono::seconds>(d).count();
-	std::cout << "histogram total time: " << end_sec2 - end_sec << " seconds" << std::endl;
 }
 
 bool TaskRecord::Open(const std::string& path, int dataset_count)
@@ -573,6 +513,84 @@ bool TaskRecord::Open(const std::string& path, int dataset_count)
 	std::cout << "begin: finished tile: " << finished << "; unfinished tile : " << unfinished << std::endl;
 	
 	return true;
+}
+
+void TaskRecord::DoStatistic()
+{
+	std::chrono::system_clock::duration d = std::chrono::system_clock::now().time_since_epoch();
+	long long end_sec = std::chrono::duration_cast<std::chrono::seconds>(d).count();
+
+	S3Dataset* dataset = new S3Dataset;
+	std::cout << "s3cachekey " << save_bucket_key_ << std::endl;
+
+#ifndef USE_FILE
+
+#ifdef USE_LAMBDA
+
+	Aws::Client::ClientConfiguration config;
+
+	if (!aws_region_.empty())
+	{
+		config.region = aws_region_;
+	}
+
+	config.caFile = "/etc/pki/tls/certs/ca-bundle.crt";
+
+	auto credentialsProvider = Aws::MakeShared<Aws::Auth::EnvironmentAWSCredentialsProvider>(TAG);
+	Aws::S3::S3Client s3_client(credentialsProvider, config);
+	dataset->SetS3Client(&s3_client);
+#endif
+
+#endif // !USE_FILE
+
+	if (dataset->Open(path_))
+	{
+		dataset->SetS3CacheKey(save_bucket_key_);
+
+		HistogramPtr histogram_res = nullptr;
+		int band_count = dataset->GetBandCount();
+
+		std::string histogram_content;
+		if (dataset->ReadHistogramFile(histogram_content))
+		{
+			std::cout << "histogram file already exist..." << std::endl;
+		}
+		else
+		{
+			std::cout << "begin compute histogram ..." << std::endl;
+			Histogram_ContainerSTL container;
+
+			for (int i = 0; i < band_count; i++)
+			{
+				HistogramPtr histogram = ComputerHistogram(dataset, i + 1, false/*g_complete_statistic*/, have_nodata_value_, nodata_value_);
+				container.histograms.push_back(histogram);
+			}
+
+			std::ostringstream os;
+			boost::archive::binary_oarchive oa(os);
+			oa << container;
+
+			histogram_content = os.str();
+			dataset->SaveHistogramFile(histogram_content);
+
+			std::cout << "end compute histogram ..." << std::endl;
+		}
+	}
+
+#ifndef USE_FILE
+
+#ifdef USE_LAMBDA
+	dataset->SetS3Client(nullptr);
+#endif
+
+#endif // !USE_FILE
+
+	delete dataset;
+	dataset = nullptr;
+
+	d = std::chrono::system_clock::now().time_since_epoch();
+	long long end_sec2 = std::chrono::duration_cast<std::chrono::seconds>(d).count();
+	std::cout << "histogram total time: " << end_sec2 - end_sec << " seconds" << std::endl;
 }
 
 std::string TaskRecord::ToJson()
