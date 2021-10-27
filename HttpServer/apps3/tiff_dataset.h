@@ -81,7 +81,7 @@ protected:
 
 	void* rpc_transform_arg;
 
-	bool m_bUsePRC;
+	bool m_bUsePRC = false;
 
     std::string file_path_;
 };

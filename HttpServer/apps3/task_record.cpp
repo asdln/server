@@ -551,7 +551,7 @@ void TaskRecord::DoStatistic()
 		int band_count = dataset->GetBandCount();
 
 		std::string histogram_content;
-		if (dataset->ReadHistogramFile(histogram_content))
+		if (force_ == 0 && dataset->ReadHistogramFile(histogram_content))
 		{
 			std::cout << "histogram file already exist..." << std::endl;
 		}

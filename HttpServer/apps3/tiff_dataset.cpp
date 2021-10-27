@@ -73,6 +73,7 @@ bool TiffDataset::Open(const std::string& path)
 	}
 	else
 	{
+		m_bUsePRC = false;
 		if (poDataset_->GetSpatialRef() != nullptr)
 		{
 			poSpatialReference_ = poDataset_->GetSpatialRef()->Clone();
