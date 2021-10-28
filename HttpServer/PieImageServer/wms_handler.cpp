@@ -16,6 +16,8 @@ std::string g_s3_pyramid_dir;
 
 unsigned char WMSHandler::cache_tag_ = 0;
 
+long long GetMemUsed();
+
 bool WMSHandler::Handle(const Url& url, const std::string& request_body, std::shared_ptr<HandleResult> result)
 {
 	std::string request;
@@ -1017,6 +1019,7 @@ bool WMSHandler::Inspect(const std::string& request_body, std::shared_ptr<Handle
  		obj_benchmark.Add("max_qps", (uint32)max_qps);
  		obj_benchmark.Add("average_time", average_time);
  		obj_benchmark.Add("last_time", (int64)last_time);
+		obj_benchmark.Add("mem_used", (int64)GetMemUsed());
 
 		obj_benchmarks.Add(obj_benchmark);
 	}

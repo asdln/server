@@ -242,7 +242,7 @@ int TiffDataset::GetEPSG()
 std::string TiffDataset::GetWKT()
 {
 	if (std::string(poDataset_->GetProjectionRef()).empty())
-		return nullptr;
+		return "";
 
 	char* wkt = nullptr;
 	if (poSpatialReference_)
