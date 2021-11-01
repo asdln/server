@@ -520,10 +520,14 @@ void TaskRecord::DoStatistic()
 	std::chrono::system_clock::duration d = std::chrono::system_clock::now().time_since_epoch();
 	long long end_sec = std::chrono::duration_cast<std::chrono::seconds>(d).count();
 
-	S3Dataset* dataset = new S3Dataset;
-	std::cout << "s3cachekey " << save_bucket_key_ << std::endl;
+#ifdef USE_FILE
+	TiffDataset* dataset = new TiffDataset;
+#endif // USE_FILE
 
 #ifndef USE_FILE
+
+	S3Dataset* dataset = new S3Dataset;
+	std::cout << "s3cachekey " << save_bucket_key_ << std::endl;
 
 #ifdef USE_LAMBDA
 
@@ -545,7 +549,10 @@ void TaskRecord::DoStatistic()
 
 	if (dataset->Open(path_))
 	{
+
+#ifndef USE_FILE
 		dataset->SetS3CacheKey(save_bucket_key_);
+#endif
 
 		HistogramPtr histogram_res = nullptr;
 		int band_count = dataset->GetBandCount();

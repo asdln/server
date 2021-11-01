@@ -253,9 +253,9 @@ int main(int argc, char* argv[])
 
 	if (1)
 	{
-		return make_tile("d:/test/GF2_PMS1_E113.7_N23.1_20190311_L1A0003877356-MSS1.tif", 4, 4, "cn-northwest-1"
+		return make_tile("d:/test/202101NDVI_img.tif", 4, 4, "cn-northwest-1"
 			, "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ"
-			, "s3.cn-northwest-1.amazonaws.com.cn", "pie-engine-test/NN/ln/x", 780, 0);
+			, "s3.cn-northwest-1.amazonaws.com.cn", "d:/test/ln-ttt", 780, 0);
 
 // 		return make_tile("/vsis3/pie-engine-ai/ai-images/qVWnbPFqAB8yPzcYRDVkF/0/2f2945e0712c34e5606ff2261f9aaf60/GF2_PMS1_E113.7_N23.1_20190311_L1A0003877356-MSS1.tif", 4, 4, "cn-northwest-1"
 // 			, "uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e", "AKIAT2NCQYSI3X7D52BZ"
