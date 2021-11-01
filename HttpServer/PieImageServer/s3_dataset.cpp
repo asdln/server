@@ -133,7 +133,8 @@ bool LoadTileData(Aws::S3::S3Client* s3_client, const std::string& path
 
 	inFile2.seekg(0, std::ios::beg);
 
-	*buffer = new char[FileSize2];
+	*buffer = (char*)pool->malloc(FileSize2);
+	//*buffer = new char[FileSize2];
 	inFile2.read(*buffer, FileSize2);
 	inFile2.close();
 
@@ -385,7 +386,7 @@ void LinearSampleFromBlock(int nx, int ny, int index_left, int index_top, int in
 				}
 				else
 				{
-					T value = p1 * v1 + p2 * v2 + p3 * v3 + p4 * v4 + 0.5;
+					T value = p1 * v1 + p2 * v2 + p3 * v3 + p4 * v4;
 					memcpy(pDes + band * nTypeSize, &value, nTypeSize);
 				}
 			}
@@ -579,6 +580,12 @@ bool S3Dataset::Read(int nx, int ny, int width, int height,void* pData, int buff
 
 bool S3Dataset::ReadHistogramFile(std::string& file_content)
 {
+#ifdef USE_FILE
+
+	return TiffDataset::ReadHistogramFile(file_content);
+
+#else
+
 	if (s3_bucket_name_.empty())
 		return false;
 
@@ -599,10 +606,19 @@ bool S3Dataset::ReadHistogramFile(std::string& file_content)
 
 	std::cout << "ln_debug: read histogram info from s3 failed" << std::endl;
 	return false;
+
+#endif
+
 }
 
 bool S3Dataset::SaveHistogramFile(const std::string& file_content)
 {
+#ifdef USE_FILE
+
+	return TiffDataset::SaveHistogramFile(file_content);
+
+#else
+
 	if (s3_bucket_name_.empty())
 		return false;
 
@@ -624,4 +640,7 @@ bool S3Dataset::SaveHistogramFile(const std::string& file_content)
 	std::cout << "ln_debug: save histogram info to s3 failed" << std::endl;
 
 	return false;
+
+#endif
+
 }
