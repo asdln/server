@@ -1,0 +1,4 @@
+docker run -it --rm --network app-tier --env ALLOW_NONE_AUTHENTICATION=yes bitnami/etcd:latest etcdctl --endpoints http://etcd-server:2379 --prefix --keys-only=true get /
+
+
+docker run -it --rm --network app-tier --env ALLOW_NONE_AUTHENTICATION=yes bitnami/etcd:latest etcdctl --endpoints http://etcd-server:2379 put /message Hello

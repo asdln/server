@@ -1,0 +1,4 @@
+docker tag image-server-gdal3-etcd3-aws:1.7.2 262870713489.dkr.ecr.cn-northwest-1.amazonaws.com.cn/pie-engine-image-server:image-server-gdal3-etcd3-aws-1.7.2
+
+
+docker run -it --rm --network app-tier -p30026:8083 -v/mnt/data:/mnt/data -e AWS_REGION=cn-northwest-1 -e AWS_SECRET_ACCESS_KEY=uGXq6F4CXnVsRXTU/bLiBFJLjgpD+MPFrTM+z13e -e AWS_ACCESS_KEY_ID=AKIAT2NCQYSI3X7D52BZ -e AWS_S3_ENDPOINT=s3.cn-northwest-1.amazonaws.com.cn image-server-gdal3-etcd3-aws:1.7.0 ./server --etcd_v3_address http://etcd-server:2379
